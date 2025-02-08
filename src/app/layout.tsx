@@ -1,6 +1,9 @@
 import { Toaster } from '@/components/ui/toaster';
+import { queryClient } from '@/utils/query-client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import type { Metadata } from 'next';
-import { ThemeProvider } from '../components/theme-provider';
+import { JotaiProvider } from '../components/providers/jotai-provider';
+import { ThemeProvider } from '../components/providers/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,8 +21,12 @@ export default function RootLayout({
     <html lang='en' suppressHydrationWarning>
       <body className='min-h-svh font-poppins antialiased'>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-          {children}
-          <Toaster />
+          <JotaiProvider>
+            <QueryClientProvider client={queryClient}>
+              {children}
+              <Toaster />
+            </QueryClientProvider>
+          </JotaiProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,11 +1,16 @@
 'use client';
 
-import { FloatingInput } from '@/components/custom-ui/floating-input';
+import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { USER_QUERY_KEYS, useUser } from '@/hooks/use-user';
+import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/auth';
+import { withQuery } from '@/utils';
+import { queryClient } from '@/utils/query-client';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -19,7 +24,6 @@ const signInSchema = z.object({
 
 const signUpSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email'),
     inviteCode: z.string().min(6, 'Please enter a valid invite code'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -39,7 +43,9 @@ export default function AuthPage() {
   const tab = searchParams.get('tab');
   const activeTab = tab === 'signup' ? 'signup' : 'signin';
   const { toast } = useToast();
+  const { isAuthenticated, isLoading } = useUser();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [authCheckHasShownToast, setAuthCheckHasShownToast] = useState(false);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -52,7 +58,6 @@ export default function AuthPage() {
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      name: '',
       email: '',
       inviteCode: '',
       password: '',
@@ -64,20 +69,100 @@ export default function AuthPage() {
     router.push(`/auth?tab=${value}`);
   };
 
+  // Show toast if already authenticated
+  useEffect(() => {
+    console.log(isLoading, isAuthenticated, authCheckHasShownToast);
+    if (!isLoading && isAuthenticated && !authCheckHasShownToast) {
+      toast({
+        title: 'Already logged in',
+        description: 'You are already logged in to your account',
+      });
+      setAuthCheckHasShownToast(true);
+    }
+  }, [isAuthenticated, toast]);
+
+  // Sign in mutation
+  const { mutate: signInMutation, isPending: isSignInLoading } = useMutation({
+    mutationFn: withQuery(signIn),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      toast({
+        title: 'Success',
+        description: 'Signed in successfully',
+      });
+      router.replace('/dashboard');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Sign In Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Sign up mutation
+  const { mutate: signUpMutation, isPending: isSignUpLoading } = useMutation({
+    mutationFn: withQuery(signUp),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      toast({
+        title: 'Success',
+        description: 'Please check your email to verify your account',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Sign Up Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Google sign in mutation
+  const { mutate: signInWithGoogleMutation, isPending: isGoogleLoading } = useMutation({
+    mutationFn: withQuery(signInWithGoogle),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      router.replace('/dashboard');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Google Sign In Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Verify invite code mutation
+  const { mutate: verifyInviteCodeMutation } = useMutation({
+    mutationFn: withQuery(verifyInviteCode),
+    onSuccess: (isValid) => {
+      if (!isValid) {
+        signUpForm.setError('inviteCode', {
+          type: 'manual',
+          message: 'Invalid invite code',
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Verification Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSignInSubmit = (data: SignInFormData) => {
-    toast({
-      title: 'Sign In Attempt',
-      description: `Email: ${data.email}`,
-      variant: 'success',
-    });
+    signInMutation(data);
   };
 
   const onSignUpSubmit = (data: SignUpFormData) => {
-    toast({
-      title: 'Sign Up Attempt',
-      description: `Name: ${data.name}\nEmail: ${data.email}`,
-      variant: 'success',
-    });
+    const { email, password, inviteCode } = data;
+    signUpMutation({ email, password, inviteCode });
   };
 
   // Watch password field in signup form to show/hide confirm password
@@ -85,6 +170,22 @@ export default function AuthPage() {
   useEffect(() => {
     setShowConfirmPassword(!!signUpPassword);
   }, [signUpPassword]);
+
+  // Handle invite code blur
+  const handleInviteCodeBlur = () => {
+    const inviteCode = signUpForm.getValues('inviteCode');
+    if (inviteCode && inviteCode.length >= 6) {
+      verifyInviteCodeMutation(inviteCode);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    signInWithGoogleMutation(undefined);
+  };
+
+  if (isLoading) {
+    return null;
+  }
 
   return (
     <div className='flex min-h-[100vh] flex-col items-center justify-center pt-24 pb-10'>
@@ -117,6 +218,7 @@ export default function AuthPage() {
                       autoCapitalize='none'
                       autoComplete='email'
                       autoCorrect='off'
+                      disabled={isSignInLoading}
                       placeholder='name@example.com'
                       error={signInForm.formState.errors.email?.message}
                       {...signInForm.register('email')}
@@ -126,12 +228,15 @@ export default function AuthPage() {
                     <FloatingInput
                       label='Password'
                       type='password'
+                      disabled={isSignInLoading}
                       placeholder='Enter your password'
                       error={signInForm.formState.errors.password?.message}
                       {...signInForm.register('password')}
                     />
                   </div>
-                  <Button type='submit'>Sign in</Button>
+                  <Button type='submit' disabled={isSignInLoading}>
+                    {isSignInLoading ? 'Signing in...' : 'Sign in'}
+                  </Button>
                 </div>
               </form>
               <div className='relative'>
@@ -144,10 +249,14 @@ export default function AuthPage() {
               </div>
               <Button
                 variant='outline'
+                disabled={isGoogleLoading}
+                onClick={handleGoogleSignIn}
                 className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
               >
                 <Google className='h-4 w-4' />
-                <span className='text-black'>Sign in with Google</span>
+                <span className='text-black'>
+                  {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+                </span>
               </Button>
             </div>
           </TabsContent>
@@ -161,20 +270,12 @@ export default function AuthPage() {
                       label='Invite Code'
                       type='text'
                       autoCapitalize='none'
+                      disabled={isSignUpLoading}
                       placeholder='Enter your invite code'
                       error={signUpForm.formState.errors.inviteCode?.message}
-                      {...signUpForm.register('inviteCode')}
-                    />
-                  </div>
-                  <div>
-                    <FloatingInput
-                      label='Full Name'
-                      type='text'
-                      autoCapitalize='words'
-                      autoComplete='name'
-                      placeholder='John Doe'
-                      error={signUpForm.formState.errors.name?.message}
-                      {...signUpForm.register('name')}
+                      {...signUpForm.register('inviteCode', {
+                        onBlur: handleInviteCodeBlur,
+                      })}
                     />
                   </div>
                   <div>
@@ -184,6 +285,7 @@ export default function AuthPage() {
                       autoCapitalize='none'
                       autoComplete='email'
                       autoCorrect='off'
+                      disabled={isSignUpLoading}
                       placeholder='name@example.com'
                       error={signUpForm.formState.errors.email?.message}
                       {...signUpForm.register('email')}
@@ -193,6 +295,7 @@ export default function AuthPage() {
                     <FloatingInput
                       label='Password'
                       type='password'
+                      disabled={isSignUpLoading}
                       placeholder='Create a password'
                       error={signUpForm.formState.errors.password?.message}
                       {...signUpForm.register('password')}
@@ -203,13 +306,16 @@ export default function AuthPage() {
                       <FloatingInput
                         label='Confirm Password'
                         type='password'
+                        disabled={isSignUpLoading}
                         placeholder='Confirm your password'
                         error={signUpForm.formState.errors.confirmPassword?.message}
                         {...signUpForm.register('confirmPassword')}
                       />
                     </div>
                   )}
-                  <Button type='submit'>Create account</Button>
+                  <Button type='submit' disabled={isSignUpLoading}>
+                    {isSignUpLoading ? 'Creating account...' : 'Create account'}
+                  </Button>
                 </div>
               </form>
               <div className='relative'>
@@ -222,10 +328,14 @@ export default function AuthPage() {
               </div>
               <Button
                 variant='outline'
+                disabled={isGoogleLoading}
+                onClick={handleGoogleSignIn}
                 className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
               >
                 <Google className='h-4 w-4' />
-                <span className='text-black'>Sign up with Google</span>
+                <span className='text-black'>
+                  {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+                </span>
               </Button>
             </div>
           </TabsContent>

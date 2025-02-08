@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils';
 import {
   LucideBarChart2,
   LucideClock,
@@ -9,13 +9,6 @@ import {
   LucideZap,
 } from 'lucide-react';
 import Link from 'next/link';
-
-const navLinks = [
-  { href: '#', label: 'Platform' },
-  { href: '#', label: 'Resources' },
-  { href: '#customers', label: 'Customers' },
-  { href: '#pricing', label: 'Pricing' },
-];
 
 const features = [
   {
