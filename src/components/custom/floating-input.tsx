@@ -1,5 +1,5 @@
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils';
 import * as React from 'react';
 
 export interface FloatingInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -14,18 +14,35 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
     ref
   ) => {
     const id = React.useId();
+    const localRef = React.useRef<HTMLInputElement | null>(null);
     const [focused, setFocused] = React.useState(false);
-    const [internalValue, setInternalValue] = React.useState(value || defaultValue || '');
+    const [internalValue, setInternalValue] = React.useState(value ?? defaultValue ?? '');
 
-    // Handle controlled input
+    // If a controlled value is provided, update internal state
     React.useEffect(() => {
       if (value !== undefined) {
         setInternalValue(value);
       }
     }, [value]);
 
+    // Effect to check for browser-autofilled value
+    React.useEffect(() => {
+      const checkAutofill = () => {
+        const inputValue = localRef.current?.value;
+        if (inputValue && inputValue !== internalValue) {
+          setInternalValue(inputValue);
+        }
+      };
+
+      // Check immediately and after a short delay to catch browser autofill
+      checkAutofill();
+      const timeoutId = setTimeout(checkAutofill, 100);
+      return () => clearTimeout(timeoutId);
+    }, [internalValue]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setInternalValue(e.target.value);
+      const newValue = e.target.value;
+      setInternalValue(newValue);
       onChange?.(e);
     };
 
@@ -38,7 +55,11 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
       setFocused(true);
     };
 
-    const isFloating = focused || !!internalValue;
+    // Sync refs
+    React.useImperativeHandle(ref, () => localRef.current!, []);
+
+    // Float the label if the input is focused or if there is any text
+    const isFloating = focused || !!internalValue || !!localRef.current?.value;
 
     return (
       <div className='relative'>
@@ -46,8 +67,8 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
           <Input
             id={id}
             type={type}
-            value={value}
             defaultValue={defaultValue}
+            value={value !== undefined ? value : undefined}
             className={cn(
               'placeholder:text-transparent focus:placeholder:text-muted-foreground',
               error && 'border-destructive',
@@ -57,7 +78,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             onChange={handleChange}
-            ref={ref}
+            ref={localRef}
             {...props}
           />
           <label
