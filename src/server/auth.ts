@@ -283,7 +283,18 @@ export async function getCurrentUser(): Promise<ActionResponse<User>> {
     } = await supabase.auth.getUser();
 
     if (error) {
-      console.error('[Auth/getCurrentUser]:', error);
+      if (error.name == 'AuthSessionMissingError') {
+        return {
+          data: null,
+          error: {
+            message: 'No session found',
+            status: 401,
+          },
+        };
+      }
+
+      console.error('[Auth/getCurrentUser]:', JSON.stringify(error, null, 2));
+
       return {
         data: null,
         error: {

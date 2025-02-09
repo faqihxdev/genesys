@@ -2,14 +2,14 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  BadgeCheck,
   Bell,
+  Home,
   LayoutDashboard,
   LogOut,
   Monitor,
   Moon,
-  Settings,
   Sun,
+  User as UserIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { User } from '@/types';
+import { User } from '@/types/users';
 
 interface UserDropdownProps {
   user: User;
@@ -97,6 +97,20 @@ export function UserDropdown({
       <DropdownMenuSeparator className='-mx-1 my-1 h-px bg-muted' />
       <div className='flex flex-col'>
         <Link
+          href='/dashboard/account'
+          className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
+        >
+          <UserIcon className='h-4 w-4' />
+          Account
+        </Link>
+        <Link
+          href='/dashboard/notifications'
+          className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
+        >
+          <Bell className='h-4 w-4' />
+          Notifications
+        </Link>
+        <Link
           href='/dashboard'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
@@ -104,25 +118,11 @@ export function UserDropdown({
           Dashboard
         </Link>
         <Link
-          href='/account'
+          href='/'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
-          <Settings className='h-4 w-4' />
-          Settings
-        </Link>
-        <Link
-          href='/account/activity'
-          className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
-        >
-          <BadgeCheck className='h-4 w-4' />
-          Activity
-        </Link>
-        <Link
-          href='/account/notifications'
-          className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
-        >
-          <Bell className='h-4 w-4' />
-          Notifications
+          <Home className='h-4 w-4' />
+          Landing Page
         </Link>
       </div>
       <DropdownMenuSeparator className='-mx-1 my-1 h-px bg-muted' />

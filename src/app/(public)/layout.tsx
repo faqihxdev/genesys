@@ -3,10 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const navLinks = [
-  { href: '#', label: 'Platform' },
-  { href: '#', label: 'Resources' },
-  { href: '/#customers', label: 'Customers' },
-  { href: '/#pricing', label: 'Pricing' },
+  { href: '#features', label: 'Features' },
+  { href: '#customers', label: 'Customers' },
+  { href: '#pricing', label: 'Pricing' },
 ];
 
 export default function PublicLayout({

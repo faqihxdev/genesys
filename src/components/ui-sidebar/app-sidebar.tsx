@@ -4,6 +4,7 @@ import {
   AudioWaveform,
   BookOpen,
   Bot,
+  ChevronsUpDown,
   Command,
   Frame,
   GalleryVerticalEnd,
@@ -16,15 +17,18 @@ import * as React from 'react';
 
 import { NavMain } from '@/components/ui-sidebar/nav-main';
 import { NavProjects } from '@/components/ui-sidebar/nav-projects';
-import { NavUser } from '@/components/ui-sidebar/nav-user';
 import { TeamSwitcher } from '@/components/ui-sidebar/team-switcher';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 
 // This is sample data.
 const data = {
@@ -170,7 +174,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              size='lg'
+              className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
+            >
+              <Avatar>
+                <AvatarImage className='rounded-full w-8 h-8' src='https://github.com/shadcn.png' />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
+              <div className='grid flex-1 text-left text-sm leading-tight'>
+                <span className='truncate font-semibold'>John Doe</span>
+                <span className='truncate text-xs text-muted-foreground'>john.doe@example.com</span>
+              </div>
+              <ChevronsUpDown className='ml-auto size-4' />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

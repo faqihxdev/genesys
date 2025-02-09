@@ -76,11 +76,11 @@ export default async function Home({
               <div className='flex flex-wrap items-center justify-center gap-4'>
                 <Link href='/auth?tab=signup'>
                   <Button size='lg' className='w-full max-w-[160px]'>
-                    Start for free
+                    Start For Free
                   </Button>
                 </Link>
                 <Button size='lg' variant='outline' className='w-full max-w-[160px]'>
-                  Talk to sales
+                  Talk To Sales
                 </Button>
               </div>
             </div>
@@ -174,7 +174,7 @@ export default async function Home({
           </div>
 
           {/* Build Fast Section */}
-          <div className='py-24 border-t'>
+          <div id='features' className='py-24 border-t'>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-12 items-center'>
               <div>
                 <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-6'>
