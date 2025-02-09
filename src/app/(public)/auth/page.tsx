@@ -4,8 +4,8 @@ import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { USER_QUERY_KEYS, useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { USER_QUERY_KEYS, useUser } from '@/hooks/use-user';
 import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/auth';
 import { withQuery } from '@/utils';
 import { queryClient } from '@/utils/query-client';
@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -43,9 +43,9 @@ export default function AuthPage() {
   const tab = searchParams.get('tab');
   const activeTab = tab === 'signup' ? 'signup' : 'signin';
   const { toast } = useToast();
-  const { isAuthenticated, isLoading } = useUser();
+  const { isAuthenticated, isLoading } = useAuth();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [authCheckHasShownToast, setAuthCheckHasShownToast] = useState(false);
+  const authCheckHasShownToast = useRef(false);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -71,21 +71,20 @@ export default function AuthPage() {
 
   // Show toast if already authenticated
   useEffect(() => {
-    console.log(isLoading, isAuthenticated, authCheckHasShownToast);
-    if (!isLoading && isAuthenticated && !authCheckHasShownToast) {
+    if (!isLoading && isAuthenticated && !authCheckHasShownToast.current) {
       toast({
         title: 'Already logged in',
         description: 'You are already logged in to your account',
       });
-      setAuthCheckHasShownToast(true);
+      authCheckHasShownToast.current = true;
     }
-  }, [isAuthenticated, toast]);
+  }, [isAuthenticated]);
 
   // Sign in mutation
   const { mutate: signInMutation, isPending: isSignInLoading } = useMutation({
     mutationFn: withQuery(signIn),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
       toast({
         title: 'Success',
         description: 'Signed in successfully',
@@ -105,7 +104,7 @@ export default function AuthPage() {
   const { mutate: signUpMutation, isPending: isSignUpLoading } = useMutation({
     mutationFn: withQuery(signUp),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
       toast({
         title: 'Success',
         description: 'Please check your email to verify your account',
@@ -124,7 +123,7 @@ export default function AuthPage() {
   const { mutate: signInWithGoogleMutation, isPending: isGoogleLoading } = useMutation({
     mutationFn: withQuery(signInWithGoogle),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.session });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
       router.replace('/dashboard');
     },
     onError: (error) => {

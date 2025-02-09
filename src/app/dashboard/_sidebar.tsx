@@ -18,8 +18,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import { useUser } from '@/hooks/use-user';
-import { cn } from '@/utils';
+import { useAuth } from '@/hooks/use-auth';
 import {
   Activity,
   ChartNoAxesGantt,
@@ -33,6 +32,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -95,9 +95,8 @@ const navigationOptions = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useUser();
+  const { user } = useAuth();
   const { theme, systemTheme } = useTheme();
-  const resolvedTheme = theme === 'system' ? systemTheme : theme;
 
   // Helper function to check if a path is active
   const isPathActive = (itemUrl: string) => {
@@ -118,22 +117,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   size='lg'
                   className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
                 >
-                  <div
-                    className={cn(
-                      'flex aspect-square size-8 items-center justify-center rounded-lg',
-                      'dark:bg-white bg-sidebar-primary'
-                    )}
-                  >
-                    {/* <Logo
-                      width={128}
-                      height={128}
-                      className='size-6'
-                      variant={resolvedTheme === 'dark' ? 'blue' : 'white'}
-                    /> */}
-                  </div>
+                  <Image
+                    src='/genesys-logo.png'
+                    alt='Genesys Logo'
+                    width={128}
+                    height={128}
+                    className='size-7 mx-1'
+                  />
                   <div className='grid flex-1 text-left text-sm leading-tight'>
-                    <span className='truncate font-semibold'>Admin Dashboard</span>
-                    <span className='truncate text-xs'>PYPHub</span>
+                    <span className='truncate font-semibold'>Genesys Dashboard</span>
+                    <span className='truncate text-xs'>Admin Panel</span>
                   </div>
                   <ChevronsUpDown className='ml-auto size-4' />
                 </SidebarMenuButton>

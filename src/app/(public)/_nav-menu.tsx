@@ -1,10 +1,10 @@
 'use client';
 
+import { Avatar } from '@/components/custom/avatar';
 import { UserDropdown } from '@/components/custom/user-dropdown';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useUser } from '@/hooks/use-user';
+import { useAuth } from '@/hooks/use-auth';
 import { LucideMenu } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,13 +13,10 @@ interface NavMenuProps {
 }
 
 export function NavMenu({ navLinks }: NavMenuProps) {
-  const { user, isAuthenticated } = useUser();
+  const { user, isAuthenticated } = useAuth();
 
-  const renderAvatar = (size: number) => (
-    <Avatar className={`h-${size} w-${size}`}>
-      <AvatarImage src={user?.avatar} alt={user?.email} />
-      <AvatarFallback>{user?.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
-    </Avatar>
+  const renderAvatar = (size: 'sm' | 'md' | 'lg' | 'xl') => (
+    <Avatar user={user} size={size} shape='circle' />
   );
 
   const renderNavLinks = () =>
@@ -55,8 +52,8 @@ export function NavMenu({ navLinks }: NavMenuProps) {
         {/* Desktop User Dropdown */}
         <div className='hidden sm:block'>
           <UserDropdown user={user} showOnHover>
-            <button className='flex items-center rounded-full border bg-background transition-all hover:ring-foreground hover:ring-2'>
-              {renderAvatar(9)}
+            <button className='flex items-center rounded-full border bg-background transition-all hover:ring-primary hover:ring-2'>
+              {renderAvatar('sm')}
             </button>
           </UserDropdown>
         </div>
@@ -66,7 +63,7 @@ export function NavMenu({ navLinks }: NavMenuProps) {
           {renderMobileSheet(
             <>
               <div className='flex items-center gap-2 py-2'>
-                {renderAvatar(8)}
+                {renderAvatar('sm')}
                 <div className='flex flex-col'>
                   <span className='text-sm font-medium'>{user.email?.split('@')[0]}</span>
                   <span className='text-xs text-muted-foreground'>{user.email}</span>

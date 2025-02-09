@@ -16,8 +16,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { Avatar } from '@/components/custom/avatar';
 import { Spinner } from '@/components/custom/loading';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +25,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/hooks/use-user';
 import { User } from '@/types';
 
 interface UserDropdownProps {
@@ -48,7 +48,7 @@ export function UserDropdown({
   const { toast } = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { signOut, isSigningOut } = useUser();
+  const { signOut, isSigningOut } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
@@ -87,12 +87,7 @@ export function UserDropdown({
     <div className='w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg bg-popover p-1 text-popover-foreground shadow-md'>
       <div className='p-0 font-normal'>
         <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
-          <Avatar className='h-8 w-8 rounded-lg'>
-            <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className='rounded-lg'>
-              {displayName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <Avatar user={user} size='sm' shape='square' />
           <div className='grid flex-1 text-left text-sm leading-tight'>
             <span className='truncate font-semibold'>{displayName}</span>
             <span className='truncate text-xs text-muted-foreground'>{user.email}</span>

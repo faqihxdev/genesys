@@ -1,4 +1,5 @@
 import { NavMenu } from '@/app/(public)/_nav-menu';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const navLinks = [
@@ -20,14 +21,22 @@ export default function PublicLayout({
         <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex h-16 items-center justify-between'>
             <div className='flex items-center'>
-              <Link href='/' className='font-bold text-xl mr-4'>
-                Genesys
+              <Link href='/' className='flex items-center gap-2 mr-4'>
+                <Image
+                  src='/genesys-logo.png'
+                  alt='Genesys Logo'
+                  width={128}
+                  height={128}
+                  className='h-8 w-8'
+                />
+                <span className='font-bold text-xl leading-none'>Genesys</span>
               </Link>
-              <div className='inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/30 border px-3 py-1 mr-8'>
-                <span className='text-[11px] font-medium text-purple-700 dark:text-purple-300 whitespace-nowrap'>
-                  Alpha Release • Invite Only
+              <div className='inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/30 border px-3 py-1 mr-8'>
+                <span className='text-[11px] font-medium text-indigo-700 dark:text-indigo-300 whitespace-nowrap'>
+                  Alpha Release
                 </span>
               </div>
+
               <div className='hidden lg:flex items-center space-x-6'>
                 {navLinks.map((link) => (
                   <Link

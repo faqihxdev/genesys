@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { getSession } from '@/server/auth';
+import { getCurrentUser } from '@/server/auth';
 import { generateBreadcrumbs } from '@/utils';
 import { redirect } from 'next/navigation';
 import * as React from 'react';
@@ -26,9 +26,9 @@ interface LayoutProps {
  * Handles authentication, layout structure, and error boundaries
  */
 export default async function AdminLayout({ children, params }: LayoutProps) {
-  const session = await getSession();
+  const user = await getCurrentUser();
 
-  if (!session?.data?.session) {
+  if (!user) {
     redirect('/auth');
   }
 

@@ -8,6 +8,7 @@ import {
   LucideShieldCheck,
   LucideZap,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const features = [
@@ -511,8 +512,15 @@ export default async function Home({
         <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16'>
           <div className='grid grid-cols-2 md:grid-cols-4 gap-8'>
             <div>
-              <Link href='/' className='font-bold text-xl mb-4 block'>
-                Genesys
+              <Link href='/' className='flex items-center gap-2 mb-4'>
+                <Image
+                  src='/genesys-logo.png'
+                  alt='Genesys Logo'
+                  width={32}
+                  height={32}
+                  className='h-8 w-8'
+                />
+                <span className='font-bold text-xl'>Genesys</span>
               </Link>
               <p className='text-sm text-muted-foreground mb-4 max-w-sm'>
                 AI-powered customer behavior simulation platform for the next generation of

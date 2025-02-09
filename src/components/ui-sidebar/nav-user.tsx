@@ -2,8 +2,8 @@
 
 import { ChevronsUpDown } from 'lucide-react';
 
+import { Avatar } from '@/components/custom/avatar';
 import { UserDropdown } from '@/components/custom/user-dropdown';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -28,12 +28,7 @@ export function NavUser({ user }: NavUserProps) {
             size='lg'
             className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
           >
-            <Avatar className='h-8 w-8 rounded-lg'>
-              <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className='rounded-lg'>
-                {displayName.slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <Avatar user={user} size='sm' shape='square' />
             <div className='grid flex-1 text-left text-sm leading-tight'>
               <span className='truncate font-semibold'>{displayName}</span>
               <span className='truncate text-xs text-muted-foreground'>{user.email}</span>
