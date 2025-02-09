@@ -1,4 +1,6 @@
-import { getSession } from '@/server/auth';
+'use client';
+
+import { getCurrentUser } from '@/server/auth';
 import { withQuery } from '@/utils';
 import { queryClient } from '@/utils/query-client';
 import { createClient } from '@/utils/supabase/client';
@@ -8,7 +10,7 @@ import { useEffect, useState } from 'react';
 
 // Query keys for caching
 export const USER_QUERY_KEYS = {
-  session: ['session'] as const,
+  user: ['user'] as const,
 } as const;
 
 /**
@@ -16,15 +18,15 @@ export const USER_QUERY_KEYS = {
  * Primarily used for UI state management and real-time session updates
  * Does NOT handle auth protection (that's done server-side)
  */
-export function useUser() {
+export function useAuth() {
   const router = useRouter();
   const supabase = createClient();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Fetch session query for UI updates
-  const { data, isLoading } = useQuery({
-    queryKey: USER_QUERY_KEYS.session,
-    queryFn: withQuery(getSession),
+  const { data: user, isLoading } = useQuery({
+    queryKey: USER_QUERY_KEYS.user,
+    queryFn: withQuery(getCurrentUser),
     retry: false,
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
     refetchOnMount: true,
@@ -52,9 +54,9 @@ export function useUser() {
       setIsSigningOut(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      await queryClient.resetQueries({ queryKey: USER_QUERY_KEYS.session });
+      await queryClient.resetQueries({ queryKey: USER_QUERY_KEYS.user });
     } catch (error) {
-      console.error('[useUser/signOut]:', error);
+      console.error('[useAuth/signOut]:', error);
       throw error;
     } finally {
       setIsSigningOut(false);
@@ -63,9 +65,8 @@ export function useUser() {
 
   return {
     isLoading,
-    isAuthenticated: !!data?.session,
-    session: data?.session,
-    user: data?.user,
+    isAuthenticated: !!user,
+    user,
     signOut,
     isSigningOut,
   };

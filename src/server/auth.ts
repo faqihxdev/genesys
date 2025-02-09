@@ -1,5 +1,6 @@
 'use server';
 
+import env from '@/env';
 import {
   ActionResponse,
   ResetPasswordCredentials,
@@ -10,6 +11,7 @@ import {
 } from '@/types';
 import { createClient } from '@/utils/supabase/server';
 import { Session } from '@supabase/supabase-js';
+
 /**
  * @description Sign up a new user with email and password
  * @param credentials - User signup credentials
@@ -307,59 +309,6 @@ export async function getCurrentUser(): Promise<ActionResponse<User>> {
 }
 
 /**
- * @description Get the current session with authenticated user data
- */
-export async function getSession(): Promise<
-  ActionResponse<{ session: Session | null; user: User | null }>
-> {
-  try {
-    const supabase = await createClient();
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      console.error('[Auth/getSession]:', sessionError);
-      return {
-        data: null,
-        error: {
-          message: sessionError.message,
-          status: sessionError.status,
-        },
-      };
-    }
-
-    // Get authenticated user data
-    const { data: user, error: userError } = await getCurrentUser();
-
-    if (userError) {
-      console.error('[Auth/getSession]: Failed to get authenticated user:', userError);
-      return {
-        data: null,
-        error: userError,
-      };
-    }
-
-    return {
-      data: {
-        session,
-        user,
-      },
-      error: null,
-    };
-  } catch (error) {
-    console.error('[Auth/getSession]:', error);
-    return {
-      data: null,
-      error: {
-        message: 'An unexpected error occurred while getting session.',
-      },
-    };
-  }
-}
-
-/**
  * @description Refresh the current session
  */
 export async function refreshSession(): Promise<
@@ -418,7 +367,7 @@ export async function refreshSession(): Promise<
  */
 export async function verifyInviteCode(code: string): Promise<ActionResponse<boolean>> {
   try {
-    const inviteCode = process.env.INVITE_CODE;
+    const inviteCode = env.INVITE_CODE;
 
     if (!inviteCode) {
       console.error('[Auth/verifyInviteCode]: INVITE_CODE not set in environment variables');

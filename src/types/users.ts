@@ -3,9 +3,7 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 /**
  * @description Extended user type from Supabase with additional custom fields
  */
-export interface User extends Omit<SupabaseUser, 'role' | 'app_metadata' | 'user_metadata'> {
-  avatar?: string;
-}
+export type User = SupabaseUser;
 
 /**
  * @description Credentials required for user sign up
