@@ -72,3 +72,9 @@ export type NewProject = typeof projects.$inferInsert;
 export type ProjectUser = typeof projectUsers.$inferSelect;
 export type NewProjectUser = typeof projectUsers.$inferInsert;
 export type ProjectUserRole = (typeof projectUserRoleEnum.enumValues)[number];
+
+// Types
+export interface ProjectExtended extends Project {
+  role: ProjectUserRole;
+  isDefault: boolean;
+}

@@ -8,10 +8,14 @@ const connectionString = env.SUPABASE_DATABASE_URL;
 
 // Connection options
 const connectionOptions = {
-  max: 1, // Use max 1 connection (required for serverless)
+  max: 3, // Limited pool for serverless
+  idle_timeout: 20, // Close idle connections after 20 seconds
+  connect_timeout: 10, // Connection timeout after 10 seconds
   prepare: false, // Disable prepared statements
   ssl: env.NODE_ENV === 'production', // Enable SSL in production
-  casing: 'snake_case',
+  connection: {
+    application_name: 'genesys', // Add application name for monitoring
+  },
 };
 
 // Create the connection
@@ -22,3 +26,10 @@ export const db = drizzle(client, { schema });
 
 // Helper type for all tables
 export type DbClient = typeof db;
+
+// Handle cleanup on app termination
+process.on('SIGTERM', () => {
+  client.end().catch((err) => {
+    console.error('Error closing database connections:', err);
+  });
+});
