@@ -1,16 +1,7 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Bell,
-  Home,
-  LayoutDashboard,
-  LogOut,
-  Monitor,
-  Moon,
-  Sun,
-  User as UserIcon,
-} from 'lucide-react';
+import { Bell, FolderGit2, Home, LogOut, Monitor, Moon, Sun, User as UserIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -97,32 +88,32 @@ export function UserDropdown({
       <DropdownMenuSeparator className='-mx-1 my-1 h-px bg-muted' />
       <div className='flex flex-col'>
         <Link
-          href='/dashboard/account'
+          href='/account'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
           <UserIcon className='h-4 w-4' />
           Account
         </Link>
         <Link
-          href='/dashboard/notifications'
+          href='/account/notifications'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
           <Bell className='h-4 w-4' />
           Notifications
         </Link>
         <Link
-          href='/dashboard'
+          href='/project/all'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
-          <LayoutDashboard className='h-4 w-4' />
-          Dashboard
+          <FolderGit2 className='h-4 w-4' />
+          All Projects
         </Link>
         <Link
           href='/'
           className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground'
         >
           <Home className='h-4 w-4' />
-          Landing Page
+          Home
         </Link>
       </div>
       <DropdownMenuSeparator className='-mx-1 my-1 h-px bg-muted' />
