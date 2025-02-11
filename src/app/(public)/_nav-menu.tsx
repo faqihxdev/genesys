@@ -73,9 +73,8 @@ export function NavMenu({ navLinks }: NavMenuProps) {
               {renderNavLinks()}
               <hr className='my-2' />
               {[
-                { href: '/dashboard', label: 'Dashboard' },
-                { href: '/account', label: 'Settings' },
-                { href: '/account/activity', label: 'Activity' },
+                { href: '/project/all', label: 'All Projects' },
+                { href: '/account', label: 'Account' },
                 { href: '/account/notifications', label: 'Notifications' },
               ].map(({ href, label }) => (
                 <Link key={href} href={href}>

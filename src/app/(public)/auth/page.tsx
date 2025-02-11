@@ -88,8 +88,9 @@ export default function AuthPage() {
       toast({
         title: 'Success',
         description: 'Signed in successfully',
+        variant: 'success',
       });
-      router.replace('/dashboard');
+      router.replace('/project/all');
     },
     onError: (error) => {
       toast({
@@ -124,7 +125,7 @@ export default function AuthPage() {
     mutationFn: withQuery(signInWithGoogle),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
-      router.replace('/dashboard');
+      router.replace('/project/all');
     },
     onError: (error) => {
       toast({
