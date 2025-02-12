@@ -9,7 +9,63 @@ import type { User } from '@supabase/supabase-js';
 import { and, eq, ne } from 'drizzle-orm';
 
 /**
- * @description Get all projects for a user
+ * @description [CREATE] Create a new project
+ * @param input - The project creation input
+ * @returns Promise with the created project
+ */
+export async function createProject(input: {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+  userId: string;
+}): Promise<ActionResponse<Project>> {
+  try {
+    const { user, error } = await checkUserAuth(input.userId);
+    if (error) return { data: null, error };
+    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
+
+    return await db.transaction(async (tx) => {
+      // Create the project
+      const [project] = await tx
+        .insert(projects)
+        .values({
+          name: input.name,
+          description: input.description,
+        })
+        .returning();
+
+      // Add the creator as owner with default status
+      await tx.insert(projectUsers).values({
+        projectId: project.id,
+        userId: input.userId,
+        role: 'owner',
+        isDefault: input.isDefault || false,
+      });
+
+      // If this should be default, unset any other defaults
+      if (input.isDefault) {
+        await tx
+          .update(projectUsers)
+          .set({ isDefault: false })
+          .where(
+            and(
+              eq(projectUsers.userId, input.userId),
+              ne(projectUsers.projectId, project.id),
+              eq(projectUsers.isDefault, true)
+            )
+          );
+      }
+
+      return { data: project, error: null };
+    });
+  } catch (error) {
+    console.error('[createProject]: ', error);
+    return { data: null, error: { message: 'Failed to create project' } };
+  }
+}
+
+/**
+ * @description [READ] Get all projects for a user
  * @param input - The input object containing userId
  * @returns Promise with the user's projects and their roles
  */
@@ -47,7 +103,7 @@ export async function getProjectByUserId(input: {
 }
 
 /**
- * @description Get a project by ID
+ * @description [READ] Get a project by ID
  * @param input - The input object containing projectId
  * @returns Promise with the project data
  */
@@ -83,7 +139,7 @@ export async function getProjectById(input: {
 }
 
 /**
- * @description Set a project as default for a user and unset all other projects
+ * @description [UPDATE] Set a project as default for a user and unset all other projects
  * @param input - The input object containing userId and projectId
  * @returns Promise with success status
  */
@@ -154,63 +210,7 @@ async function setUserProjectAsDefault(input: {
 }
 
 /**
- * @description Create a new project
- * @param input - The project creation input
- * @returns Promise with the created project
- */
-export async function createProject(input: {
-  name: string;
-  description?: string;
-  isDefault?: boolean;
-  userId: string;
-}): Promise<ActionResponse<Project>> {
-  try {
-    const { user, error } = await checkUserAuth(input.userId);
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
-    return await db.transaction(async (tx) => {
-      // Create the project
-      const [project] = await tx
-        .insert(projects)
-        .values({
-          name: input.name,
-          description: input.description,
-        })
-        .returning();
-
-      // Add the creator as owner with default status
-      await tx.insert(projectUsers).values({
-        projectId: project.id,
-        userId: input.userId,
-        role: 'owner',
-        isDefault: input.isDefault || false,
-      });
-
-      // If this should be default, unset any other defaults
-      if (input.isDefault) {
-        await tx
-          .update(projectUsers)
-          .set({ isDefault: false })
-          .where(
-            and(
-              eq(projectUsers.userId, input.userId),
-              ne(projectUsers.projectId, project.id),
-              eq(projectUsers.isDefault, true)
-            )
-          );
-      }
-
-      return { data: project, error: null };
-    });
-  } catch (error) {
-    console.error('[createProject]: ', error);
-    return { data: null, error: { message: 'Failed to create project' } };
-  }
-}
-
-/**
- * @description Update a project
+ * @description [UPDATE] Update a project
  * @param input - The project update input
  * @returns Promise with the updated project
  */
@@ -292,7 +292,7 @@ export async function updateProject(input: {
 }
 
 /**
- * @description Delete a project
+ * @description [DELETE] Delete a project
  * @param input - The input object containing projectId
  * @returns Promise with success status
  */
@@ -340,8 +340,10 @@ export async function deleteProject(input: {
   }
 }
 
+/* ######################### Helper functions ######################### */
+
 /**
- * @description Check if a user has access to a project
+ * @description [READ] Check if a user has access to a project
  * @param input - The input object containing projectId and userId
  * @returns Promise with access status
  */
@@ -365,10 +367,8 @@ export async function checkProjectAccess(input: {
   }
 }
 
-/* ######################### Helper functions ######################### */
-
 /**
- * @description Helper function to check user authentication and optionally verify user ID
+ * @description [READ] Helper function to check user authentication and optionally verify user ID
  * @param userId - Optional user ID to verify against the current authenticated user
  * @returns Promise with the authenticated user or error
  */
@@ -394,7 +394,7 @@ export async function checkUserAuth(
 }
 
 /**
- * @description Helper function to check if a user has a default project
+ * @description [READ] Helper function to check if a user has a default project
  * @param userId - The user ID to check
  * @returns Promise with boolean indicating if user has a default project
  */
@@ -414,7 +414,7 @@ export async function hasDefaultProject(userId: string): Promise<ActionResponse<
 }
 
 /**
- * @description Helper function to check if a user is project owner
+ * @description [READ] Helper function to check if a user is project owner
  * @param projectId - The project ID to check
  * @param userId - The user ID to check
  * @returns Promise with boolean indicating if user is owner
@@ -444,7 +444,7 @@ export async function isProjectOwner(
 }
 
 /**
- * @description Helper function to get all projects for a user that can be set as default
+ * @description [READ] Helper function to get all projects for a user that can be set as default
  * @param input - The input object containing userId and optional excludeProjectId
  * @returns Promise with array of projects
  */
