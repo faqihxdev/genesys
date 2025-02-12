@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ProjectExtended } from '@/server/db/schema/project';
 import { getDefaultProjectCandidates, updateProject } from '@/server/projects';
 import { withQuery } from '@/utils';
+import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -45,7 +46,7 @@ export function SelectDefaultProjectDialog({
 
   // Get available projects for default selection
   const { data: candidates = [] } = useQuery({
-    queryKey: ['projects', 'candidates', user?.id, currentProjectId],
+    queryKey: queryKeys.projects.candidates(user?.id || '', currentProjectId),
     queryFn: async () => {
       if (!user?.id) throw new Error('User not found');
       const result = await getDefaultProjectCandidates({
@@ -71,7 +72,7 @@ export function SelectDefaultProjectDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['projects'],
+        queryKey: queryKeys.projects.all(),
         refetchType: 'all',
       });
       toast({

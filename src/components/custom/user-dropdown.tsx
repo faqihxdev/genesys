@@ -1,6 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
 import { Bell, FolderGit2, Home, LogOut, Monitor, Moon, Sun, User as UserIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
@@ -38,7 +37,6 @@ export function UserDropdown({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { signOut, isSigningOut } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -65,10 +63,11 @@ export function UserDropdown({
       await signOut();
       setIsOpen(false);
       router.push('/auth');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'An error occurred while signing out.',
+        description:
+          error instanceof Error ? error.message : 'An error occurred while signing out.',
         variant: 'destructive',
       });
     }

@@ -19,13 +19,14 @@ import { useToast } from '@/hooks/use-toast';
 import { createProject, updateProject } from '@/server/projects';
 import { ProjectExtended } from '@/types';
 import { withQuery } from '@/utils';
+import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-const projectSchema = z.object({
+export const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(256, 'Project name is too long'),
   description: z.string().max(1000, 'Description is too long').optional(),
   isDefault: z.boolean().default(false),
@@ -64,7 +65,7 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   }, [mode, project, form]);
 
   const { data: projects } = useQuery({
-    queryKey: ['projects', 'list', user?.id],
+    queryKey: queryKeys.projects.list(user?.id || ''),
     enabled: !!user?.id,
     select: (data: ProjectExtended[]) => data,
   });
@@ -81,7 +82,7 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['projects'],
+        queryKey: queryKeys.projects.all(),
       });
       toast({
         title: 'Project created',
@@ -113,7 +114,7 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['projects'],
+        queryKey: queryKeys.projects.all(),
       });
       toast({
         title: 'Project updated',

@@ -1,11 +1,11 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import * as React from 'react';
+import { HTMLAttributes } from 'react';
 
 import { cn } from '@/utils';
 
-interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {}
+type SpinnerProps = HTMLAttributes<HTMLDivElement>;
 
 export function Spinner({ className, ...props }: SpinnerProps) {
   return (

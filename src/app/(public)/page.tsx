@@ -8,8 +8,15 @@ import {
   LucideShieldCheck,
   LucideZap,
 } from 'lucide-react';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Genesys - AI-Powered Customer Behavior Simulation',
+  description:
+    'Generate synthetic personas and simulate customer behaviors to optimize your conversion funnel.',
+};
 
 const features = [
   {
@@ -39,12 +46,12 @@ const features = [
   },
 ] as const;
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const params = await Promise.resolve(searchParams);
+interface HomeProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
   const featureId = typeof params.f === 'string' ? params.f : 'sim';
   const activeFeature = features.find((f) => f.id === featureId) || features[0];
 

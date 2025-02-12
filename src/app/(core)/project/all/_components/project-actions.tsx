@@ -24,7 +24,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { ProjectExtended } from '@/server/db/schema/project';
 import { deleteProject, getDefaultProjectCandidates, updateProject } from '@/server/projects';
 import { cn, withQuery } from '@/utils';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '@/utils/query-client';
+import { queryKeys } from '@/utils/query-keys';
+import { useMutation } from '@tanstack/react-query';
 import { MoreHorizontal, Pencil, Star, Trash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -40,7 +42,6 @@ export function ProjectActions({ project }: ProjectActionsProps) {
   const [selectDefaultDialogOpen, setSelectDefaultDialogOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const router = useRouter();
 
   const { mutate: updateProjectMutation, isPending: isUpdating } = useMutation({
@@ -63,7 +64,7 @@ export function ProjectActions({ project }: ProjectActionsProps) {
     onSuccess: () => {
       // Invalidate all related queries
       queryClient.invalidateQueries({
-        queryKey: ['projects'],
+        queryKey: queryKeys.projects.all(),
         refetchType: 'all',
       });
       toast({
@@ -106,12 +107,12 @@ export function ProjectActions({ project }: ProjectActionsProps) {
     onSuccess: () => {
       // Invalidate all related queries including the sidebar project queries
       queryClient.invalidateQueries({
-        queryKey: ['projects'],
+        queryKey: queryKeys.projects.all(),
         exact: false,
         refetchType: 'all',
       });
       queryClient.invalidateQueries({
-        queryKey: ['projects', 'detail'],
+        queryKey: queryKeys.projects.detail(project.id),
         exact: false,
         refetchType: 'all',
       });

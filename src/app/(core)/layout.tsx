@@ -25,6 +25,8 @@ import { redirect } from 'next/navigation';
 import { Fragment, ReactNode, Suspense } from 'react';
 import { AppSidebar } from './_sidebar';
 
+export const dynamic = 'force-dynamic';
+
 // Mock notifications data
 const mockNotifications = [
   {
