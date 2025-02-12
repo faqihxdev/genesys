@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 type ServerAction<TParams, TData> = (params: TParams) => Promise<ActionResponse<TData>>;
 type ServerActionNoParams<TData> = () => Promise<ActionResponse<TData>>;
-type ServerActionMultiParams<TParams extends any[], TData> = (
+type ServerActionMultiParams<TParams extends unknown[], TData> = (
   ...params: TParams
 ) => Promise<ActionResponse<TData>>;
 
@@ -21,16 +21,16 @@ export function withQuery<TParams, TData>(
   fn: ServerAction<TParams, TData>
 ): (params: TParams) => Promise<TData>;
 export function withQuery<TData>(fn: ServerActionNoParams<TData>): () => Promise<TData>;
-export function withQuery<TParams extends any[], TData>(
+export function withQuery<TParams extends unknown[], TData>(
   fn: ServerActionMultiParams<TParams, TData>
 ): (...params: TParams) => Promise<TData>;
 export function withQuery<TParams, TData>(
   fn:
     | ServerAction<TParams, TData>
     | ServerActionNoParams<TData>
-    | ServerActionMultiParams<any[], TData>
+    | ServerActionMultiParams<unknown[], TData>
 ) {
-  return async (...params: any[]) => {
+  return async (...params: unknown[]) => {
     // @ts-expect-error - We know this is safe because of the function overloads
     const result = await fn(...params);
 

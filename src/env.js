@@ -13,7 +13,6 @@ const env = createEnv({
     INVITE_CODE: z.string(),
   },
   client: {},
-
   shared: {
     NEXT_PUBLIC_SUPABASE_URL: z.string(),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
