@@ -1,4 +1,4 @@
-import type { ActionResponse } from '@/types/utils';
+import type { ActionResponse } from '@/server/_utils';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -6,43 +6,40 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type ServerAction<TParams, TData> = (params: TParams) => Promise<ActionResponse<TData>>;
-type ServerActionNoParams<TData> = () => Promise<ActionResponse<TData>>;
-type ServerActionMultiParams<TParams extends unknown[], TData> = (
-  ...params: TParams
-) => Promise<ActionResponse<TData>>;
+/**
+ * Wrap a server action that requires an input.
+ *
+ * @param action - A server action function that accepts input and returns ActionResponse.
+ * @returns A function that takes the same input and returns a promise resolving to TOutput.
+ */
+export function withQuery<TInput, TOutput>(
+  action: (input: TInput) => Promise<ActionResponse<TOutput>>
+): (input: TInput) => Promise<TOutput>;
 
 /**
- * @description Wraps a server action to be used with Tanstack Query
- * @param fn - The server action function
- * @returns A wrapped function that throws on error for Tanstack Query
+ * Wrap a server action that does not require an input.
+ *
+ * @param action - A server action function that returns ActionResponse.
+ * @returns A function that returns a promise resolving to TOutput.
  */
-export function withQuery<TParams, TData>(
-  fn: ServerAction<TParams, TData>
-): (params: TParams) => Promise<TData>;
-export function withQuery<TData>(fn: ServerActionNoParams<TData>): () => Promise<TData>;
-export function withQuery<TParams extends unknown[], TData>(
-  fn: ServerActionMultiParams<TParams, TData>
-): (...params: TParams) => Promise<TData>;
-export function withQuery<TParams, TData>(
-  fn:
-    | ServerAction<TParams, TData>
-    | ServerActionNoParams<TData>
-    | ServerActionMultiParams<unknown[], TData>
-) {
-  return async (...params: unknown[]) => {
-    // @ts-expect-error - We know this is safe because of the function overloads
-    const result = await fn(...params);
+export function withQuery<TOutput>(
+  action: () => Promise<ActionResponse<TOutput>>
+): () => Promise<TOutput>;
 
-    if (result.error) {
-      throw new Error(result.error.message);
+/**
+ * Implementation: Calls the action, checks for an error, and returns the data.
+ *
+ * @param action - The server action function.
+ * @returns A wrapped function that can be used with TanStack Query.
+ */
+export function withQuery(action: any): any {
+  return async (input?: any) => {
+    const response = await action(input);
+    if (response.error) {
+      // Optionally, you might want to throw a custom error type.
+      throw new Error(response.error.message);
     }
-
-    if (result.data === null) {
-      throw new Error('No data returned from server action');
-    }
-
-    return result.data;
+    return response.data;
   };
 }
 

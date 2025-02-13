@@ -3,7 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { HTMLAttributes } from 'react';
 
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 
 type SpinnerProps = HTMLAttributes<HTMLDivElement>;
 

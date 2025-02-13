@@ -1,4 +1,4 @@
-import { updateSession } from '@/utils/supabase/middleware';
+import { updateSession } from '@/lib/supabase/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const publicRoutes = ['/', '/auth', '/terms', '/privacy'];

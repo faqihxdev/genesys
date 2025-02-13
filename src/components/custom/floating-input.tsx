@@ -1,5 +1,5 @@
 import { Input } from '@/components/ui/input';
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 import * as React from 'react';
 
 export interface FloatingInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -84,7 +84,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
           <label
             htmlFor={id}
             className={cn(
-              'absolute px-2 bg-background text-muted-foreground transition-all duration-200',
+              'absolute px-2 bg-background leading-none text-muted-foreground transition-all duration-200 rounded-full',
               'pointer-events-none',
               isFloating ? 'left-3 -top-2 text-xs' : 'left-3 top-1/2 -translate-y-1/2 text-sm'
             )}

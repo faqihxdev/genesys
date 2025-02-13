@@ -2,7 +2,7 @@ import { User } from '@supabase/supabase-js';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { AvatarFallback, AvatarImage, Avatar as BaseAvatar } from '@/components/ui/avatar';
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 
 const avatarVariants = cva('', {
   variants: {

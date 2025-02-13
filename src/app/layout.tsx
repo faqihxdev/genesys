@@ -1,5 +1,5 @@
 import { Toaster } from '@/components/ui/toaster';
-import { queryClient } from '@/utils/query-client';
+import { queryClient } from '@/lib/query-client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import type { Metadata } from 'next';
 import { JotaiProvider } from '../components/providers/jotai-provider';

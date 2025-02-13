@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { generateBreadcrumbs } from '@/lib/utils';
 import { getCurrentUser } from '@/server/auth';
-import { generateBreadcrumbs } from '@/utils';
 import { Bell } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Fragment, ReactNode, Suspense } from 'react';

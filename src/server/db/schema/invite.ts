@@ -1,4 +1,4 @@
-import { generateId } from '@/utils';
+import { generateId } from '@/lib/utils';
 import { relations } from 'drizzle-orm';
 import { index, pgEnum, pgTable, varchar } from 'drizzle-orm/pg-core';
 import { timestamps } from './_utils';
