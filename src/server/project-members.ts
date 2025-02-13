@@ -1,56 +1,40 @@
 'use server';
 
-import { getCurrentUser } from '@/server/auth';
 import { db } from '@/server/db';
-import type { ProjectUser } from '@/server/db/schema/project';
 import { projectUsers } from '@/server/db/schema/project';
-import type { ActionResponse } from '@/types/utils';
 import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { createAction } from './_utils';
 import { isProjectOwner } from './projects';
 
-/**
- * @description Get all members of a project
- * @param projectId - The ID of the project
- * @returns Promise with array of project members
- */
-export async function getProjectMembers(projectId: string): Promise<ActionResponse<ProjectUser[]>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
-
-    const members = await db
-      .select()
-      .from(projectUsers)
-      .where(eq(projectUsers.projectId, projectId));
-
-    return { data: members, error: null };
-  } catch (error) {
-    console.error('[getProjectMembers]: ', error);
-    return { data: null, error: { message: 'Failed to get project members' } };
-  }
-}
+// ==================================================
+// CREATE
+// ==================================================
 
 /**
  * @description Add a new member to a project
  * @param input - The input containing projectId, userId, and role
  * @returns Promise with the added project member
  */
-export async function addProjectMember(input: {
-  projectId: string;
-  userId: string;
-  role: 'member' | 'owner';
-}): Promise<ActionResponse<ProjectUser>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
-
+export const addProjectMember = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    userId: z.string().min(1, 'User ID is required'),
+    role: z.enum(['member', 'owner'], {
+      required_error: 'Role is required',
+      invalid_type_error: 'Role must be either member or owner',
+    }),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
     // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner(input.projectId, user.id);
-    if (ownerError) return { data: null, error: ownerError };
+    const { data: isOwner, error: ownerError } = await isProjectOwner({
+      projectId: input.projectId,
+      userId: currentUser.id,
+    });
+    if (ownerError) throw ownerError;
     if (!isOwner) {
-      return { data: null, error: { message: 'Only project owners can add members', status: 403 } };
+      throw new Error('Only project owners can add members');
     }
 
     // Check if user is already a member
@@ -63,7 +47,7 @@ export async function addProjectMember(input: {
       .limit(1);
 
     if (existingMember.length > 0) {
-      return { data: null, error: { message: 'User is already a member of this project' } };
+      throw new Error('User is already a member of this project');
     }
 
     // Add new member
@@ -76,90 +60,63 @@ export async function addProjectMember(input: {
       })
       .returning();
 
-    return { data: newMember, error: null };
-  } catch (error) {
-    console.error('[addProjectMember]: ', error);
-    return { data: null, error: { message: 'Failed to add project member' } };
-  }
-}
+    return newMember;
+  },
+});
+
+// ==================================================
+// READ
+// ==================================================
 
 /**
- * @description Remove a member from a project
- * @param input - The input containing projectId and userId
- * @returns Promise with success status
+ * @description Get all members of a project
+ * @param projectId - The ID of the project
+ * @returns Promise with array of project members
  */
-export async function removeProjectMember(input: {
-  projectId: string;
-  userId: string;
-}): Promise<ActionResponse<boolean>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
+export const getProjectMembers = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    const members = await db
+      .select()
+      .from(projectUsers)
+      .where(eq(projectUsers.projectId, input.projectId));
+    return members;
+  },
+});
 
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner(input.projectId, user.id);
-    if (ownerError) return { data: null, error: ownerError };
-    if (!isOwner) {
-      return {
-        data: null,
-        error: { message: 'Only project owners can remove members', status: 403 },
-      };
-    }
-
-    // Prevent removing the last owner
-    if (input.userId === user.id) {
-      const owners = await db
-        .select()
-        .from(projectUsers)
-        .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
-
-      if (owners.length <= 1) {
-        return {
-          data: null,
-          error: { message: 'Cannot remove the last owner of the project' },
-        };
-      }
-    }
-
-    // Remove member
-    const result = await db
-      .delete(projectUsers)
-      .where(
-        and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.userId, input.userId))
-      )
-      .returning();
-
-    return { data: result.length > 0, error: null };
-  } catch (error) {
-    console.error('[removeProjectMember]: ', error);
-    return { data: null, error: { message: 'Failed to remove project member' } };
-  }
-}
+// ==================================================
+// UPDATE
+// ==================================================
 
 /**
  * @description Update a member's role in a project
  * @param input - The input containing projectId, userId, and new role
  * @returns Promise with the updated project member
  */
-export async function updateProjectMemberRole(input: {
-  projectId: string;
-  userId: string;
-  role: 'member' | 'owner';
-}): Promise<ActionResponse<ProjectUser>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
-
+export const updateProjectMemberRole = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    userId: z.string().min(1, 'User ID is required'),
+    role: z.enum(['member', 'owner'], {
+      required_error: 'Role is required',
+      invalid_type_error: 'Role must be either member or owner',
+    }),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
     // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner(input.projectId, user.id);
-    if (ownerError) return { data: null, error: ownerError };
+    const { data: isOwner, error: ownerError } = await isProjectOwner({
+      projectId: input.projectId,
+      userId: currentUser.id,
+    });
+
+    if (ownerError) throw ownerError;
+
     if (!isOwner) {
-      return {
-        data: null,
-        error: { message: 'Only project owners can update member roles', status: 403 },
-      };
+      throw new Error('Only project owners can update member roles');
     }
 
     // If demoting from owner, check if there will still be at least one owner
@@ -170,10 +127,7 @@ export async function updateProjectMemberRole(input: {
         .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
 
       if (owners.length <= 1 && owners[0].userId === input.userId) {
-        return {
-          data: null,
-          error: { message: 'Cannot demote the last owner of the project' },
-        };
+        throw new Error('Cannot demote the last owner of the project');
       }
     }
 
@@ -186,9 +140,58 @@ export async function updateProjectMemberRole(input: {
       )
       .returning();
 
-    return { data: updatedMember, error: null };
-  } catch (error) {
-    console.error('[updateProjectMemberRole]: ', error);
-    return { data: null, error: { message: 'Failed to update member role' } };
-  }
-}
+    return updatedMember;
+  },
+});
+
+// ==================================================
+// DELETE
+// ==================================================
+
+/**
+ * @description Remove a member from a project
+ * @param input - The input containing projectId and userId
+ * @returns Promise with success status
+ */
+export const removeProjectMember = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    userId: z.string().min(1, 'User ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    // Check if user is project owner
+    const { data: isOwner, error: ownerError } = await isProjectOwner({
+      projectId: input.projectId,
+      userId: currentUser.id,
+    });
+
+    if (ownerError) throw ownerError;
+
+    if (!isOwner) {
+      throw new Error('Only project owners can remove members');
+    }
+
+    // Prevent removing the last owner
+    if (input.userId === currentUser.id) {
+      const owners = await db
+        .select()
+        .from(projectUsers)
+        .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
+
+      if (owners.length <= 1) {
+        throw new Error('Cannot remove the last owner of the project');
+      }
+    }
+
+    // Remove member
+    const result = await db
+      .delete(projectUsers)
+      .where(
+        and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.userId, input.userId))
+      )
+      .returning();
+
+    return result.length > 0;
+  },
+});

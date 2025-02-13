@@ -1,29 +1,29 @@
 'use server';
 
-import { getCurrentUser } from '@/server/auth';
 import { db } from '@/server/db';
 import { projectUsers, projects } from '@/server/db/schema/project';
-import type { Project, ProjectExtended } from '@/types';
-import type { ActionError, ActionResponse } from '@/types/utils';
-import type { User } from '@supabase/supabase-js';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
+import { z } from 'zod';
+import { createAction } from './_utils';
+
+// ==================================================
+// CREATE
+// ==================================================
 
 /**
- * @description [CREATE] Create a new project
+ * @description Create a new project
  * @param input - The project creation input
  * @returns Promise with the created project
  */
-export async function createProject(input: {
-  name: string;
-  description?: string;
-  isDefault?: boolean;
-  userId: string;
-}): Promise<ActionResponse<Project>> {
-  try {
-    const { user, error } = await checkUserAuth(input.userId);
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
+export const createProject = createAction({
+  validator: z.object({
+    name: z.string().min(3, 'Project name must be at least 3 characters'),
+    description: z.string().optional(),
+    isDefault: z.boolean().optional(),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    // Create the project with transaction for atomicity
     return await db.transaction(async (tx) => {
       // Create the project
       const [project] = await tx
@@ -37,7 +37,7 @@ export async function createProject(input: {
       // Add the creator as owner with default status
       await tx.insert(projectUsers).values({
         projectId: project.id,
-        userId: input.userId,
+        userId: currentUser.id,
         role: 'owner',
         isDefault: input.isDefault || false,
       });
@@ -49,34 +49,30 @@ export async function createProject(input: {
           .set({ isDefault: false })
           .where(
             and(
-              eq(projectUsers.userId, input.userId),
+              eq(projectUsers.userId, currentUser.id),
               ne(projectUsers.projectId, project.id),
               eq(projectUsers.isDefault, true)
             )
           );
       }
 
-      return { data: project, error: null };
+      return project;
     });
-  } catch (error) {
-    console.error('[createProject]: ', error);
-    return { data: null, error: { message: 'Failed to create project' } };
-  }
-}
+  },
+});
+
+// ==================================================
+// READ
+// ==================================================
 
 /**
- * @description [READ] Get all projects for a user
- * @param input - The input object containing userId
+ * @description Get all projects for a user
  * @returns Promise with the user's projects and their roles
  */
-export async function getProjectByUserId(input: {
-  userId: string;
-}): Promise<ActionResponse<ProjectExtended[]>> {
-  try {
-    const { user, error } = await checkUserAuth(input.userId);
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
+export const getCurrentUserProjects = createAction({
+  validator: null,
+  requireAuth: true,
+  actionFn: async ({ currentUser }) => {
     const userProjects = await db
       .select({
         id: projects.id,
@@ -90,227 +86,170 @@ export async function getProjectByUserId(input: {
       })
       .from(projects)
       .innerJoin(projectUsers, eq(projects.id, projectUsers.projectId))
-      .where(eq(projectUsers.userId, input.userId));
+      .where(eq(projectUsers.userId, currentUser.id))
+      .orderBy(desc(projectUsers.isDefault), desc(projects.updatedAt));
 
-    return {
-      data: userProjects as ProjectExtended[],
-      error: null,
-    };
-  } catch (error) {
-    console.error('[getProjectByUserId]: ', error);
-    return { data: null, error: { message: 'Failed to get user projects' } };
-  }
-}
+    return userProjects;
+  },
+});
 
 /**
- * @description [READ] Get a project by ID
+ * @description Get a project by ID
  * @param input - The input object containing projectId
  * @returns Promise with the project data
  */
-export async function getProjectById(input: {
-  projectId: string;
-}): Promise<ActionResponse<Project>> {
-  try {
-    const { user, error } = await checkUserAuth();
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
+export const getProjectById = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
     // Check if user has access to this project
     const { data: hasAccess, error: accessError } = await checkProjectAccess({
       projectId: input.projectId,
-      userId: user.id,
+      userId: currentUser.id,
     });
-    if (accessError) return { data: null, error: accessError };
-    if (!hasAccess) return { data: null, error: { message: 'Access denied', status: 403 } };
+
+    if (accessError) throw accessError;
+    if (!hasAccess) {
+      throw new Error('Access denied');
+    }
 
     const project = await db.query.projects.findFirst({
       where: eq(projects.id, input.projectId),
     });
 
     if (!project) {
-      return { data: null, error: { message: 'Project not found' } };
+      throw new Error('Project not found');
     }
 
-    return { data: project, error: null };
-  } catch (error) {
-    console.error('[getProjectById]: ', error);
-    return { data: null, error: { message: 'Failed to get project' } };
-  }
-}
+    return project;
+  },
+});
+
+// ==================================================
+// UPDATE
+// ==================================================
 
 /**
- * @description [UPDATE] Set a project as default for a user and unset all other projects
- * @param input - The input object containing userId and projectId
- * @returns Promise with success status
- */
-async function setUserProjectAsDefault(input: {
-  userId: string;
-  projectId: string;
-}): Promise<ActionResponse<boolean>> {
-  try {
-    const { user, error } = await checkUserAuth(input.userId);
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
-    try {
-      return await db.transaction(async (tx) => {
-        // First check if project exists and user has access
-        const [access] = await tx
-          .select()
-          .from(projectUsers)
-          .where(
-            and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.userId, input.userId))
-          );
-
-        if (!access) {
-          return { data: null, error: { message: 'Project not found or user has no access' } };
-        }
-
-        // First set the new default to avoid potential deadlocks
-        const setResult = await tx
-          .update(projectUsers)
-          .set({ isDefault: true })
-          .where(
-            and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.userId, input.userId))
-          )
-          .returning();
-
-        if (!setResult.length) {
-          throw new Error('Failed to set project as default');
-        }
-
-        // Then unset any other defaults
-        await tx
-          .update(projectUsers)
-          .set({ isDefault: false })
-          .where(
-            and(
-              eq(projectUsers.userId, input.userId),
-              ne(projectUsers.projectId, input.projectId),
-              eq(projectUsers.isDefault, true)
-            )
-          )
-          .returning();
-
-        return { data: true, error: null };
-      });
-    } catch (txError) {
-      return {
-        data: null,
-        error: {
-          message:
-            'Transaction failed: ' + (txError instanceof Error ? txError.message : 'Unknown error'),
-        },
-      };
-    }
-  } catch (error) {
-    console.error('[setUserProjectAsDefault]: ', error);
-    return { data: null, error: { message: 'Failed to set project as default' } };
-  }
-}
-
-/**
- * @description [UPDATE] Update a project
+ * @description Update a project
  * @param input - The project update input
  * @returns Promise with the updated project
  */
-export async function updateProject(input: {
-  id: string;
-  name?: string;
-  description?: string;
-  isDefault?: boolean;
-  userId: string;
-}): Promise<ActionResponse<Project>> {
-  try {
-    const { user, error } = await checkUserAuth(input.userId);
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
+export const updateProject = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    name: z.string().min(3, 'Project name must be at least 3 characters').optional(),
+    description: z.string().optional(),
+    isDefault: z.boolean().optional(),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
     // Check if user has access to this project
     const { data: hasAccess, error: accessError } = await checkProjectAccess({
-      projectId: input.id,
-      userId: user.id,
+      projectId: input.projectId,
+      userId: currentUser.id,
     });
-    if (accessError) return { data: null, error: accessError };
-    if (!hasAccess) return { data: null, error: { message: 'Access denied', status: 403 } };
+    if (accessError) throw accessError;
+    if (!hasAccess) {
+      throw new Error('Access denied');
+    }
 
     return await db.transaction(async (tx) => {
       let project;
 
       // Only update project details if name or description is provided
       if (input.name || input.description) {
-        const updateData: Partial<typeof projects.$inferInsert> = {};
+        const updateData: Partial<typeof projects.$inferInsert> = {
+          updatedAt: new Date(),
+        };
         if (input.name) updateData.name = input.name;
         if (input.description) updateData.description = input.description;
 
         [project] = await tx
           .update(projects)
           .set(updateData)
-          .where(eq(projects.id, input.id))
+          .where(eq(projects.id, input.projectId))
           .returning();
 
         if (!project) {
-          return { data: null, error: { message: 'Project not found' } };
+          throw new Error('Project not found');
         }
       } else {
         // If no project details to update, just get the project
-        [project] = await tx.select().from(projects).where(eq(projects.id, input.id));
+        [project] = await tx.select().from(projects).where(eq(projects.id, input.projectId));
 
         if (!project) {
-          return { data: null, error: { message: 'Project not found' } };
+          throw new Error('Project not found');
         }
       }
 
       // If isDefault is being updated
       if (typeof input.isDefault !== 'undefined') {
         if (input.isDefault) {
-          // Set as default
-          const result = await setUserProjectAsDefault({
-            userId: input.userId,
-            projectId: input.id,
-          });
-          if (result.error) {
-            throw new Error(result.error.message);
-          }
+          // Set as default and unset others
+          await tx
+            .update(projectUsers)
+            .set({ isDefault: false })
+            .where(
+              and(
+                eq(projectUsers.userId, currentUser.id),
+                ne(projectUsers.projectId, input.projectId)
+              )
+            );
+
+          await tx
+            .update(projectUsers)
+            .set({ isDefault: true })
+            .where(
+              and(
+                eq(projectUsers.projectId, input.projectId),
+                eq(projectUsers.userId, currentUser.id)
+              )
+            );
         } else {
           // Just unset default for this project
           await tx
             .update(projectUsers)
             .set({ isDefault: false })
             .where(
-              and(eq(projectUsers.projectId, input.id), eq(projectUsers.userId, input.userId))
+              and(
+                eq(projectUsers.projectId, input.projectId),
+                eq(projectUsers.userId, currentUser.id)
+              )
             );
         }
       }
 
-      return { data: project, error: null };
+      return project;
     });
-  } catch (error) {
-    console.error('[updateProject]: ', error);
-    return { data: null, error: { message: 'Failed to update project' } };
-  }
-}
+  },
+});
+
+// ==================================================
+// DELETE
+// ==================================================
 
 /**
- * @description [DELETE] Delete a project
+ * @description Delete a project
  * @param input - The input object containing projectId
  * @returns Promise with success status
  */
-export async function deleteProject(input: {
-  projectId: string;
-}): Promise<ActionResponse<boolean>> {
-  try {
-    const { user, error } = await checkUserAuth();
-    if (error) return { data: null, error };
-    if (!user) return { data: null, error: { message: 'User not found', status: 404 } };
-
+export const deleteProject = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
     // Check if user has access to this project
     const { data: hasAccess, error: accessError } = await checkProjectAccess({
       projectId: input.projectId,
-      userId: user.id,
+      userId: currentUser.id,
     });
-    if (accessError) return { data: null, error: accessError };
-    if (!hasAccess) return { data: null, error: { message: 'Access denied', status: 403 } };
+    if (accessError) throw accessError;
+    if (!hasAccess) {
+      throw new Error('Access denied');
+    }
 
     // Check if user is the owner
     const [projectUser] = await db
@@ -319,39 +258,37 @@ export async function deleteProject(input: {
       .where(
         and(
           eq(projectUsers.projectId, input.projectId),
-          eq(projectUsers.userId, user.id),
+          eq(projectUsers.userId, currentUser.id),
           eq(projectUsers.role, 'owner')
         )
       );
 
     if (!projectUser) {
-      return {
-        data: null,
-        error: { message: 'Only project owners can delete projects', status: 403 },
-      };
+      throw new Error('Only project owners can delete projects');
     }
 
     const [project] = await db.delete(projects).where(eq(projects.id, input.projectId)).returning();
 
-    return { data: !!project, error: null };
-  } catch (error) {
-    console.error('[deleteProject]: ', error);
-    return { data: null, error: { message: 'Failed to delete project' } };
-  }
-}
+    return !!project;
+  },
+});
 
-/* ######################### Helper functions ######################### */
+// ==================================================
+// HELPER FUNCTIONS
+// ==================================================
 
 /**
- * @description [READ] Check if a user has access to a project
+ * @description Check if a user has access to a project
  * @param input - The input object containing projectId and userId
  * @returns Promise with access status
  */
-export async function checkProjectAccess(input: {
-  projectId: string;
-  userId: string;
-}): Promise<ActionResponse<boolean>> {
-  try {
+export const checkProjectAccess = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    userId: z.string().min(1, 'User ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
     const access = await db
       .select()
       .from(projectUsers)
@@ -360,100 +297,51 @@ export async function checkProjectAccess(input: {
       )
       .limit(1);
 
-    return { data: access.length > 0, error: null };
-  } catch (error) {
-    console.error('[checkProjectAccess]: ', error);
-    return { data: false, error: { message: 'Failed to check project access' } };
-  }
-}
+    return access.length > 0;
+  },
+});
 
 /**
- * @description [READ] Helper function to check user authentication and optionally verify user ID
- * @param userId - Optional user ID to verify against the current authenticated user
- * @returns Promise with the authenticated user or error
- */
-export async function checkUserAuth(
-  userId?: string
-): Promise<{ user: User | null; error: ActionError | null }> {
-  try {
-    // Check authentication
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { user: null, error: authError };
-    if (!user) return { user: null, error: { message: 'Unauthorized', status: 401 } };
-
-    // If userId is provided, verify it matches authenticated user
-    if (userId && user.id !== userId) {
-      return { user: null, error: { message: 'Unauthorized access', status: 403 } };
-    }
-
-    return { user, error: null };
-  } catch (error) {
-    console.error('[checkUserAuth]: ', error);
-    return { user: null, error: { message: 'Authentication check failed', status: 500 } };
-  }
-}
-
-/**
- * @description [READ] Helper function to check if a user has a default project
- * @param userId - The user ID to check
- * @returns Promise with boolean indicating if user has a default project
- */
-export async function hasDefaultProject(userId: string): Promise<ActionResponse<boolean>> {
-  try {
-    const [defaultProject] = await db
-      .select()
-      .from(projectUsers)
-      .where(and(eq(projectUsers.userId, userId), eq(projectUsers.isDefault, true)))
-      .limit(1);
-
-    return { data: !!defaultProject, error: null };
-  } catch (error) {
-    console.error('[hasDefaultProject]: ', error);
-    return { data: false, error: { message: 'Failed to check default project status' } };
-  }
-}
-
-/**
- * @description [READ] Helper function to check if a user is project owner
+ * @description Helper function to check if a user is project owner
  * @param projectId - The project ID to check
  * @param userId - The user ID to check
  * @returns Promise with boolean indicating if user is owner
  */
-export async function isProjectOwner(
-  projectId: string,
-  userId: string
-): Promise<ActionResponse<boolean>> {
-  try {
+export const isProjectOwner = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+    userId: z.string().min(1, 'User ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
     const [projectUser] = await db
       .select()
       .from(projectUsers)
       .where(
         and(
-          eq(projectUsers.projectId, projectId),
-          eq(projectUsers.userId, userId),
+          eq(projectUsers.projectId, input.projectId),
+          eq(projectUsers.userId, input.userId),
           eq(projectUsers.role, 'owner')
         )
       )
       .limit(1);
 
-    return { data: !!projectUser, error: null };
-  } catch (error) {
-    console.error('[isProjectOwner]: ', error);
-    return { data: false, error: { message: 'Failed to check project ownership' } };
-  }
-}
+    return !!projectUser;
+  },
+});
 
 /**
- * @description [READ] Helper function to get all projects for a user that can be set as default
- * @param input - The input object containing userId and optional excludeProjectId
+ * @description Helper function to get all projects for a user that can be set as default
+ * @param input - The input object containing optional excludeProjectId
  * @returns Promise with array of projects
  */
-export async function getDefaultProjectCandidates(input: {
-  userId: string;
-  excludeProjectId?: string;
-}): Promise<ActionResponse<ProjectExtended[]>> {
-  try {
-    const whereConditions = [eq(projectUsers.userId, input.userId)];
+export const getDefaultProjectCandidates = createAction({
+  validator: z.object({
+    excludeProjectId: z.string().optional(),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    const whereConditions = [eq(projectUsers.userId, currentUser.id)];
     if (input.excludeProjectId) {
       whereConditions.push(ne(projects.id, input.excludeProjectId));
     }
@@ -473,9 +361,6 @@ export async function getDefaultProjectCandidates(input: {
       .innerJoin(projectUsers, eq(projects.id, projectUsers.projectId))
       .where(and(...whereConditions));
 
-    return { data: candidates as ProjectExtended[], error: null };
-  } catch (error) {
-    console.error('[getDefaultProjectCandidates]: ', error);
-    return { data: null, error: { message: 'Failed to get project candidates' } };
-  }
-}
+    return candidates;
+  },
+});

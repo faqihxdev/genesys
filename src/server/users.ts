@@ -1,55 +1,61 @@
 'use server';
 
-import type { ActionResponse } from '@/types/utils';
-import supabaseAdmin from '@/utils/supabase/admin-client';
-import { getCurrentUser } from './auth';
+import supabaseAdmin from '@/lib/supabase/admin-client';
+import { z } from 'zod';
+import { createAction } from './_utils';
 
 export interface UserData {
   id: string;
   email: string;
 }
 
+// ==================================================
+// READ
+// ==================================================
+
 /**
  * @description Get user data by ID
  * @param userId - The user ID to get data for
  * @returns Promise with user data
  */
-export async function getUserById(userId: string): Promise<ActionResponse<UserData>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
-
-    const { data: userData, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+export const getUserById = createAction({
+  validator: z.object({
+    userId: z.string().min(1, 'User ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    const { data: userData, error } = await supabaseAdmin.auth.admin.getUserById(input.userId);
     if (error) throw error;
-    if (!userData.user) return { data: null, error: { message: 'User not found' } };
+    if (!userData.user || !userData.user.email) {
+      throw new Error('User not found');
+    }
 
     return {
-      data: {
-        id: userData.user.id,
-        email: userData.user.email || '',
-      },
-      error: null,
+      id: userData.user.id,
+      email: userData.user.email,
     };
-  } catch (error) {
-    console.error('[getUserById]: ', error);
-    return { data: null, error: { message: 'Failed to get user data' } };
-  }
-}
+  },
+});
 
 /**
  * @description Get user data for multiple users by their IDs
  * @param userIds - Array of user IDs to get data for
  * @returns Promise with array of user data
  */
-export async function getUsersByIds(userIds: string[]): Promise<ActionResponse<UserData[]>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
+export const getUsersByIds = createAction({
+  validator: z.object({
+    userIds: z
+      .array(z.string().min(1, 'User ID is required'))
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    // Early return if no userIds provided
+    if (input.userIds.length === 0) {
+      return [];
+    }
 
     // Remove duplicates
-    const uniqueIds = [...new Set(userIds)];
+    const uniqueIds = [...new Set(input.userIds)];
 
     // Get users in batches of 10 to avoid rate limiting
     const batchSize = 10;
@@ -61,7 +67,7 @@ export async function getUsersByIds(userIds: string[]): Promise<ActionResponse<U
 
     const users: UserData[] = [];
     for (const batch of batches) {
-      const promises = batch.map((id) => supabaseAdmin.auth.admin.getUserById(id));
+      const promises = batch.map((id: string) => supabaseAdmin.auth.admin.getUserById(id));
       const results = await Promise.all(promises);
 
       for (const { data, error } of results) {
@@ -75,27 +81,24 @@ export async function getUsersByIds(userIds: string[]): Promise<ActionResponse<U
       }
     }
 
-    return { data: users, error: null };
-  } catch (error) {
-    console.error('[getUsersByIds]: ', error);
-    return { data: null, error: { message: 'Failed to get user data' } };
-  }
-}
+    return users;
+  },
+});
 
 /**
  * @description Search for user by exact email match
  * @param email - The email to search for
  * @returns Promise with user data if found
  */
-export async function searchUsersByEmail(email: string): Promise<ActionResponse<UserData | null>> {
-  try {
-    const { data: user, error: authError } = await getCurrentUser();
-    if (authError) return { data: null, error: authError };
-    if (!user) return { data: null, error: { message: 'Unauthorized', status: 401 } };
-
+export const searchUsersByEmail = createAction({
+  validator: z.object({
+    email: z.string().email('Invalid email format'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
     // Call the RPC function to search user by exact email match
     const { data, error } = await supabaseAdmin.rpc('get_user_by_email', {
-      p_email: email.toLowerCase(),
+      p_email: input.email.toLowerCase(),
     });
 
     if (error) throw error;
@@ -103,17 +106,11 @@ export async function searchUsersByEmail(email: string): Promise<ActionResponse<
     // Since RPC returns a single row or nothing, we can simplify this
     const foundUser = Array.isArray(data) && data.length > 0 ? data[0] : null;
 
-    return {
-      data: foundUser
-        ? {
-            id: foundUser.id,
-            email: foundUser.email,
-          }
-        : null,
-      error: null,
-    };
-  } catch (error) {
-    console.error('[searchUsersByEmail]: ', error);
-    return { data: null, error: { message: 'Failed to search user' } };
-  }
-}
+    return foundUser
+      ? {
+          id: foundUser.id,
+          email: foundUser.email,
+        }
+      : null;
+  },
+});
