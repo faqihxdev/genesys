@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
-import { getProjectById, getProjectByUserId } from '@/server/projects';
-import { cn, withQuery } from '@/utils';
+import { queryKey } from '@/lib/query-keys';
+import { cn, withQuery } from '@/lib/utils';
+import { getCurrentUserProjects, getProjectById } from '@/server/projects';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRightCircle,
@@ -144,21 +145,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Get current project data
   const { data: currentProject } = useQuery({
-    queryKey: ['projects', 'detail', currentProjectId],
-    queryFn: async () => {
-      if (!currentProjectId) return null;
-      return withQuery(getProjectById)({ projectId: currentProjectId });
-    },
+    queryKey: queryKey.projects.getProjectById({ projectId: currentProjectId || '' }),
+    queryFn: () => withQuery(getProjectById)({ projectId: currentProjectId || '' }),
     enabled: !!currentProjectId,
   });
 
   // Get all projects
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['projects', 'list', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not found');
-      return withQuery(getProjectByUserId)({ userId: user.id });
-    },
+    queryKey: queryKey.projects.getCurrentUserProjects(),
+    queryFn: withQuery(getCurrentUserProjects),
     enabled: !!user?.id,
   });
 

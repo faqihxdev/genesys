@@ -4,11 +4,12 @@ import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { USER_QUERY_KEYS, useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/auth';
-import { withQuery } from '@/utils';
-import { queryClient } from '@/utils/query-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -53,7 +54,7 @@ const AuthTabs = ({
   isSignInLoading: boolean;
   isSignUpLoading: boolean;
   isGoogleLoading: boolean;
-  verifyInviteCode: (code: string) => void;
+  verifyInviteCode: (params: { code: string }) => void;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -86,7 +87,7 @@ const AuthTabs = ({
   const handleInviteCodeBlur = () => {
     const inviteCode = signUpForm.getValues('inviteCode');
     if (inviteCode && inviteCode.length >= 6) {
-      verifyInviteCode(inviteCode);
+      verifyInviteCode({ code: inviteCode });
     }
   };
 
@@ -252,7 +253,7 @@ export default function AuthPage() {
   const { mutate: signInMutation, isPending: isSignInLoading } = useMutation({
     mutationFn: withQuery(signIn),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
+      queryClient.invalidateQueries({ queryKey: queryKey.auth.getCurrentUser() });
       toast({
         title: 'Success',
         description: 'Signed in successfully',
@@ -273,7 +274,7 @@ export default function AuthPage() {
   const { mutate: signUpMutation, isPending: isSignUpLoading } = useMutation({
     mutationFn: withQuery(signUp),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
+      queryClient.invalidateQueries({ queryKey: queryKey.auth.getCurrentUser() });
       toast({
         title: 'Success',
         description: 'Please check your email to verify your account',
@@ -293,7 +294,7 @@ export default function AuthPage() {
   const { mutate: signInWithGoogleMutation, isPending: isGoogleLoading } = useMutation({
     mutationFn: withQuery(signInWithGoogle),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.user });
+      queryClient.invalidateQueries({ queryKey: queryKey.auth.getCurrentUser() });
       router.replace('/project/all');
     },
     onError: (error) => {
@@ -327,6 +328,7 @@ export default function AuthPage() {
   });
 
   const onSignInSubmit = (data: SignInFormData) => {
+    console.log('[Auth/onSignInSubmit]:', data);
     signInMutation(data);
   };
 

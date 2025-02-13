@@ -22,10 +22,11 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import { createProjectInvite } from '@/server/invites';
 import { searchUsersByEmail } from '@/server/users';
-import { queryClient } from '@/utils/query-client';
-import { queryKeys } from '@/utils/query-keys';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Check, MailPlus, Trash2, UserPlus } from 'lucide-react';
@@ -64,16 +65,16 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
   });
 
   // Mutation to create project invites
-  const createInviteMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const { data, error } = await createProjectInvite({ projectId, email });
-      if (error) throw error;
-      return data;
-    },
+  const { mutate: createInviteMutation, isPending: isCreatingInvite } = useMutation({
+    mutationFn: withQuery(createProjectInvite),
     onSuccess: () => {
       // Invalidate both project members and invites queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers.all(projectId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectInvites.all(projectId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.projectMembers.getProjectMembers({ projectId }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.invites.getProjectInvites({ projectId }),
+      });
     },
   });
 
@@ -103,7 +104,7 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
     try {
       setIsSearching(true);
       // Search for existing user
-      const { data: existingUser, error } = await searchUsersByEmail(email);
+      const { data: existingUser, error } = await searchUsersByEmail({ email });
 
       if (error) {
         toast({
@@ -159,7 +160,7 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
       await Promise.all(
         inviteList.map(async (member) => {
           try {
-            await createInviteMutation.mutateAsync(member.email);
+            createInviteMutation({ projectId, email: member.email });
           } catch (error: any) {
             // Log individual failures but continue with others
             console.error('[InviteMemberDialog/onSubmit]:', error);
@@ -199,11 +200,11 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
           Invite Members
         </Button>
       </DialogTrigger>
-      <DialogContent className='max-w-2xl'>
+      <DialogContent className='max-w-xl'>
         <DialogHeader>
           <DialogTitle>Invite Project Members</DialogTitle>
           <DialogDescription>
-            Add members to your project. Users without an account will be invited to create one.
+            Users without an account will be invited to create one.
           </DialogDescription>
         </DialogHeader>
 
@@ -297,11 +298,8 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
             >
               Cancel
             </Button>
-            <Button
-              onClick={onSubmit}
-              disabled={inviteList.length === 0 || createInviteMutation.isPending}
-            >
-              {createInviteMutation.isPending ? (
+            <Button onClick={onSubmit} disabled={inviteList.length === 0 || isCreatingInvite}>
+              {isCreatingInvite ? (
                 <Spinner className='mr-2 h-4 w-4' />
               ) : (
                 <UserPlus className='mr-2 h-4 w-4' />

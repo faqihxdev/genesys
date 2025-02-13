@@ -5,9 +5,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth';
 import useHydration from '@/hooks/use-hydration';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import type { ProjectExtended } from '@/server/db/schema/project';
-import { getProjectByUserId } from '@/server/projects';
-import { withQuery } from '@/utils';
+import { getCurrentUserProjects } from '@/server/projects';
 import { useQuery } from '@tanstack/react-query';
 import { Crown, Folder, FolderGit2, Users2 } from 'lucide-react';
 import Link from 'next/link';
@@ -92,12 +93,8 @@ function ProjectsGrid() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['projects', 'list', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not found');
-      const result = await withQuery(getProjectByUserId)({ userId: user.id });
-      return result;
-    },
+    queryKey: queryKey.projects.getCurrentUserProjects(),
+    queryFn: withQuery(getCurrentUserProjects),
     enabled: !!user?.id,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -162,7 +159,7 @@ export default function AllProjectsPage() {
   const isHydrated = useHydration();
   return (
     <div className='pb-8'>
-      <div className='mb-8 space-y-2'>
+      <div className='mb-8 space-y-4'>
         <div className='flex items-center justify-between'>
           <h1 className='text-2xl font-semibold'>All Projects</h1>
           <ProjectDialog mode='create' />

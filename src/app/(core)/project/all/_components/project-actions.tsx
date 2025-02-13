@@ -21,13 +21,13 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { cn, withQuery } from '@/lib/utils';
 import type { ProjectExtended } from '@/server/db/schema/project';
 import { deleteProject, getDefaultProjectCandidates, updateProject } from '@/server/projects';
-import { cn, withQuery } from '@/utils';
-import { queryClient } from '@/utils/query-client';
-import { queryKeys } from '@/utils/query-keys';
 import { useMutation } from '@tanstack/react-query';
-import { MoreHorizontal, Pencil, Star, Trash } from 'lucide-react';
+import { MoreHorizontal, Pencil, Settings, Star, Trash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ProjectDialog } from './project-dialog';
@@ -45,26 +45,11 @@ export function ProjectActions({ project }: ProjectActionsProps) {
   const router = useRouter();
 
   const { mutate: updateProjectMutation, isPending: isUpdating } = useMutation({
-    mutationFn: async (data: { isDefault: boolean }) => {
-      if (!user?.id) throw new Error('User not found');
-
-      const result = await withQuery(updateProject)({
-        id: project.id,
-        userId: user.id,
-        ...data,
-      });
-
-      // Check if the update was successful
-      if (!result) {
-        throw new Error('Failed to update project');
-      }
-
-      return result;
-    },
+    mutationFn: withQuery(updateProject),
     onSuccess: () => {
       // Invalidate all related queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.all(),
+        queryKey: queryKey.projects.getCurrentUserProjects(),
         refetchType: 'all',
       });
       toast({
@@ -92,7 +77,6 @@ export function ProjectActions({ project }: ProjectActionsProps) {
       // If trying to delete default project, check for alternatives
       if (project.isDefault) {
         const candidates = await withQuery(getDefaultProjectCandidates)({
-          userId: user.id,
           excludeProjectId: project.id,
         });
         if (!candidates?.length) {
@@ -107,12 +91,12 @@ export function ProjectActions({ project }: ProjectActionsProps) {
     onSuccess: () => {
       // Invalidate all related queries including the sidebar project queries
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.all(),
+        queryKey: queryKey.projects.getCurrentUserProjects(),
         exact: false,
         refetchType: 'all',
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.detail(project.id),
+        queryKey: queryKey.projects.getProjectById({ projectId: project.id }),
         exact: false,
         refetchType: 'all',
       });
@@ -147,7 +131,6 @@ export function ProjectActions({ project }: ProjectActionsProps) {
       // If trying to unset default, check for alternatives
       if (project.isDefault) {
         const candidates = await withQuery(getDefaultProjectCandidates)({
-          userId: user.id,
           excludeProjectId: project.id,
         });
         if (!candidates?.length) {
@@ -163,7 +146,7 @@ export function ProjectActions({ project }: ProjectActionsProps) {
       }
 
       // Set as default
-      updateProjectMutation({ isDefault: true });
+      updateProjectMutation({ projectId: project.id, isDefault: true });
     } catch (error) {
       console.error('[ProjectActions/toggleDefault]:', error);
       toast({
@@ -201,6 +184,10 @@ export function ProjectActions({ project }: ProjectActionsProps) {
           >
             <Star className='h-4 w-4' />
             {isUpdating ? 'Updating...' : project.isDefault ? 'Remove Default' : 'Set as Default'}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(`/project/${project.id}/settings`)}>
+            <Settings className='h-4 w-4' />
+            Project Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <TooltipProvider>
@@ -256,7 +243,7 @@ export function ProjectActions({ project }: ProjectActionsProps) {
         onSuccess={() => {
           // After selecting new default, proceed with original action
           if (project.isDefault) {
-            updateProjectMutation({ isDefault: false });
+            updateProjectMutation({ projectId: project.id, isDefault: false });
           }
           if (deleteDialogOpen) {
             deleteProjectMutation();

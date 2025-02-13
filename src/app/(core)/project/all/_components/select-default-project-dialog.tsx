@@ -19,10 +19,10 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import type { ProjectExtended } from '@/server/db/schema/project';
 import { getDefaultProjectCandidates, updateProject } from '@/server/projects';
-import { withQuery } from '@/utils';
-import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -46,33 +46,21 @@ export function SelectDefaultProjectDialog({
 
   // Get available projects for default selection
   const { data: candidates = [] } = useQuery({
-    queryKey: queryKeys.projects.candidates(user?.id || '', currentProjectId),
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not found');
-      const result = await getDefaultProjectCandidates({
-        userId: user.id,
+    queryKey: queryKey.projects.getDefaultProjectCandidates({
+      excludeProjectId: currentProjectId,
+    }),
+    queryFn: () =>
+      withQuery(getDefaultProjectCandidates)({
         excludeProjectId: currentProjectId,
-      });
-      if (result.error) throw new Error(result.error.message);
-      return result.data || [];
-    },
+      }),
     enabled: !!user?.id && open, // Only fetch when dialog is open
   });
 
   const { mutate: updateProjectMutation, isPending } = useMutation({
-    mutationFn: async () => {
-      if (!selectedProjectId) throw new Error('No project selected');
-      if (!user?.id) throw new Error('User not found');
-
-      return withQuery(updateProject)({
-        id: selectedProjectId,
-        userId: user.id,
-        isDefault: true,
-      });
-    },
+    mutationFn: withQuery(updateProject),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.all(),
+        queryKey: queryKey.projects.getCurrentUserProjects(),
         refetchType: 'all',
       });
       toast({
@@ -127,7 +115,12 @@ export function SelectDefaultProjectDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => updateProjectMutation()}
+            onClick={() =>
+              updateProjectMutation({
+                projectId: selectedProjectId,
+                isDefault: true,
+              })
+            }
             disabled={!selectedProjectId || isPending}
           >
             {isPending ? 'Updating...' : 'Update Default'}

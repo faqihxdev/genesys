@@ -3,12 +3,11 @@
 import { Spinner } from '@/components/custom/loading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import { acceptProjectInvite, getUserInvites, rejectProjectInvite } from '@/server/invites';
-import { withQuery } from '@/utils';
-import { queryClient } from '@/utils/query-client';
-import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Check, Clock, Mail, X } from 'lucide-react';
@@ -20,15 +19,15 @@ export default function NotificationsPage() {
 
   // Query to get user's invites
   const { data: invites, isLoading } = useQuery({
-    queryKey: queryKeys.projectInvites.user(),
-    queryFn: () => getUserInvites(),
+    queryKey: queryKey.invites.getUserInvites(),
+    queryFn: withQuery(getUserInvites),
   });
 
   // Mutation to accept invite
-  const acceptMutation = useMutation({
+  const { mutate: acceptInvite, isPending: isAccepting } = useMutation({
     mutationFn: withQuery(acceptProjectInvite),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectInvites.user() });
+      queryClient.invalidateQueries({ queryKey: queryKey.invites.getUserInvites() });
       toast({
         title: 'Invite accepted',
         description: 'You have been added to the project.',
@@ -45,10 +44,10 @@ export default function NotificationsPage() {
   });
 
   // Mutation to reject invite
-  const rejectMutation = useMutation({
+  const { mutate: rejectInvite, isPending: isRejecting } = useMutation({
     mutationFn: withQuery(rejectProjectInvite),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectInvites.user() });
+      queryClient.invalidateQueries({ queryKey: queryKey.invites.getUserInvites() });
       toast({
         title: 'Invite rejected',
         description: 'The invite has been rejected.',
@@ -64,16 +63,14 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div className='container mx-auto p-4 space-y-6'>
-      <div className='space-y-2'>
+    <div className='container mx-auto space-y-6'>
+      <div className='space-y-4'>
         <h1 className='text-2xl font-semibold'>Notifications</h1>
         <p className='text-muted-foreground text-sm'>
           View and manage your notification preferences, check system alerts, and stay updated with
           important changes across your projects and teams.
         </p>
       </div>
-
-      <Separator />
 
       <Card>
         <CardHeader>
@@ -85,7 +82,7 @@ export default function NotificationsPage() {
             <div className='flex justify-center p-8'>
               <Spinner />
             </div>
-          ) : !invites?.data?.length ? (
+          ) : !invites?.length ? (
             <div className='flex flex-col items-center justify-center p-8 text-center'>
               <Mail className='h-12 w-12 text-muted-foreground/50' />
               <h3 className='mt-4 text-lg font-semibold'>No pending invites</h3>
@@ -95,7 +92,7 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <div className='space-y-4'>
-              {invites.data.map((invite) => (
+              {invites.map((invite) => (
                 <div
                   key={invite.id}
                   className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border'
@@ -114,8 +111,8 @@ export default function NotificationsPage() {
                     <Button
                       variant='outline'
                       size='sm'
-                      onClick={() => rejectMutation.mutate(invite.id)}
-                      disabled={rejectMutation.isPending}
+                      onClick={() => rejectInvite({ inviteId: invite.id })}
+                      disabled={isRejecting}
                     >
                       <X className='h-4 w-4 mr-1' />
                       Reject
@@ -123,11 +120,14 @@ export default function NotificationsPage() {
                     <Button
                       size='sm'
                       onClick={() =>
-                        acceptMutation.mutate(invite.id, {
-                          onSuccess: () => router.push(`/project/${invite.projectId}`),
-                        })
+                        acceptInvite(
+                          { inviteId: invite.id },
+                          {
+                            onSuccess: () => router.push(`/project/${invite.projectId}`),
+                          }
+                        )
                       }
-                      disabled={acceptMutation.isPending}
+                      disabled={isAccepting}
                     >
                       <Check className='h-4 w-4 mr-1' />
                       Accept

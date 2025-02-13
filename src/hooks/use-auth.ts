@@ -1,17 +1,13 @@
 'use client';
 
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { createClient } from '@/lib/supabase/client';
+import { withQuery } from '@/lib/utils';
 import { getCurrentUser } from '@/server/auth';
-import { withQuery } from '@/utils';
-import { queryClient } from '@/utils/query-client';
-import { createClient } from '@/utils/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-// Query keys for caching
-export const USER_QUERY_KEYS = {
-  user: ['user'] as const,
-} as const;
 
 /**
  * @description Hook for managing user session and auth state
@@ -25,7 +21,7 @@ export function useAuth() {
 
   // Fetch session query for UI updates
   const { data: user, isLoading } = useQuery({
-    queryKey: USER_QUERY_KEYS.user,
+    queryKey: queryKey.auth.getCurrentUser(),
     queryFn: withQuery(getCurrentUser),
     retry: false,
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
@@ -54,7 +50,7 @@ export function useAuth() {
       setIsSigningOut(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      await queryClient.resetQueries({ queryKey: USER_QUERY_KEYS.user });
+      await queryClient.resetQueries({ queryKey: queryKey.auth.getCurrentUser() });
     } catch (error) {
       console.error('[useAuth/signOut]:', error);
       throw error;

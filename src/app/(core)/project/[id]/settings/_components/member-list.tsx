@@ -12,6 +12,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import { getProjectInvites, removeProjectInvite } from '@/server/invites';
 import {
   getProjectMembers,
@@ -20,9 +23,6 @@ import {
 } from '@/server/project-members';
 import { isProjectOwner } from '@/server/projects';
 import { getUsersByIds } from '@/server/users';
-import { withQuery } from '@/utils';
-import { queryClient } from '@/utils/query-client';
-import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Clock, MoreHorizontal, Shield, User } from 'lucide-react';
@@ -37,39 +37,41 @@ export function MemberList({ projectId }: MemberListProps) {
 
   // Query to check if current user is owner
   const { data: isOwner } = useQuery({
-    queryKey: queryKeys.projects.owner(projectId, user?.id),
-    queryFn: () => isProjectOwner(projectId, user?.id || ''),
+    queryKey: queryKey.projects.isProjectOwner({ projectId, userId: user?.id ?? '' }),
+    queryFn: () => withQuery(isProjectOwner)({ projectId, userId: user?.id ?? '' }),
     enabled: !!user?.id,
   });
 
   // Query to get project members
   const { data: members, isLoading: isMembersLoading } = useQuery({
-    queryKey: queryKeys.projectMembers.all(projectId),
-    queryFn: () => getProjectMembers(projectId),
+    queryKey: queryKey.projectMembers.getProjectMembers({ projectId }),
+    queryFn: () => withQuery(getProjectMembers)({ projectId }),
   });
 
   // Query to get project invites
   const { data: invites, isLoading: isInvitesLoading } = useQuery({
-    queryKey: queryKeys.projectInvites.all(projectId),
-    queryFn: () => getProjectInvites(projectId),
-    enabled: !!isOwner?.data,
+    queryKey: queryKey.invites.getProjectInvites({ projectId }),
+    queryFn: () => withQuery(getProjectInvites)({ projectId }),
+    enabled: !!isOwner,
   });
 
   // Query to get user data for all members
   const { data: users, isLoading: isUsersLoading } = useQuery({
-    queryKey: queryKeys.users.byIds(members?.data?.map((m) => m.userId) || []),
-    queryFn: () => getUsersByIds(members?.data?.map((m) => m.userId) || []),
-    enabled: !!members?.data?.length,
+    queryKey: queryKey.users.getUsersByIds({ userIds: members?.map((m) => m.userId) || [] }),
+    queryFn: () => withQuery(getUsersByIds)({ userIds: members?.map((m) => m.userId) || [] }),
+    enabled: !!members?.length,
   });
 
   // Create a map of user IDs to emails for easy lookup
-  const userEmailMap = new Map(users?.data?.map((u) => [u.id, u.email]));
+  const userEmailMap = new Map(users?.map((u) => [u.id, u.email]));
 
   // Mutation to remove member
-  const removeMemberMutation = useMutation({
+  const { mutate: removeMember } = useMutation({
     mutationFn: withQuery(removeProjectMember),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers.all(projectId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.projectMembers.getProjectMembers({ projectId }),
+      });
       toast({
         title: 'Member removed',
         description: 'The member has been removed from the project.',
@@ -85,10 +87,12 @@ export function MemberList({ projectId }: MemberListProps) {
   });
 
   // Mutation to update member role
-  const updateRoleMutation = useMutation({
+  const { mutate: updateRole } = useMutation({
     mutationFn: withQuery(updateProjectMemberRole),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers.all(projectId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.projectMembers.getProjectMembers({ projectId }),
+      });
       toast({
         title: 'Role updated',
         description: "The member's role has been updated.",
@@ -104,10 +108,12 @@ export function MemberList({ projectId }: MemberListProps) {
   });
 
   // Mutation to remove invite
-  const removeInviteMutation = useMutation({
+  const { mutate: removeInvite } = useMutation({
     mutationFn: withQuery(removeProjectInvite),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projectInvites.all(projectId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.invites.getProjectInvites({ projectId }),
+      });
       toast({
         title: 'Invite removed',
         description: 'The invite has been removed.',
@@ -122,7 +128,7 @@ export function MemberList({ projectId }: MemberListProps) {
     },
   });
 
-  if (isMembersLoading || isUsersLoading || (isOwner?.data && isInvitesLoading)) {
+  if (isMembersLoading || isUsersLoading || (isOwner && isInvitesLoading)) {
     return (
       <div className='flex justify-center p-4'>
         <Spinner />
@@ -130,31 +136,24 @@ export function MemberList({ projectId }: MemberListProps) {
     );
   }
 
-  if (!members?.data) {
+  if (!members) {
     return <div className='text-center p-4 text-muted-foreground'>No members found</div>;
   }
 
   return (
     <div className='space-y-4'>
-      {/* Header */}
-      <div className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 py-2 font-medium text-muted-foreground'>
-        <div>User</div>
-        <div>Role</div>
-        <div>Joined</div>
-        {isOwner?.data && <div>Actions</div>}
-      </div>
-
       {/* List */}
       <div className='space-y-2'>
         {/* Members */}
-        {members.data.map((member) => {
+        {members.map((member) => {
           const email = userEmailMap.get(member.userId) || member.userId;
           const initials = email.split('@')[0].slice(0, 2).toUpperCase();
+          const isCurrentUser = member.userId === user?.id;
 
           return (
             <div
               key={member.userId}
-              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 hover:bg-muted/50 rounded-lg'
+              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 pl-3 text-sm bg-accent/20 hover:bg-muted/50 rounded-lg'
             >
               <div className='flex items-center gap-2'>
                 <Avatar className='h-8 w-8'>
@@ -174,11 +173,11 @@ export function MemberList({ projectId }: MemberListProps) {
 
               <div>{format(new Date(member.createdAt), 'MMM d, yyyy')}</div>
 
-              {isOwner?.data && (
+              {isOwner && (
                 <div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant='ghost' className='h-8 w-8 p-0'>
+                      <Button variant='ghost' className='h-8 w-8 p-0' disabled={isCurrentUser}>
                         <MoreHorizontal className='h-4 w-4' />
                       </Button>
                     </DropdownMenuTrigger>
@@ -186,7 +185,7 @@ export function MemberList({ projectId }: MemberListProps) {
                       {member.role === 'member' ? (
                         <DropdownMenuItem
                           onClick={() =>
-                            updateRoleMutation.mutate({
+                            updateRole({
                               projectId,
                               userId: member.userId,
                               role: 'owner',
@@ -198,7 +197,7 @@ export function MemberList({ projectId }: MemberListProps) {
                       ) : (
                         <DropdownMenuItem
                           onClick={() =>
-                            updateRoleMutation.mutate({
+                            updateRole({
                               projectId,
                               userId: member.userId,
                               role: 'member',
@@ -211,7 +210,7 @@ export function MemberList({ projectId }: MemberListProps) {
                       <DropdownMenuItem
                         className='text-destructive'
                         onClick={() =>
-                          removeMemberMutation.mutate({
+                          removeMember({
                             projectId,
                             userId: member.userId,
                           })
@@ -228,11 +227,11 @@ export function MemberList({ projectId }: MemberListProps) {
         })}
 
         {/* Pending Invites */}
-        {isOwner?.data &&
-          invites?.data?.map((invite) => (
+        {isOwner &&
+          invites?.map((invite) => (
             <div
               key={invite.id}
-              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 hover:bg-muted/50 rounded-lg'
+              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 hover:bg-muted/50 rounded-lg text-sm'
             >
               <div className='flex items-center gap-2'>
                 <Avatar className='h-8 w-8'>
@@ -254,7 +253,7 @@ export function MemberList({ projectId }: MemberListProps) {
                 <span className='capitalize'>member</span>
               </div>
 
-              <div className='flex items-center text-sm text-muted-foreground'>
+              <div className='flex items-center text-muted-foreground'>
                 Invited {format(new Date(invite.createdAt), 'MMM d, yyyy')}
               </div>
 
@@ -268,7 +267,7 @@ export function MemberList({ projectId }: MemberListProps) {
                   <DropdownMenuContent align='end'>
                     <DropdownMenuItem
                       className='text-destructive'
-                      onClick={() => removeInviteMutation.mutate(invite.id)}
+                      onClick={() => removeInvite({ inviteId: invite.id })}
                     >
                       Remove Invite
                     </DropdownMenuItem>

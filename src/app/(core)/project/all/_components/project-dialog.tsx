@@ -16,10 +16,10 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
 import { createProject, updateProject } from '@/server/projects';
 import { ProjectExtended } from '@/types';
-import { withQuery } from '@/utils';
-import { queryKeys } from '@/utils/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -65,24 +65,16 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   }, [mode, project, form]);
 
   const { data: projects } = useQuery({
-    queryKey: queryKeys.projects.list(user?.id || ''),
+    queryKey: queryKey.projects.getCurrentUserProjects(),
     enabled: !!user?.id,
     select: (data: ProjectExtended[]) => data,
   });
 
   const { mutate: createNewProject, isPending: isCreating } = useMutation({
-    mutationFn: async (data: ProjectForm) => {
-      if (!user?.id) throw new Error('User not found');
-
-      return withQuery(createProject)({
-        ...data,
-        userId: user.id,
-        isDefault: !projects?.length || data.isDefault,
-      });
-    },
+    mutationFn: withQuery(createProject),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.all(),
+        queryKey: queryKey.projects.getCurrentUserProjects(),
       });
       toast({
         title: 'Project created',
@@ -102,19 +94,10 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   });
 
   const { mutate: updateExistingProject, isPending: isUpdating } = useMutation({
-    mutationFn: async (data: ProjectForm) => {
-      if (!user?.id) throw new Error('User not found');
-      if (!project) throw new Error('Project not found');
-
-      return withQuery(updateProject)({
-        id: project.id,
-        userId: user.id,
-        ...data,
-      });
-    },
+    mutationFn: withQuery(updateProject),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.projects.all(),
+        queryKey: queryKey.projects.getCurrentUserProjects(),
       });
       toast({
         title: 'Project updated',
@@ -139,7 +122,7 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
     if (mode === 'create') {
       createNewProject(data);
     } else {
-      updateExistingProject(data);
+      updateExistingProject({ ...data, projectId: project?.id ?? '' });
     }
   }
 

@@ -60,9 +60,5 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     notFound();
   }
 
-  return (
-    <Suspense fallback={<Spinner />}>
-      <div className='space-y-6'>{children}</div>
-    </Suspense>
-  );
+  return <div className='space-y-6'>{children}</div>;
 }
