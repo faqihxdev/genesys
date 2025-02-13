@@ -114,12 +114,8 @@
           "name": "project_users_projectId_projects_id_fk",
           "tableFrom": "project_users",
           "tableTo": "projects",
-          "columnsFrom": [
-            "projectId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["projectId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -127,10 +123,7 @@
       "compositePrimaryKeys": {
         "project_users_projectId_userId_pk": {
           "name": "project_users_projectId_userId_pk",
-          "columns": [
-            "projectId",
-            "userId"
-          ]
+          "columns": ["projectId", "userId"]
         }
       },
       "uniqueConstraints": {},
@@ -210,10 +203,7 @@
     "public.project_user_role": {
       "name": "project_user_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "member"
-      ]
+      "values": ["owner", "member"]
     }
   },
   "schemas": {},

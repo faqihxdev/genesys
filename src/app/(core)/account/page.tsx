@@ -1,6 +1,6 @@
 export default function AccountPage() {
   return (
-    <div className='space-y-2'>
+    <div className='space-y-4'>
       <h1 className='text-2xl font-semibold'>Account Settings</h1>
       <p className='text-muted-foreground text-sm'>
         Manage your personal account settings, update profile information, and configure security
