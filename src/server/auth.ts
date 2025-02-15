@@ -60,9 +60,7 @@ export const signIn = createAction({
     password: z.string().min(1, 'Password is required'),
   }),
   requireAuth: false,
-  actionFn: async ({ input }) => {
-    console.log('[Auth/signIn]:', input);
-    const supabase = await createClient();
+  actionFn: async ({ input }) => {    const supabase = await createClient();
     const { email, password } = input;
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -219,12 +217,13 @@ export const refreshSession = createAction({
 export const resetPassword = createAction({
   validator: z.object({
     email: z.string().email('Invalid email format'),
+    redirectTo: z.string().min(1, 'Redirect URL is required'),
   }),
   requireAuth: false,
   actionFn: async ({ input }) => {
     const supabase = await createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: input.redirectTo,
     });
 
     if (error) {

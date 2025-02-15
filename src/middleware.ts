@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Validate project ID format
-    if (!projectId || !/^[a-zA-Z0-9]{10}$/.test(projectId)) {
+    if (!projectId || !/^prj-[a-z0-9]+-[a-z0-9]+$/.test(projectId)) {
       // Rewrite to the not-found page while maintaining the URL
       return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
     }

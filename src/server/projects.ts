@@ -1,7 +1,7 @@
 'use server';
 
-import { db } from '@/server/db';
-import { projectUsers, projects } from '@/server/db/schema/project';
+import { db } from '@/db';
+import { projectUsers, projects } from '@/db/schema/project';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction } from './_utils';
@@ -23,6 +23,15 @@ export const createProject = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
+    // Check if this is the first project
+    const existingProjects = await db
+      .select()
+      .from(projectUsers)
+      .where(eq(projectUsers.userId, currentUser.id));
+
+    const isFirstProject = existingProjects.length === 0;
+    const shouldBeDefault = isFirstProject || input.isDefault;
+
     // Create the project with transaction for atomicity
     return await db.transaction(async (tx) => {
       // Create the project
@@ -39,11 +48,11 @@ export const createProject = createAction({
         projectId: project.id,
         userId: currentUser.id,
         role: 'owner',
-        isDefault: input.isDefault || false,
+        isDefault: shouldBeDefault,
       });
 
       // If this should be default, unset any other defaults
-      if (input.isDefault) {
+      if (shouldBeDefault) {
         await tx
           .update(projectUsers)
           .set({ isDefault: false })
