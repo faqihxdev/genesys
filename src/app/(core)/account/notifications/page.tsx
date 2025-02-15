@@ -1,21 +1,26 @@
 'use client';
 
-import { Spinner } from '@/components/custom/loading';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
+import { PageTitle } from '@/components/custom/page-title';
+import { Spinner } from '@/components/custom/spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { acceptProjectInvite, getUserInvites, rejectProjectInvite } from '@/server/invites';
+import { currentProjectIdAtom, lastValidProjectIdAtom } from '@/stores/project';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useAtom } from 'jotai';
 import { Check, Clock, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function NotificationsPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const [, setCurrentProjectId] = useAtom(currentProjectIdAtom);
+  const [, setLastValidProjectId] = useAtom(lastValidProjectIdAtom);
 
   // Query to get user's invites
   const { data: invites, isLoading } = useQuery({
@@ -24,17 +29,42 @@ export default function NotificationsPage() {
   });
 
   // Mutation to accept invite
-  const { mutate: acceptInvite, isPending: isAccepting } = useMutation({
+  const { mutate: acceptInvite, isPending: isAccepting } = useMutation<
+    boolean,
+    Error,
+    { inviteId: string }
+  >({
     mutationFn: withQuery(acceptProjectInvite),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKey.invites.getUserInvites() });
-      toast({
-        title: 'Invite accepted',
-        description: 'You have been added to the project.',
-        variant: 'success',
-      });
+    onSuccess: async (_, { inviteId }) => {
+      // Update project selection
+      const invite = invites?.find((inv) => inv.id === inviteId);
+      if (invite) {
+        setCurrentProjectId(invite.projectId);
+        setLastValidProjectId(invite.projectId);
+
+        // Refetch all related queries and wait for them to complete
+        await Promise.all([
+          queryClient.refetchQueries({
+            queryKey: queryKey.invites.getUserInvites(),
+            exact: false,
+          }),
+          queryClient.refetchQueries({
+            queryKey: queryKey.projects.getCurrentUserProjects(),
+            exact: false,
+          }),
+        ]);
+
+        toast({
+          title: 'Invite accepted',
+          description: 'You have been added to the project.',
+          variant: 'success',
+        });
+
+        // Navigate after queries are refetched
+        router.push(`/project/${invite.projectId}`);
+      }
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to accept invite',
@@ -65,11 +95,10 @@ export default function NotificationsPage() {
   return (
     <div className='container mx-auto space-y-6'>
       <div className='space-y-4'>
-        <h1 className='text-2xl font-semibold'>Notifications</h1>
-        <p className='text-muted-foreground text-sm'>
-          View and manage your notification preferences, check system alerts, and stay updated with
-          important changes across your projects and teams.
-        </p>
+        <PageTitle
+          title='Notifications'
+          description='View and manage your notification preferences, check system alerts, and stay updated with important changes across your projects and teams.'
+        />
       </div>
 
       <Card>
@@ -84,7 +113,7 @@ export default function NotificationsPage() {
             </div>
           ) : !invites?.length ? (
             <div className='flex flex-col items-center justify-center p-8 text-center'>
-              <Mail className='h-12 w-12 text-muted-foreground/50' />
+              <Mail className='h-12 w-12 text-primary' />
               <h3 className='mt-4 text-lg font-semibold'>No pending invites</h3>
               <p className='text-muted-foreground text-sm mt-1'>
                 You don&apos;t have any pending project invitations at the moment.
@@ -112,22 +141,17 @@ export default function NotificationsPage() {
                       variant='outline'
                       size='sm'
                       onClick={() => rejectInvite({ inviteId: invite.id })}
-                      disabled={isRejecting}
+                      isLoading={isRejecting}
+                      loadingText='Rejecting...'
                     >
                       <X className='h-4 w-4 mr-1' />
                       Reject
                     </Button>
                     <Button
                       size='sm'
-                      onClick={() =>
-                        acceptInvite(
-                          { inviteId: invite.id },
-                          {
-                            onSuccess: () => router.push(`/project/${invite.projectId}`),
-                          }
-                        )
-                      }
-                      disabled={isAccepting}
+                      onClick={() => acceptInvite({ inviteId: invite.id })}
+                      isLoading={isAccepting}
+                      loadingText='Accepting...'
                     >
                       <Check className='h-4 w-4 mr-1' />
                       Accept

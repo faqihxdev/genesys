@@ -3,7 +3,7 @@
 
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
-export * from '@/server/db/schema';
+export * from '@/db/schema';
 
 /**
  * @description Extended user type from Supabase with additional custom fields

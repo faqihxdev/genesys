@@ -29,4 +29,13 @@ export const queryKey = {
       ['project-invites', projectId] as const,
     getUserInvites: () => ['user-invites'] as const,
   },
+  feedback: {
+    getUserFeedback: () => ['feedback', 'list'] as const,
+    getFeedbackById: ({ feedbackId }: { feedbackId: string }) =>
+      ['feedback', 'detail', feedbackId] as const,
+  },
+  support: {
+    getUserTickets: () => ['support', 'tickets'] as const,
+    getTicketById: ({ ticketId }: { ticketId: string }) => ['support', 'ticket', ticketId] as const,
+  },
 } as const;
