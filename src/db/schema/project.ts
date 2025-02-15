@@ -1,8 +1,7 @@
-import { generateId } from '@/lib/utils';
+import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
 import { boolean, index, pgEnum, pgTable, primaryKey, text, varchar } from 'drizzle-orm/pg-core';
-import { timestamps } from './_utils';
-
+import { ID_LENGTH, SUPABASE_USER_ID_LENGTH, timestamps } from './_utils';
 /**
  * Project user role enum
  */
@@ -14,11 +13,11 @@ export const projectUserRoleEnum = pgEnum('project_user_role', ['owner', 'member
 export const projects = pgTable(
   'projects',
   {
-    id: varchar({ length: 10 })
-      .$defaultFn(() => generateId({ length: 10 }))
+    id: varchar({ length: ID_LENGTH })
+      .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'prj-' }))
       .primaryKey(),
-    name: varchar({ length: 256 }).notNull(),
-    description: text(),
+    name: varchar({ length: 256 }).notNull(), // user reference: name of the project
+    description: text(), // user reference: description of the project
     ...timestamps,
   },
   (table) => [
@@ -33,12 +32,12 @@ export const projects = pgTable(
 export const projectUsers = pgTable(
   'project_users',
   {
-    projectId: varchar({ length: 10 })
+    projectId: varchar({ length: ID_LENGTH }) // FK: which project is this user a member of?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    userId: varchar({ length: 36 }).notNull(), // References Supabase auth.users
-    role: projectUserRoleEnum().notNull().default('member'),
-    isDefault: boolean().notNull().default(false),
+    userId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: which user is this? (Supabase auth.users)
+    role: projectUserRoleEnum().notNull().default('member'), // role of the user in the project
+    isDefault: boolean().notNull().default(false), // whether the project is the default project for the user
     ...timestamps,
   },
   (table) => [
@@ -50,14 +49,14 @@ export const projectUsers = pgTable(
 );
 
 /**
- * Project relations
+ * One project to many users
  */
 export const projectsRelations = relations(projects, ({ many }) => ({
   users: many(projectUsers),
 }));
 
 /**
- * Project-User relations
+ * One project user to one project
  */
 export const projectUsersRelations = relations(projectUsers, ({ one }) => ({
   project: one(projects, {

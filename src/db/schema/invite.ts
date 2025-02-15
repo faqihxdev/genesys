@@ -1,7 +1,7 @@
-import { generateId } from '@/lib/utils';
+import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
 import { index, pgEnum, pgTable, varchar } from 'drizzle-orm/pg-core';
-import { timestamps } from './_utils';
+import { ID_LENGTH, SUPABASE_USER_ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
 
 /**
@@ -16,15 +16,15 @@ export const inviteStatusEnum = pgEnum('invite_status', ['pending', 'accepted', 
 export const projectInvites = pgTable(
   'project_invites',
   {
-    id: varchar({ length: 10 })
-      .$defaultFn(() => generateId({ length: 10 }))
+    id: varchar({ length: ID_LENGTH })
+      .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'inv-' }))
       .primaryKey(),
-    projectId: varchar({ length: 10 })
+    projectId: varchar({ length: ID_LENGTH }) // FK: which project is this invite for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    invitedUserId: varchar({ length: 36 }).notNull(), // References Supabase auth.users
-    inviterUserId: varchar({ length: 36 }).notNull(), // References Supabase auth.users
-    status: inviteStatusEnum('invite_status').notNull().default('pending'),
+    invitedUserId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: which user is invited? (Supabase auth.users)
+    inviterUserId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: which user is inviting? (Supabase auth.users)
+    status: inviteStatusEnum('invite_status').notNull().default('pending'), // status of the invite (pending, accepted, rejected)
     ...timestamps,
   },
   (table) => [
@@ -39,7 +39,7 @@ export const projectInvites = pgTable(
 );
 
 /**
- * Project invites relations
+ * One project invite to one project
  */
 export const projectInvitesRelations = relations(projectInvites, ({ one }) => ({
   project: one(projects, {
