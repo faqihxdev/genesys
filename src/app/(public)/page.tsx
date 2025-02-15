@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import { cn } from '@/lib/utils';
 import {
   LucideBarChart2,

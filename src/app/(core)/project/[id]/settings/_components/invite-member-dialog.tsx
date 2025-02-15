@@ -1,8 +1,7 @@
 'use client';
 
-import { Spinner } from '@/components/custom/loading';
+import { Button } from '@/components/custom/button';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -196,7 +195,7 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <UserPlus className='mr-2 h-4 w-4' />
+          <UserPlus className='h-4 w-4' />
           Invite Members
         </Button>
       </DialogTrigger>
@@ -224,12 +223,13 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
                   </FormItem>
                 )}
               />
-              <Button type='submit' disabled={isSearching}>
-                {isSearching ? (
-                  <Spinner className='mr-2 h-4 w-4' />
-                ) : (
-                  <MailPlus className='mr-2 h-4 w-4' />
-                )}
+              <Button
+                type='submit'
+                disabled={isSearching}
+                isLoading={isSearching}
+                loadingText='Adding...'
+              >
+                <MailPlus className='h-4 w-4' />
                 Add
               </Button>
             </form>
@@ -298,12 +298,13 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
             >
               Cancel
             </Button>
-            <Button onClick={onSubmit} disabled={inviteList.length === 0 || isCreatingInvite}>
-              {isCreatingInvite ? (
-                <Spinner className='mr-2 h-4 w-4' />
-              ) : (
-                <UserPlus className='mr-2 h-4 w-4' />
-              )}
+            <Button
+              onClick={onSubmit}
+              disabled={inviteList.length === 0}
+              isLoading={isCreatingInvite}
+              loadingText='Inviting...'
+            >
+              <UserPlus className='h-4 w-4' />
               Invite Members
             </Button>
           </div>

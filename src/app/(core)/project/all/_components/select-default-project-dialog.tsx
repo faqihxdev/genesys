@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { ProjectExtended } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
-import type { ProjectExtended } from '@/server/db/schema/project';
 import { getDefaultProjectCandidates, updateProject } from '@/server/projects';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -121,9 +121,11 @@ export function SelectDefaultProjectDialog({
                 isDefault: true,
               })
             }
-            disabled={!selectedProjectId || isPending}
+            disabled={!selectedProjectId}
+            isLoading={isPending}
+            loadingText='Updating...'
           >
-            {isPending ? 'Updating...' : 'Update Default'}
+            Update Default
           </Button>
         </DialogFooter>
       </DialogContent>

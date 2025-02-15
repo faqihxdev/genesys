@@ -1,4 +1,4 @@
-import { Spinner } from '@/components/custom/loading';
+import { Spinner } from '@/components/custom/spinner';
 import { getCurrentUser } from '@/server/auth';
 import { checkProjectAccess, getProjectById } from '@/server/projects';
 import { notFound, redirect } from 'next/navigation';

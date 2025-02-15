@@ -1,5 +1,6 @@
 'use client';
 
+import { Spinner } from '@/components/custom/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,12 +20,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ProjectExtended } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
 import { cn, withQuery } from '@/lib/utils';
-import type { ProjectExtended } from '@/server/db/schema/project';
 import { deleteProject, getDefaultProjectCandidates, updateProject } from '@/server/projects';
 import { useMutation } from '@tanstack/react-query';
 import { MoreHorizontal, Pencil, Settings, Star, Trash } from 'lucide-react';
@@ -182,8 +183,17 @@ export function ProjectActions({ project }: ProjectActionsProps) {
             disabled={isUpdating}
             className={cn(isUpdating && 'opacity-50 cursor-not-allowed')}
           >
-            <Star className='h-4 w-4' />
-            {isUpdating ? 'Updating...' : project.isDefault ? 'Remove Default' : 'Set as Default'}
+            {isUpdating ? (
+              <>
+                <Spinner size='sm' />
+                <span>Updating...</span>
+              </>
+            ) : (
+              <>
+                <Star className='h-4 w-4' />
+                <span>Set as Default</span>
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => router.push(`/project/${project.id}/settings`)}>
             <Settings className='h-4 w-4' />
@@ -199,8 +209,17 @@ export function ProjectActions({ project }: ProjectActionsProps) {
                     className='text-destructive'
                     disabled={project.role !== 'owner' || isDeleting || project.isDefault}
                   >
-                    <Trash className='h-4 w-4' />
-                    Delete Project
+                    {isDeleting ? (
+                      <>
+                        <Spinner size='sm' />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash className='h-4 w-4' />
+                        Delete Project
+                      </>
+                    )}
                   </DropdownMenuItem>
                 </div>
               </TooltipTrigger>
@@ -230,7 +249,14 @@ export function ProjectActions({ project }: ProjectActionsProps) {
               disabled={isDeleting}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
-              {isDeleting ? 'Deleting...' : 'Delete Project'}
+              {isDeleting ? (
+                <>
+                  <Spinner size='sm' />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                'Delete Project'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

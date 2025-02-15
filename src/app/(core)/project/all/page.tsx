@@ -1,13 +1,14 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { PageTitle } from '@/components/custom/page-title';
+import { Button } from '@/components/custom/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { ProjectExtended } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import useHydration from '@/hooks/use-hydration';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
-import type { ProjectExtended } from '@/server/db/schema/project';
 import { getCurrentUserProjects } from '@/server/projects';
 import { useQuery } from '@tanstack/react-query';
 import { Crown, Folder, FolderGit2, Users2 } from 'lucide-react';
@@ -99,6 +100,9 @@ function ProjectsGrid() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0, // Always refetch on mount
+    refetchOnReconnect: true,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   if (isLoading) {
@@ -159,14 +163,12 @@ export default function AllProjectsPage() {
   const isHydrated = useHydration();
   return (
     <div className='pb-8'>
-      <div className='mb-8 space-y-4'>
-        <div className='flex items-center justify-between'>
-          <h1 className='text-2xl font-semibold'>All Projects</h1>
-          <ProjectDialog mode='create' />
-        </div>
-        <p className='text-muted-foreground text-sm'>
-          View and manage all your projects in one place. Click on a project to view its details.
-        </p>
+      <div className='mb-6 flex items-center justify-between'>
+        <PageTitle
+          title='All Projects'
+          description='View and manage all your projects in one place. Click on a project to view its details.'
+        />
+        <ProjectDialog mode='create' />
       </div>
       {isHydrated && <ProjectsGrid />}
     </div>

@@ -1,5 +1,5 @@
 import { Avatar } from '@/components/custom/avatar';
-import { Spinner } from '@/components/custom/loading';
+import { Spinner } from '@/components/custom/spinner';
 import { UserDropdown } from '@/components/custom/user-dropdown';
 import {
   Breadcrumb,
@@ -129,7 +129,7 @@ export default async function CoreLayout({ children, params }: CoreLayoutProps) 
               </UserDropdown>
             </div>
           </header>
-          <main className='flex-1 overflow-auto'>
+          <main className='flex-1'>
             <Suspense fallback={<Spinner />}>
               <div className='container mx-auto p-4 md:p-6'>{children}</div>
             </Suspense>

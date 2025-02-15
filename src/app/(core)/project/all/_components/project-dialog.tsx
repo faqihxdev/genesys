@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import {
   Dialog,
   DialogContent,
@@ -14,13 +14,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import type { Project } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { createProject, updateProject } from '@/server/projects';
+import { currentProjectIdAtom } from '@/stores/project';
 import { ProjectExtended } from '@/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -45,6 +48,8 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setCurrentProjectId] = useAtom(currentProjectIdAtom);
+
   const form = useForm<ProjectForm>({
     defaultValues: {
       name: '',
@@ -70,17 +75,33 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
     select: (data: ProjectExtended[]) => data,
   });
 
+  const isFirstProject = !projects?.length;
+
+  // Set isDefault to true for first project
+  useEffect(() => {
+    if (mode === 'create' && isFirstProject) {
+      form.setValue('isDefault', true);
+    }
+  }, [mode, isFirstProject, form]);
+
   const { mutate: createNewProject, isPending: isCreating } = useMutation({
     mutationFn: withQuery(createProject),
-    onSuccess: () => {
+    onSuccess: (newProject: Project) => {
+      // Set as current project
+      setCurrentProjectId(newProject.id);
+
+      // Invalidate queries
       queryClient.invalidateQueries({
         queryKey: queryKey.projects.getCurrentUserProjects(),
       });
+
       toast({
         title: 'Project created',
         description: 'Your new project has been created successfully.',
         variant: 'success',
       });
+
+      // Reset form and close dialog
       form.reset();
       setOpen(false);
     },
@@ -96,9 +117,18 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   const { mutate: updateExistingProject, isPending: isUpdating } = useMutation({
     mutationFn: withQuery(updateProject),
     onSuccess: () => {
+      // Invalidate all project-related queries
       queryClient.invalidateQueries({
         queryKey: queryKey.projects.getCurrentUserProjects(),
+        exact: false,
+        refetchType: 'all',
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKey.projects.getProjectById({ projectId: project?.id ?? '' }),
+        exact: false,
+        refetchType: 'all',
+      });
+
       toast({
         title: 'Project updated',
         description: 'Your project has been updated successfully.',
@@ -115,7 +145,6 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
     },
   });
 
-  const isFirstProject = !projects?.length;
   const isPending = isCreating || isUpdating;
 
   function onSubmit(data: ProjectForm) {
@@ -216,14 +245,12 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
             >
               Cancel
             </Button>
-            <Button type='submit' disabled={isPending}>
-              {isPending
-                ? mode === 'create'
-                  ? 'Creating...'
-                  : 'Updating...'
-                : mode === 'create'
-                  ? 'Create Project'
-                  : 'Update Project'}
+            <Button
+              type='submit'
+              isLoading={isPending}
+              loadingText={mode === 'create' ? 'Creating...' : 'Updating...'}
+            >
+              {mode === 'create' ? 'Create Project' : 'Update Project'}
             </Button>
           </DialogFooter>
         </form>

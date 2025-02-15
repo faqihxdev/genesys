@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Avatar } from '@/components/custom/avatar';
-import { Spinner } from '@/components/custom/loading';
+import { Spinner } from '@/components/custom/spinner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { User } from '@/types/users';
+import { User } from '@/types';
 
 interface UserDropdownProps {
   user: User;
@@ -146,8 +146,8 @@ export function UserDropdown({
         disabled={isSigningOut}
         className='relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-50'
       >
-        {isSigningOut ? <Spinner /> : <LogOut className='h-4 w-4' />}
-        {isSigningOut ? 'Signing out...' : 'Log out'}
+        {isSigningOut ? <Spinner className='text-destructive' /> : <LogOut className='h-4 w-4' />}
+        {isSigningOut ? 'Signing out...' : 'Sign out'}
       </button>
     </div>
   );

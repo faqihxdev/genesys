@@ -1,15 +1,16 @@
 'use client';
 
-import { Spinner } from '@/components/custom/loading';
+import { Button } from '@/components/custom/button';
+import { Spinner } from '@/components/custom/spinner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
@@ -153,7 +154,7 @@ export function MemberList({ projectId }: MemberListProps) {
           return (
             <div
               key={member.userId}
-              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 pl-3 text-sm bg-accent/20 hover:bg-muted/50 rounded-lg'
+              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 px-3 bg-accent/20 hover:bg-muted/50 rounded-lg text-sm'
             >
               <div className='flex items-center gap-2'>
                 <Avatar className='h-8 w-8'>
@@ -231,7 +232,7 @@ export function MemberList({ projectId }: MemberListProps) {
           invites?.map((invite) => (
             <div
               key={invite.id}
-              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 hover:bg-muted/50 rounded-lg text-sm'
+              className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 px-3 bg-accent/20 hover:bg-muted/50 rounded-lg text-sm'
             >
               <div className='flex items-center gap-2'>
                 <Avatar className='h-8 w-8'>
@@ -239,21 +240,29 @@ export function MemberList({ projectId }: MemberListProps) {
                     {invite.email.split('@')[0].slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div className='flex flex-col'>
-                  <span>{invite.email}</span>
-                  <Badge variant='secondary' className='w-fit'>
-                    <Clock className='h-3 w-3 mr-1' />
-                    Pending
-                  </Badge>
-                </div>
+                <span>{invite.email}</span>
               </div>
 
-              <div className='flex items-center gap-2'>
-                <User className='h-4 w-4' />
-                <span className='capitalize'>member</span>
+              <div className='flex items-center'>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge
+                        variant={invite.status === 'pending' ? 'secondary' : 'destructive'}
+                        className='w-fit'
+                      >
+                        <Clock className='h-3 w-3 mr-1' />
+                        {invite.status === 'pending' ? 'Pending' : 'Rejected'}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Will join as member upon acceptance</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              <div className='flex items-center text-muted-foreground'>
+              <div className='text-muted-foreground'>
                 Invited {format(new Date(invite.createdAt), 'MMM d, yyyy')}
               </div>
 

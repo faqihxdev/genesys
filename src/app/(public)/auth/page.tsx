@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@/components/custom/button';
 import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -125,8 +125,8 @@ const AuthTabs = ({
                   {...signInForm.register('password')}
                 />
               </div>
-              <Button type='submit' disabled={isSignInLoading}>
-                {isSignInLoading ? 'Signing in...' : 'Sign in'}
+              <Button type='submit' isLoading={isSignInLoading} loadingText='Signing in...'>
+                Sign in
               </Button>
             </div>
           </form>
@@ -140,14 +140,13 @@ const AuthTabs = ({
           </div>
           <Button
             variant='outline'
-            disabled={isGoogleLoading}
+            isLoading={isGoogleLoading}
             onClick={handleGoogleSignIn}
+            loadingText='Signing in...'
             className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
           >
             <Google className='h-4 w-4' />
-            <span className='text-black'>
-              {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
-            </span>
+            <span className='text-black'>Sign in with Google</span>
           </Button>
         </div>
       </TabsContent>
@@ -202,8 +201,8 @@ const AuthTabs = ({
                   {...signUpForm.register('confirmPassword')}
                 />
               </div>
-              <Button type='submit' disabled={isSignUpLoading}>
-                {isSignUpLoading ? 'Creating account...' : 'Create account'}
+              <Button type='submit' isLoading={isSignUpLoading} loadingText='Creating account...'>
+                Create account
               </Button>
             </div>
           </form>
@@ -217,14 +216,13 @@ const AuthTabs = ({
           </div>
           <Button
             variant='outline'
-            disabled={isGoogleLoading}
+            isLoading={isGoogleLoading}
             onClick={handleGoogleSignIn}
+            loadingText='Signing in...'
             className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
           >
             <Google className='h-4 w-4' />
-            <span className='text-black'>
-              {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
-            </span>
+            <span className='text-black'>Sign in with Google</span>
           </Button>
         </div>
       </TabsContent>

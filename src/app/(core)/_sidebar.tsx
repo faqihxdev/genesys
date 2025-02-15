@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +25,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { queryKey } from '@/lib/query-keys';
 import { cn, withQuery } from '@/lib/utils';
 import { getCurrentUserProjects, getProjectById } from '@/server/projects';
+import { currentProjectIdAtom, lastValidProjectIdAtom } from '@/stores/project';
 import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
 import {
   ArrowRightCircle,
   BarChart,
@@ -46,7 +48,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 const getProjectNavItems = (projectId: string) => [
   {
@@ -130,25 +132,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
-
-  // Set current project ID from URL when component mounts or URL changes
-  useEffect(() => {
-    const matches = pathname.match(/^\/project\/([^/]+)/);
-    const projectId = matches?.[1];
-    if (projectId && projectId !== 'all') {
-      setCurrentProjectId(projectId);
-    } else {
-      setCurrentProjectId(null);
-    }
-  }, [pathname]);
-
-  // Get current project data
-  const { data: currentProject } = useQuery({
-    queryKey: queryKey.projects.getProjectById({ projectId: currentProjectId || '' }),
-    queryFn: () => withQuery(getProjectById)({ projectId: currentProjectId || '' }),
-    enabled: !!currentProjectId,
-  });
+  const [currentProjectId, setCurrentProjectId] = useAtom(currentProjectIdAtom);
+  const [lastValidProjectId, setLastValidProjectId] = useAtom(lastValidProjectIdAtom);
 
   // Get all projects
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
@@ -158,6 +143,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   });
 
   const defaultProject = projects.find((p) => p.isDefault);
+
+  // Validate current project exists and update state accordingly
+  useEffect(() => {
+    if (!projects.length) return;
+
+    const currentExists = projects.some((p) => p.id === currentProjectId);
+    if (!currentExists) {
+      // If current project doesn't exist, try to use last valid project
+      const lastValidExists = projects.some((p) => p.id === lastValidProjectId);
+      if (lastValidExists) {
+        setCurrentProjectId(lastValidProjectId);
+      } else {
+        // If last valid doesn't exist either, use default project
+        setCurrentProjectId(defaultProject?.id ?? null);
+      }
+    }
+  }, [projects, currentProjectId, lastValidProjectId, defaultProject, setCurrentProjectId]);
+
+  // Update current project ID from URL and store last valid ID
+  useEffect(() => {
+    const matches = pathname.match(/^\/project\/([^/]+)/);
+    const projectId = matches?.[1];
+
+    if (projectId && projectId !== 'all') {
+      setCurrentProjectId(projectId);
+      setLastValidProjectId(projectId);
+    } else if (projectId === 'all' && !currentProjectId && defaultProject) {
+      setCurrentProjectId(defaultProject.id);
+      setLastValidProjectId(defaultProject.id);
+    }
+  }, [pathname, defaultProject, currentProjectId, setCurrentProjectId, setLastValidProjectId]);
+
+  // Get current project data
+  const { data: currentProject } = useQuery({
+    queryKey: queryKey.projects.getProjectById({ projectId: currentProjectId || '' }),
+    queryFn: () => withQuery(getProjectById)({ projectId: currentProjectId || '' }),
+    enabled: !!currentProjectId,
+  });
 
   /**
    * Checks if a given path is active based on the current pathname

@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/custom/button';
 import { FolderX } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,13 +16,13 @@ export default function NotFound() {
         </p>
       </div>
       <div className='flex gap-2'>
-        <Button asChild>
+        <Button>
           <Link href='/project/all'>Projects</Link>
         </Button>
-        <Button asChild>
+        <Button>
           <Link href='/'>Home</Link>
         </Button>
-        <Button asChild>
+        <Button>
           <Link href='/account/support'>Support</Link>
         </Button>
       </div>

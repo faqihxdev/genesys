@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/custom/page-title';
 import { getCurrentUser } from '@/server/auth';
 import { getProjectById } from '@/server/projects';
 import { redirect } from 'next/navigation';
@@ -32,14 +33,14 @@ export default async function OverviewPage({ params }: OverviewPageProps) {
     <div className='pb-8'>
       <div className='mb-8 space-y-4'>
         <div className='flex items-center justify-between'>
-          <h1 className='text-2xl font-semibold'>{project.name}</h1>
+          <PageTitle
+            title={`${project.name} Project Overview`}
+            description={project.description || 'No description provided for this project.'}
+          />
           <div className='text-sm text-muted-foreground'>
             Last updated: {new Date(project.updatedAt).toLocaleDateString()}
           </div>
         </div>
-        {project.description && (
-          <p className='text-muted-foreground text-sm'>{project.description}</p>
-        )}
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
