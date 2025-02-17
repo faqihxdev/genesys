@@ -37,7 +37,7 @@ export const generateId = ({ length = 10, prefix = '' }) => {
 
 // > How can we introduce branching? conditional responses? if this, this stage, if that, that stage?
 // > Can the user set instructions in each stage on which next stage to go to?
-//  > Maybe for each stage child section there is a text box (this stage if persona wants this, this other stage if persona wants that)
+// > Maybe for each stage child section there is a text box (this stage if persona wants this, this other stage if persona wants that)
 
 // > Is it possible to set no drop off? maybe for like improving a certain mandatory process?
 // > Things like conversion rate may not be make sense for some funnels
@@ -48,5 +48,5 @@ export const generateId = ({ length = 10, prefix = '' }) => {
 // > How can we add time data to response such as waiting time, user comes back at a later time? etc
 
 // How do we know how many persona are going to each stage?
-// > Currently simulation stage does not have complete as it is not possible to know when a persona is going to the next stage
+// > Currently simulation stage does not have 'complete' as it is not possible to know when a persona is going to the next stage
 // > is it better if summary stages is not connected to summary at all?

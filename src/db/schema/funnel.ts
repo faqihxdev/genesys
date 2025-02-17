@@ -119,8 +119,6 @@ export const stagesRelations = relations(stages, ({ one, many }) => ({
     fields: [stages.childId],
     references: [stages.id],
   }),
-  parentOf: many(stages, { relationName: 'child' }),
-  childOf: many(stages, { relationName: 'parent' }),
 }));
 
 /**

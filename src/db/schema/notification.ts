@@ -79,7 +79,7 @@ export const notifications = pgTable(
     isArchived: boolean().notNull().default(false), // whether notification has been archived
     actionUrl: text(), // optional URL to navigate to when clicked
     metadata: jsonb(), // additional data specific to notification type
-    expiresAt: timestamp('3'), // optional expiration date
+    expiresAt: timestamp(), // optional expiration date
     ...timestamps,
   },
   (table) => [
