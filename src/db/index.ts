@@ -12,7 +12,12 @@ const connectionOptions = {
   idle_timeout: 20, // Close idle connections after 20 seconds
   connect_timeout: 10, // Connection timeout after 10 seconds
   prepare: false, // Disable prepared statements
-  ssl: env.NODE_ENV === 'production', // Enable SSL in production
+  ssl:
+    env.NODE_ENV === 'production'
+      ? {
+          rejectUnauthorized: false, // Allow self-signed certificates in production
+        }
+      : false,
   connection: {
     application_name: 'genesys', // Add application name for monitoring
   },
