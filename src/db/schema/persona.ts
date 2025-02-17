@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, integer, jsonb, pgEnum, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
 
@@ -17,13 +17,13 @@ export const personaConfigTypeEnum = pgEnum('persona_config_type', ['preset', 'c
 export const personaConfigs = pgTable(
   'persona_configs',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'pcg-' }))
       .primaryKey(),
-    projectId: varchar({ length: ID_LENGTH }) // FK: which project is this persona config for?
+    projectId: text() // FK: which project is this persona config for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    name: varchar({ length: 256 }).notNull(), // user reference: name of the persona config
+    name: text().notNull(), // user reference: name of the persona config
     description: text(), // user reference: description of the persona config
     type: personaConfigTypeEnum().notNull().default('custom'), // config is preset or custom
     size: integer().notNull(), // number of personas to generate
@@ -47,13 +47,13 @@ export const personaConfigs = pgTable(
 export const personas = pgTable(
   'personas',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'prs-' }))
       .primaryKey(),
-    personaConfigId: varchar({ length: ID_LENGTH }) // FK: which persona config is this persona for?
+    personaConfigId: text() // FK: which persona config is this persona for?
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
-    name: varchar({ length: 256 }).notNull(), // user reference: name of the persona
+    name: text().notNull(), // user reference: name of the persona
     demographic: jsonb().notNull(), // demographic of the persona (age, gender, location, etc.)
     psychographic: jsonb().notNull(), // psychographic of the persona (values, interests, personal traits, etc.)
     behavior: jsonb().notNull(), // behavior of the persona (budget, brand affinity, responsiveness, etc.)
@@ -105,7 +105,7 @@ export interface PersonaDemographic {
   income?: number;
   education?: string;
   occupation?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PersonaPsychographic {
@@ -113,7 +113,7 @@ export interface PersonaPsychographic {
   interests?: string[];
   personalityTraits?: string[];
   lifestyleChoices?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PersonaBehavior {
@@ -121,5 +121,5 @@ export interface PersonaBehavior {
   brandAffinity?: number;
   responsiveness?: number;
   decisionMakingSpeed?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }

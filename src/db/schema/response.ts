@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, decimal, index, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { boolean, decimal, index, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { stageItems, stages } from './funnel';
 import { personas } from './persona';
@@ -14,19 +14,19 @@ import { simulations } from './simulation';
 export const responses = pgTable(
   'responses',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'res-' }))
       .primaryKey(),
-    simulationId: varchar({ length: ID_LENGTH }) // which simulation is this response for?
+    simulationId: text() // which simulation is this response for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    personaId: varchar({ length: ID_LENGTH }) // which persona is this response for?
+    personaId: text() // which persona is this response for?
       .references(() => personas.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: varchar({ length: ID_LENGTH }) // which stage is this response for?
+    stageId: text() // which stage is this response for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    stageItemId: varchar({ length: ID_LENGTH }) // which stage item is this response for?
+    stageItemId: text() // which stage item is this response for?
       .references(() => stageItems.id, { onDelete: 'cascade' })
       .notNull(),
     response: text().notNull(), // general response to the stage item

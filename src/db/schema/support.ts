@@ -1,7 +1,7 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, pgEnum, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
-import { ID_LENGTH, SUPABASE_USER_ID_LENGTH, timestamps } from './_utils';
+import { boolean, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { ID_LENGTH, timestamps } from './_utils';
 
 /**
  * Support ticket category enum
@@ -34,11 +34,11 @@ export const ticketStatusEnum = pgEnum('ticket_status', [
  * Support tickets table schema
  */
 export const supportTickets = pgTable('support_tickets', {
-  id: varchar({ length: ID_LENGTH })
+  id: text()
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'tkt-' }))
     .primaryKey(),
-  userId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: which user created this ticket?
-  subject: varchar({ length: 256 }).notNull(),
+  userId: text().notNull(), // FK: which user created this ticket?
+  subject: text().notNull(),
   category: ticketCategoryEnum('ticket_category').notNull(),
   priority: ticketPriorityEnum('ticket_priority').notNull(),
   description: text().notNull(),
@@ -53,13 +53,13 @@ export const supportTickets = pgTable('support_tickets', {
  * For tracking communication history
  */
 export const ticketResponses = pgTable('ticket_responses', {
-  id: varchar({ length: ID_LENGTH })
+  id: text()
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'trs-' }))
     .primaryKey(),
-  ticketId: varchar({ length: ID_LENGTH })
+  ticketId: text()
     .references(() => supportTickets.id, { onDelete: 'cascade' })
     .notNull(),
-  userId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: who made this response?
+  userId: text().notNull(), // FK: who made this response?
   message: text().notNull(),
   isFromSupport: boolean().notNull().default(false), // Whether this response is from support team
   ...timestamps,

@@ -27,7 +27,7 @@ export type ActionResponse<T> = {
 export function createAction<TOutput>(config: {
   validator: null;
   requireAuth: false;
-  actionFn: (params: {}) => Promise<TOutput>;
+  actionFn: (params: object) => Promise<TOutput>;
 }): () => Promise<ActionResponse<TOutput>>;
 
 /* ----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ export function createAction<TInput, TOutput>(config: {
     | ((params: { input: TInput }) => Promise<TOutput>)
     | ((params: { currentUser: User }) => Promise<TOutput>)
     | ((params: { input: TInput; currentUser: User }) => Promise<TOutput>)
-    | ((params: {}) => Promise<TOutput>);
+    | ((params: object) => Promise<TOutput>);
 }) {
   return async (input?: TInput): Promise<ActionResponse<TOutput>> => {
     try {
@@ -112,13 +112,13 @@ export function createAction<TInput, TOutput>(config: {
           return { data, error: null };
         } else {
           // Branch: no validator and no auth.
-          const params: {} = {};
-          const fn = config.actionFn as (params: {}) => Promise<TOutput>;
+          const params: object = {};
+          const fn = config.actionFn as (params: object) => Promise<TOutput>;
           const data = await fn(params);
           return { data, error: null };
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[createAction error]:', error);
       if (error instanceof z.ZodError) {
         return {
@@ -135,7 +135,7 @@ export function createAction<TInput, TOutput>(config: {
           data: null,
           error: {
             message: error.message,
-            status: 'status' in error ? (error as any).status : 500,
+            status: 'status' in error ? (error as ActionError).status : 500,
           },
         };
       }

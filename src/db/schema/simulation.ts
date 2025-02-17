@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, integer, pgEnum, pgTable, primaryKey, varchar } from 'drizzle-orm/pg-core';
+import { index, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { funnels, stages } from './funnel';
 import { personaConfigs } from './persona';
@@ -24,13 +24,13 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
 export const simulations = pgTable(
   'simulations',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sim-' }))
       .primaryKey(),
-    funnelId: varchar({ length: ID_LENGTH }) // FK: which funnel is this simulation for?
+    funnelId: text() // FK: which funnel is this simulation for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    personaConfigId: varchar({ length: ID_LENGTH }) // FK: which persona config is this simulation for?
+    personaConfigId: text() // FK: which persona config is this simulation for?
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
     status: simulationStatusEnum().notNull().default('idle'), // status of the simulation
@@ -61,10 +61,10 @@ export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
 export const simulationStages = pgTable(
   'simulation_stages',
   {
-    simulationId: varchar({ length: ID_LENGTH })
+    simulationId: text()
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: varchar({ length: ID_LENGTH })
+    stageId: text()
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
     status: simulationStageStatusEnum().notNull().default('idle'),

@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { decimal, index, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { decimal, index, pgTable, text } from 'drizzle-orm/pg-core';
 import { generateId, ID_LENGTH, timestamps } from './_utils';
 import { stageItems, stages } from './funnel';
 import { simulations } from './simulation';
@@ -11,10 +11,10 @@ import { simulations } from './simulation';
 export const summary = pgTable(
   'summary',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sum-' }))
       .primaryKey(),
-    simulationId: varchar({ length: ID_LENGTH }) // which simulation is this summary for?
+    simulationId: text() // which simulation is this summary for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
     conversionRate: decimal({ precision: 3, scale: 2 }).notNull(), // conversion rate of the simulation
@@ -37,13 +37,13 @@ export const summary = pgTable(
 export const summaryStages = pgTable(
   'summary_stages',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sms-' }))
       .primaryKey(),
-    simulationId: varchar({ length: ID_LENGTH }) // which simulation is this summary stage for?
+    simulationId: text() // which simulation is this summary stage for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: varchar({ length: ID_LENGTH }) // which stage is this summary stage for?
+    stageId: text() // which stage is this summary stage for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
     conversionRate: decimal({ precision: 3, scale: 2 }).notNull(), // conversion rate of the stage
@@ -67,13 +67,13 @@ export const summaryStages = pgTable(
 export const summaryStageItems = pgTable(
   'summary_stage_items',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'smi-' }))
       .primaryKey(),
-    simulationId: varchar({ length: ID_LENGTH }) // which simulation is this summary stage item for?
+    simulationId: text() // which simulation is this summary stage item for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageItemId: varchar({ length: ID_LENGTH }) // which stage item is this summary stage item for?
+    stageItemId: text() // which stage item is this summary stage item for?
       .references(() => stageItems.id, { onDelete: 'cascade' })
       .notNull(),
     sentiment: decimal({ precision: 3, scale: 2 }).notNull(), // sentiment score of the stage item

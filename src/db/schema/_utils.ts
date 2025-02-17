@@ -23,13 +23,14 @@ export const generateId = ({ length = 10, prefix = '' }) => {
     g = 4,
     p = prefix ? prefix.length : 0,
     R = length - p;
-  let u = 0,
-    a = [];
+  let u = 0;
+  const a = [];
   while (u < R) {
-    let L = u + g >= R ? R - u : g,
-      s = '';
+    const L = u + g >= R ? R - u : g;
+    let s = '';
     for (let i = 0; i < L; i++) s += c[(Math.random() * c.length) | 0];
-    a.push(s), (u += L + (u + g >= R ? 0 : 1));
+    a.push(s);
+    u += L + (u + g >= R ? 0 : 1);
   }
   return (prefix || '') + a.join('-');
 };

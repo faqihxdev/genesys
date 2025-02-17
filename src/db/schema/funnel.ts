@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { AnyPgColumn, boolean, index, pgEnum, pgTable, text, varchar } from 'drizzle-orm/pg-core';
+import { AnyPgColumn, index, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
 
@@ -11,13 +11,13 @@ import { projects } from './project';
 export const funnels = pgTable(
   'funnels',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'fnl-' }))
       .primaryKey(),
-    projectId: varchar({ length: ID_LENGTH }) // FK: which project is this funnel for?
+    projectId: text() // FK: which project is this funnel for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    name: varchar({ length: 256 }).notNull(), // user reference: name of the funnel
+    name: text().notNull(), // user reference: name of the funnel
     description: text(), // user reference: description of the funnel
     ...timestamps,
   },
@@ -31,27 +31,29 @@ export const funnels = pgTable(
  * Stages table schema
  * Represents a stage in a funnel where personas interact with content
  * Stages form a tree structure where parentId null indicates root/first stage
- * and hasChild indicates if the stage has any child stages
+ * and childId indicates the next stage in the sequence
  */
 export const stages = pgTable(
   'stages',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'stg-' }))
       .primaryKey(),
-    funnelId: varchar({ length: ID_LENGTH }) // FK: which funnel is this stage for?
+    funnelId: text() // FK: which funnel is this stage for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    parentId: varchar({ length: ID_LENGTH }) // FK: parent stage, null means this is a root/first stage
+    parentId: text() // FK: parent stage, null means this is a root/first stage
       .references((): AnyPgColumn => stages.id, { onDelete: 'set null' }),
-    hasChild: boolean().notNull().default(false), // Indicates if this stage has any child stages
-    name: varchar({ length: 256 }).notNull(), // name of the stage
+    childId: text() // FK: child stage, null means this is a leaf/last stage
+      .references((): AnyPgColumn => stages.id, { onDelete: 'set null' }),
+    name: text().notNull(), // name of the stage
     description: text(), // description of the stage
     ...timestamps,
   },
   (table) => [
     index('stage_funnel_id_idx').on(table.funnelId),
     index('stage_parent_id_idx').on(table.parentId),
+    index('stage_child_id_idx').on(table.childId),
     index('stage_name_idx').on(table.name),
   ]
 );
@@ -69,13 +71,13 @@ export const stageItemTypeEnum = pgEnum('stage_item_type', ['text', 'image', 'vi
 export const stageItems = pgTable(
   'stage_items',
   {
-    id: varchar({ length: ID_LENGTH })
+    id: text()
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sti-' }))
       .primaryKey(),
-    stageId: varchar({ length: ID_LENGTH }) // FK: which stage is this item for?
+    stageId: text() // FK: which stage is this item for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    name: varchar({ length: 256 }).notNull(), // name of the item
+    name: text().notNull(), // name of the item
     description: text(), // description of the item
     type: stageItemTypeEnum().notNull(), // type of the item (text, image, video)
     content: text().notNull(), // text: string, image: url, video: url
@@ -101,7 +103,7 @@ export const funnelsRelations = relations(funnels, ({ one, many }) => ({
 
 /**
  * One stage to one funnel and many stage items
- * Also includes self-referential parent-child relationship
+ * Also includes self-referential parent-child relationships
  */
 export const stagesRelations = relations(stages, ({ one, many }) => ({
   funnel: one(funnels, {
@@ -113,7 +115,12 @@ export const stagesRelations = relations(stages, ({ one, many }) => ({
     fields: [stages.parentId],
     references: [stages.id],
   }),
-  children: many(stages, { relationName: 'parent' }),
+  child: one(stages, {
+    fields: [stages.childId],
+    references: [stages.id],
+  }),
+  parentOf: many(stages, { relationName: 'child' }),
+  childOf: many(stages, { relationName: 'parent' }),
 }));
 
 /**

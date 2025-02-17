@@ -1,7 +1,10 @@
 import { updateSession } from '@/lib/supabase/middleware';
 import { NextResponse, type NextRequest } from 'next/server';
+import { createClient } from './lib/supabase/client';
 
 const publicRoutes = ['/', '/auth', '/terms', '/privacy'];
+
+const supabase = createClient();
 
 /**
  * Middleware to handle authentication and project route validation
@@ -27,6 +30,23 @@ export async function middleware(request: NextRequest) {
     // Validate project ID format
     if (!projectId || !/^prj-[a-z0-9]+-[a-z0-9]+$/.test(projectId)) {
       // Rewrite to the not-found page while maintaining the URL
+      return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
+    }
+
+    // Check if project exists using edge-compatible Supabase client
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', projectId)
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
+      }
+    } catch (error) {
+      console.error('[Middleware Project Check]:', error);
       return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
     }
   }

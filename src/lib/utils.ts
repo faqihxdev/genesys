@@ -32,14 +32,18 @@ export function withQuery<TOutput>(
  * @param action - The server action function.
  * @returns A wrapped function that can be used with TanStack Query.
  */
-export function withQuery(action: any): any {
-  return async (input?: any) => {
-    const response = await action(input);
+export function withQuery<TInput, TOutput>(
+  action:
+    | ((input: TInput) => Promise<ActionResponse<TOutput>>)
+    | (() => Promise<ActionResponse<TOutput>>)
+): ((input: TInput) => Promise<TOutput>) | (() => Promise<TOutput>) {
+  return async (input?: TInput) => {
+    const response = await (action as (input?: TInput) => Promise<ActionResponse<TOutput>>)(input);
     if (response.error) {
-      // Optionally, you might want to throw a custom error type.
       throw new Error(response.error.message);
     }
-    return response.data;
+    // Assert that data is not null.
+    return response.data!;
   };
 }
 

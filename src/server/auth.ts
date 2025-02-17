@@ -60,7 +60,8 @@ export const signIn = createAction({
     password: z.string().min(1, 'Password is required'),
   }),
   requireAuth: false,
-  actionFn: async ({ input }) => {    const supabase = await createClient();
+  actionFn: async ({ input }) => {
+    const supabase = await createClient();
     const { email, password } = input;
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -198,6 +199,7 @@ export const refreshSession = createAction({
         user: user as User,
       };
     } catch (error) {
+      console.error('[refreshSession]:', error);
       return {
         session,
         user: null,

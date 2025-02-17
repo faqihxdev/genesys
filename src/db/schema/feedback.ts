@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
-import { pgEnum, pgTable, text, varchar } from 'drizzle-orm/pg-core';
-import { ID_LENGTH, SUPABASE_USER_ID_LENGTH, timestamps } from './_utils';
+import { pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
+import { ID_LENGTH, timestamps } from './_utils';
 
 /**
  * Feedback type enum
@@ -34,11 +34,11 @@ export const feedbackStatusEnum = pgEnum('feedback_status', [
  * Feedback table schema
  */
 export const feedback = pgTable('feedback', {
-  id: varchar({ length: ID_LENGTH })
+  id: text()
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'fdb-' }))
     .primaryKey(),
-  userId: varchar({ length: SUPABASE_USER_ID_LENGTH }).notNull(), // FK: which user submitted this feedback? (Supabase auth user id)
-  title: varchar({ length: 256 }).notNull(),
+  userId: text().notNull(), // FK: which user submitted this feedback? (Supabase auth user id)
+  title: text().notNull(),
   type: feedbackTypeEnum('feedback_type').notNull(),
   description: text().notNull(),
   satisfaction: feedbackSatisfactionEnum('feedback_satisfaction').notNull(),
