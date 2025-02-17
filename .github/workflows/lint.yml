@@ -13,7 +13,7 @@ jobs:
     name: Run Linters
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # Need write permission for auto-commit
       checks: write
       pull-requests: write
 
@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          ref: ${{ github.head_ref }} # Checkout the PR branch
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
@@ -56,5 +57,26 @@ jobs:
       - name: Run ESLint
         run: pnpm lint
 
-      - name: Check Prettier formatting
+      - name: Format and commit if needed
+        run: |
+          # Configure git
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          # Run Prettier
+          pnpm format
+
+          # Check if there are changes
+          if [[ -n "$(git status --porcelain)" ]]; then
+            # Add all changes
+            git add -A
+            
+            # Commit and push
+            git commit -m "auto: prettier format"
+            git push origin HEAD
+          else
+            echo "No formatting changes needed"
+          fi
+
+      - name: Verify formatting
         run: pnpm format:check
