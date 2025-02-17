@@ -3,5 +3,6 @@
   "editor.codeActionsOnSave": {
     "source.fixAll": "always"
   },
-  "prettier.requireConfig": true
+  "prettier.requireConfig": true,
+  "eslint.lintTask.enable": true,
 }
