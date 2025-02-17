@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/use-auth';
+import useHydration from '@/hooks/use-hydration';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
@@ -34,6 +35,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Clock, Inbox, MessageSquare, MessagesSquare, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
 
 // Form schema
 const feedbackSchema = z.object({
@@ -58,6 +61,7 @@ type FeedbackForm = z.infer<typeof feedbackSchema>;
 export default function FeedbackPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isHydrated = useHydration();
 
   // Form with proper defaultValues and mode
   const form = useForm<FeedbackForm>({
@@ -99,7 +103,7 @@ export default function FeedbackPage() {
         satisfaction: undefined,
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error submitting feedback:', error);
       toast({
         title: 'Error',
@@ -122,7 +126,7 @@ export default function FeedbackPage() {
         description: 'Your feedback has been deleted successfully.',
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error deleting feedback:', error);
       toast({
         title: 'Error',
@@ -297,66 +301,68 @@ export default function FeedbackPage() {
           </CardTitle>
           <CardDescription>View and track the status of your submitted feedback</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className='space-y-4'>
-            {isLoadingUserFeedback ? (
-              <div className='flex justify-center p-8'>
-                <Spinner size='lg' />
-              </div>
-            ) : userFeedback.length === 0 ? (
-              <div className='flex flex-col items-center justify-center py-8 text-center'>
-                <div className='rounded-full bg-muted p-3 mb-4'>
-                  <Inbox className='h-6 w-6 text-muted-foreground animate-pulse' />
+        {isHydrated && (
+          <CardContent>
+            <div className='space-y-4'>
+              {isLoadingUserFeedback ? (
+                <div className='flex justify-center p-8'>
+                  <Spinner size='lg' />
                 </div>
-                <h3 className='font-medium text-lg mb-1'>No feedback yet</h3>
-                <p className='text-sm text-muted-foreground max-w-sm'>
-                  We'd love to hear your thoughts on how we can improve your experience!
-                </p>
-              </div>
-            ) : (
-              userFeedback.map((feedback) => (
-                <div key={feedback.id} className='flex flex-col p-4 rounded-lg border relative'>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-destructive'
-                    onClick={() => deleteFeedbackItem({ feedbackId: feedback.id })}
-                    isLoading={isDeleting}
-                  >
-                    <Trash2 className='h-4 w-4' />
-                    <span className='sr-only'>Delete feedback</span>
-                  </Button>
-                  <div className='flex-1'>
-                    <h4 className='font-medium pr-10'>{feedback.title}</h4>
-                    <p className='text-sm text-muted-foreground'>{feedback.description}</p>
-                    {feedback.adminResponse && (
-                      <div className='mt-2 p-3 bg-muted/50 rounded-md'>
-                        <p className='text-sm font-medium'>Admin Response:</p>
-                        <p className='text-sm text-muted-foreground'>{feedback.adminResponse}</p>
-                      </div>
-                    )}
-                    <div className='flex items-center justify-between mt-4'>
-                      <div className='flex items-center gap-2'>
-                        <Clock className='h-3 w-3 text-muted-foreground' />
-                        <p className='text-xs text-muted-foreground'>
-                          Submitted: {new Date(feedback.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <span className='px-2 py-1 rounded-md text-xs capitalize bg-muted text-muted-foreground'>
-                          {feedback.type}
-                        </span>
-                        <span className='px-2 py-1 rounded-md text-xs capitalize bg-muted text-muted-foreground'>
-                          {feedback.status}
-                        </span>
+              ) : userFeedback.length === 0 ? (
+                <div className='flex flex-col items-center justify-center py-8 text-center'>
+                  <div className='rounded-full bg-muted p-3 mb-4'>
+                    <Inbox className='h-6 w-6 text-muted-foreground animate-pulse' />
+                  </div>
+                  <h3 className='font-medium text-lg mb-1'>No feedback yet</h3>
+                  <p className='text-sm text-muted-foreground max-w-sm'>
+                    We&apos;d love to hear your thoughts on how we can improve your experience!
+                  </p>
+                </div>
+              ) : (
+                userFeedback.map((feedback) => (
+                  <div key={feedback.id} className='flex flex-col p-4 rounded-lg border relative'>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='absolute top-3 right-3 h-8 w-8 text-muted-foreground hover:text-destructive'
+                      onClick={() => deleteFeedbackItem({ feedbackId: feedback.id })}
+                      isLoading={isDeleting}
+                    >
+                      <Trash2 className='h-4 w-4' />
+                      <span className='sr-only'>Delete feedback</span>
+                    </Button>
+                    <div className='flex-1'>
+                      <h4 className='font-medium pr-10'>{feedback.title}</h4>
+                      <p className='text-sm text-muted-foreground'>{feedback.description}</p>
+                      {feedback.adminResponse && (
+                        <div className='mt-2 p-3 bg-muted/50 rounded-md'>
+                          <p className='text-sm font-medium'>Admin Response:</p>
+                          <p className='text-sm text-muted-foreground'>{feedback.adminResponse}</p>
+                        </div>
+                      )}
+                      <div className='flex items-center justify-between mt-4'>
+                        <div className='flex items-center gap-2'>
+                          <Clock className='h-3 w-3 text-muted-foreground' />
+                          <p className='text-xs text-muted-foreground'>
+                            Submitted: {new Date(feedback.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className='flex items-center gap-2'>
+                          <span className='px-2 py-1 rounded-md text-xs capitalize bg-muted text-muted-foreground'>
+                            {feedback.type}
+                          </span>
+                          <span className='px-2 py-1 rounded-md text-xs capitalize bg-muted text-muted-foreground'>
+                            {feedback.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
+                ))
+              )}
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );

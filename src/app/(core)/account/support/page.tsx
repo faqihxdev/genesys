@@ -41,25 +41,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-// Mock data
-const mockTickets = [
-  {
-    id: 1,
-    subject: 'Cannot access analytics dashboard',
-    status: 'open',
-    priority: 'high',
-    createdAt: '2024-03-15T10:00:00Z',
-    lastUpdate: '2024-03-15T14:30:00Z',
-  },
-  {
-    id: 2,
-    subject: 'Billing issue with subscription',
-    status: 'closed',
-    priority: 'medium',
-    createdAt: '2024-03-10T08:00:00Z',
-    lastUpdate: '2024-03-12T16:45:00Z',
-  },
-];
+export const dynamic = 'force-dynamic';
 
 // Form schema
 const ticketSchema = z.object({
@@ -132,7 +114,7 @@ export default function SupportPage() {
 
       ticketForm.reset();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error submitting ticket:', error);
       toast({
         title: 'Error',
@@ -157,7 +139,7 @@ export default function SupportPage() {
 
       responseForm.reset();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error adding response:', error);
       toast({
         title: 'Error',
@@ -180,7 +162,7 @@ export default function SupportPage() {
         description: 'Your support ticket has been deleted successfully.',
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('Error deleting ticket:', error);
       toast({
         title: 'Error',
@@ -217,7 +199,7 @@ export default function SupportPage() {
             Submit Support Ticket
           </CardTitle>
           <CardDescription>
-            Describe your issue in detail and we'll get back to you as soon as possible
+            Describe your issue in detail and we&apos;ll get back to you as soon as possible
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -347,7 +329,8 @@ export default function SupportPage() {
                 </div>
                 <h3 className='font-medium text-lg mb-1'>No tickets yet</h3>
                 <p className='text-sm text-muted-foreground max-w-sm'>
-                  You haven't submitted any support tickets yet. Create one if you need assistance!
+                  You haven&apos;t submitted any support tickets yet. Create one if you need
+                  assistance!
                 </p>
               </div>
             ) : (

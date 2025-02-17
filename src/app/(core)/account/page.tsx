@@ -21,21 +21,27 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
+import useHydration from '@/hooks/use-hydration';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
 import { createClient } from '@/lib/supabase/client';
 import { withQuery } from '@/lib/utils';
 import { resetPassword, signOut, updatePassword } from '@/server/auth';
+import { getSubscriptionByEmail, toggleSubscription } from '@/server/mailing-list';
 import { getUserById } from '@/server/users';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { KeyRound, LogOut, Mail, Shield, User2 } from 'lucide-react';
+import { KeyRound, LogOut, Mail, Shield, Sparkles, User2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+export const dynamic = 'force-dynamic';
 
 // Form schemas
 const resetPasswordSchema = z.object({
@@ -64,12 +70,20 @@ export default function AccountPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const supabase = createClient();
+  const isHydrated = useHydration();
 
   // Query to get detailed user data
   const { data: userData, isLoading } = useQuery({
     queryKey: queryKey.users.getUserById({ userId: user?.id ?? '' }),
     queryFn: () => withQuery(getUserById)({ userId: user?.id ?? '' }),
     enabled: !!user?.id,
+  });
+
+  // Query to get mailing list status
+  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
+    queryKey: queryKey.mailingList.getSubscriptionByEmail({ email: user?.email ?? '' }),
+    queryFn: () => withQuery(getSubscriptionByEmail)({ email: user?.email ?? '' }),
+    enabled: !!user?.email,
   });
 
   // Form for requesting password reset
@@ -89,6 +103,38 @@ export default function AccountPage() {
     },
   });
 
+  // Mutation for toggling subscription
+  const { mutate: toggleMailingList, isPending: isTogglingSubscription } = useMutation({
+    mutationFn: (subscribed: boolean) =>
+      withQuery(toggleSubscription)({
+        email: user?.email ?? '',
+        subscribed,
+        description: subscription?.description || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKey.mailingList.isEmailSubscribed({ email: user?.email ?? '' }),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: queryKey.mailingList.getSubscriptionByEmail({ email: user?.email ?? '' }),
+      });
+
+      toast({
+        title: 'Subscription updated',
+        description: 'Your mailing list preferences have been updated.',
+        variant: 'success',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update subscription.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Listen for auth state changes and URL parameters
   useEffect(() => {
     // Check for password reset code in URL
@@ -102,7 +148,7 @@ export default function AccountPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, _session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setResetStep('update');
         setIsResetDialogOpen(true);
@@ -112,7 +158,7 @@ export default function AccountPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = async () => {
     setIsSigningOut(true);
@@ -124,10 +170,10 @@ export default function AccountPage() {
         title: 'Logged out',
         description: 'You have been successfully logged out.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to log out. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to log out. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -149,10 +195,10 @@ export default function AccountPage() {
       });
       resetForm.reset();
       setIsResetDialogOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send reset link. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to send reset link. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -180,10 +226,10 @@ export default function AccountPage() {
       newPasswordForm.reset();
       setIsResetDialogOpen(false);
       setResetStep('request');
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update password. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to update password. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -207,35 +253,37 @@ export default function AccountPage() {
           </CardTitle>
           <CardDescription>Your account details and preferences</CardDescription>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className='flex justify-center p-8'>
-              <Spinner size='lg' />
-            </div>
-          ) : !userData ? (
-            <div className='text-center text-muted-foreground'>
-              Failed to load user data. Please try again.
-            </div>
-          ) : (
-            <div className='space-y-6'>
-              <div className='grid gap-1'>
-                <div className='text-sm font-medium'>Email</div>
-                <div className='flex items-center gap-2 text-muted-foreground'>
-                  <Mail className='h-4 w-4' />
-                  {userData.email}
-                </div>
+        {isHydrated && (
+          <CardContent>
+            {isLoading ? (
+              <div className='flex justify-center p-8'>
+                <Spinner size='lg' />
               </div>
+            ) : !userData ? (
+              <div className='text-center text-muted-foreground'>
+                Failed to load user data. Please try again.
+              </div>
+            ) : (
+              <div className='space-y-6'>
+                <div className='grid gap-1'>
+                  <div className='text-sm font-medium'>Email</div>
+                  <div className='flex items-center gap-2 text-muted-foreground'>
+                    <Mail className='h-4 w-4' />
+                    {userData.email}
+                  </div>
+                </div>
 
-              <div className='grid gap-1'>
-                <div className='text-sm font-medium'>Account Created</div>
-                <div className='flex items-center gap-2 text-muted-foreground'>
-                  <Shield className='h-4 w-4' />
-                  {format(new Date(user?.created_at ?? Date.now()), 'MMMM d, yyyy')}
+                <div className='grid gap-1'>
+                  <div className='text-sm font-medium'>Account Created</div>
+                  <div className='flex items-center gap-2 text-muted-foreground'>
+                    <Shield className='h-4 w-4' />
+                    {format(new Date(user?.created_at ?? Date.now()), 'MMMM d, yyyy')}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardContent>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* Quick Actions */}
@@ -278,6 +326,44 @@ export default function AccountPage() {
             </div>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Mailing List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-2'>
+            <Sparkles className='h-5 w-5' />
+            Mailing List
+          </CardTitle>
+          <CardDescription>Email subscription preferences</CardDescription>
+        </CardHeader>
+        {isHydrated && (
+          <CardContent>
+            {isLoadingSubscription ? (
+              <div className='flex justify-center p-8'>
+                <Spinner size='lg' />
+              </div>
+            ) : (
+              <div className='flex items-center justify-between gap-4 p-4 rounded-lg border'>
+                <div className='space-y-0.5'>
+                  <div className='font-medium'>Product Updates</div>
+                  <div className='text-sm text-muted-foreground'>
+                    Stay informed about new features and improvements
+                  </div>
+                </div>
+                <div className='flex items-center gap-2'>
+                  {isTogglingSubscription && <Spinner size='sm' />}
+                  <Switch
+                    checked={subscription ? !subscription.deletedAt : false}
+                    onCheckedChange={(checked) => toggleMailingList(checked)}
+                    disabled={isTogglingSubscription}
+                    aria-label='Toggle mailing list subscription'
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* Password Reset Dialog */}

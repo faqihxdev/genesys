@@ -35,16 +35,14 @@ import { z } from 'zod';
 
 // Mock data
 const mockSubscriptionData = {
-  plan: 'pro',
+  plan: 'demo',
   status: 'active',
-  nextBilling: '2024-04-01',
-  amount: 49.99,
+  nextBilling: null,
+  amount: 0,
 };
 
 const mockInvoices = [
-  { id: 1, date: '2024-03-01', amount: 49.99, status: 'paid' },
-  { id: 2, date: '2024-02-01', amount: 49.99, status: 'paid' },
-  { id: 3, date: '2024-01-01', amount: 49.99, status: 'paid' },
+  { id: 1, date: new Date().toISOString().split('T')[0], amount: 0, status: 'Free Demo Trial' },
 ];
 
 // Form schema
@@ -67,8 +65,7 @@ type PaymentMethodForm = z.infer<typeof paymentMethodSchema>;
 
 export default function BillingPage() {
   const { toast } = useToast();
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isChangingPlan, setIsChangingPlan] = useState(false);
+  const [, setIsUpdating] = useState(false);
 
   // Form
   const form = useForm<PaymentMethodForm>({
@@ -107,30 +104,6 @@ export default function BillingPage() {
     }
   };
 
-  const handlePlanChange = async (plan: string) => {
-    setIsChangingPlan(true);
-    try {
-      // Simulate API call
-      console.log('Changing plan to:', plan);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      toast({
-        title: 'Plan updated',
-        description: 'Your subscription plan has been updated successfully.',
-        variant: 'success',
-      });
-    } catch (error) {
-      console.error('Error changing plan:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to change plan. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsChangingPlan(false);
-    }
-  };
-
   return (
     <div className='w-full max-w-2xl mx-auto space-y-6'>
       <PageTitle
@@ -145,7 +118,7 @@ export default function BillingPage() {
             <Wallet className='h-5 w-5' />
             Current Plan
           </CardTitle>
-          <CardDescription>Your current subscription plan and status</CardDescription>
+          <CardDescription>You are currently on the Demo plan</CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           <div className='grid grid-cols-2 gap-4'>
@@ -157,29 +130,24 @@ export default function BillingPage() {
               <p className='text-sm font-medium'>Status</p>
               <p className='text-2xl font-bold capitalize'>{mockSubscriptionData.status}</p>
             </div>
-            <div>
-              <p className='text-sm font-medium'>Next Billing</p>
-              <p className='text-2xl font-bold'>{mockSubscriptionData.nextBilling}</p>
-            </div>
-            <div>
-              <p className='text-sm font-medium'>Amount</p>
-              <p className='text-2xl font-bold'>${mockSubscriptionData.amount}</p>
+            <div className='col-span-2'>
+              <p className='text-sm text-muted-foreground'>
+                You are currently using the free demo version. No billing information is required.
+              </p>
             </div>
           </div>
         </CardContent>
         <CardFooter className='flex justify-between'>
-          <Select disabled={isChangingPlan} onValueChange={handlePlanChange}>
-            <SelectTrigger className='w-[180px]'>
-              <SelectValue placeholder='Change plan' />
+          <Select disabled>
+            <SelectTrigger className='w-[180px] h-9'>
+              <SelectValue placeholder='Demo Plan' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='starter'>Starter ($29/mo)</SelectItem>
-              <SelectItem value='pro'>Pro ($49/mo)</SelectItem>
-              <SelectItem value='enterprise'>Enterprise ($99/mo)</SelectItem>
+              <SelectItem value='demo'>Demo (Free)</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant='outline' isLoading={isChangingPlan} loadingText='Cancelling...'>
-            Cancel Subscription
+          <Button variant='outline' disabled>
+            Demo Version
           </Button>
         </CardFooter>
       </Card>
@@ -191,7 +159,7 @@ export default function BillingPage() {
             <CreditCard className='h-5 w-5' />
             Payment Method
           </CardTitle>
-          <CardDescription>Update your payment method</CardDescription>
+          <CardDescription>Payment method not required for demo version</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -203,7 +171,7 @@ export default function BillingPage() {
                   <FormItem>
                     <FormLabel>Card Number</FormLabel>
                     <FormControl>
-                      <Input placeholder='1234 5678 9012 3456' {...field} maxLength={16} />
+                      <Input disabled placeholder='Demo Version' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -217,7 +185,7 @@ export default function BillingPage() {
                     <FormItem>
                       <FormLabel>Expiry Date</FormLabel>
                       <FormControl>
-                        <Input placeholder='MM/YY' {...field} maxLength={5} />
+                        <Input disabled placeholder='Demo Version' {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -230,7 +198,7 @@ export default function BillingPage() {
                     <FormItem>
                       <FormLabel>CVV</FormLabel>
                       <FormControl>
-                        <Input placeholder='123' {...field} maxLength={4} type='password' />
+                        <Input disabled placeholder='Demo Version' {...field} type='password' />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -244,19 +212,14 @@ export default function BillingPage() {
                   <FormItem>
                     <FormLabel>Cardholder Name</FormLabel>
                     <FormControl>
-                      <Input placeholder='John Doe' {...field} />
+                      <Input disabled placeholder='Demo Version' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button
-                type='submit'
-                className='w-full'
-                isLoading={isUpdating}
-                loadingText='Updating...'
-              >
-                Update Payment Method
+              <Button type='submit' className='w-full' disabled>
+                Demo Version - No Payment Required
               </Button>
             </form>
           </Form>
@@ -270,7 +233,7 @@ export default function BillingPage() {
             <Receipt className='h-5 w-5' />
             Billing History
           </CardTitle>
-          <CardDescription>View your past invoices and payment history</CardDescription>
+          <CardDescription>Demo version - No billing history available</CardDescription>
         </CardHeader>
         <CardContent>
           <div className='space-y-4'>
@@ -280,12 +243,12 @@ export default function BillingPage() {
                 className='flex items-center justify-between p-4 rounded-lg border'
               >
                 <div className='space-y-1'>
-                  <p className='font-medium'>Invoice #{invoice.id}</p>
+                  <p className='font-medium'>Demo Version</p>
                   <p className='text-sm text-muted-foreground'>{invoice.date}</p>
                 </div>
                 <div className='space-y-1 text-right'>
-                  <p className='font-medium'>${invoice.amount}</p>
-                  <p className='text-sm capitalize text-green-600'>{invoice.status}</p>
+                  <p className='font-medium'>Free</p>
+                  <p className='text-sm text-muted-foreground'>{invoice.status}</p>
                 </div>
               </div>
             ))}
