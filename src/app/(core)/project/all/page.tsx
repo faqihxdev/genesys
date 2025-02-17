@@ -1,7 +1,7 @@
 'use client';
 
-import { PageTitle } from '@/components/custom/page-title';
 import { Button } from '@/components/custom/button';
+import { PageTitle } from '@/components/custom/page-title';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ProjectExtended } from '@/db/schema/project';
@@ -13,8 +13,10 @@ import { getCurrentUserProjects } from '@/server/projects';
 import { useQuery } from '@tanstack/react-query';
 import { Crown, Folder, FolderGit2, Users2 } from 'lucide-react';
 import Link from 'next/link';
-import { ProjectActions } from './_components/project-actions';
-import { ProjectDialog } from './_components/project-dialog';
+import { ProjectActions } from './_project-actions';
+import { ProjectDialog } from './_project-dialog';
+
+export const dynamic = 'force-dynamic';
 
 function ProjectCard({ project }: { project: ProjectExtended }) {
   return (

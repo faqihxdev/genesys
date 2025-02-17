@@ -133,6 +133,7 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
           : 'User will be invited to create an account.',
       });
     } catch (error) {
+      console.error('[InviteMemberDialog/onAddEmail]:', error);
       toast({
         title: 'Error',
         description: 'Failed to add email. Please try again.',
@@ -160,12 +161,12 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
         inviteList.map(async (member) => {
           try {
             createInviteMutation({ projectId, email: member.email });
-          } catch (error: any) {
+          } catch (error) {
             // Log individual failures but continue with others
             console.error('[InviteMemberDialog/onSubmit]:', error);
             toast({
               title: `Failed to invite ${member.email}`,
-              description: error.message || 'An error occurred',
+              description: error instanceof Error ? error.message : 'An error occurred',
               variant: 'destructive',
             });
           }

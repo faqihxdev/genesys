@@ -9,8 +9,10 @@ import { queryKey } from '@/lib/query-keys';
 import { RefreshCw } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { InviteMemberDialog } from './_components/invite-member-dialog';
-import { MemberList } from './_components/member-list';
+import { InviteMemberDialog } from './_invite-member-dialog';
+import { MemberList } from './_member-list';
+
+export const dynamic = 'force-dynamic';
 
 export default function ProjectSettingsPage() {
   const params = useParams<{ id: string }>();

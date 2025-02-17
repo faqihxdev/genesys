@@ -20,10 +20,11 @@ import {
 import type { ProjectExtended } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { getDefaultProjectCandidates, updateProject } from '@/server/projects';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
 interface SelectDefaultProjectDialogProps {
@@ -42,7 +43,6 @@ export function SelectDefaultProjectDialog({
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Get available projects for default selection
   const { data: candidates = [] } = useQuery({

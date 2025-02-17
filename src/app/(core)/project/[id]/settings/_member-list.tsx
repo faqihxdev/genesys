@@ -78,10 +78,10 @@ export function MemberList({ projectId }: MemberListProps) {
         description: 'The member has been removed from the project.',
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to remove member',
+        description: error instanceof Error ? error.message : 'Failed to remove member',
         variant: 'destructive',
       });
     },
@@ -99,10 +99,10 @@ export function MemberList({ projectId }: MemberListProps) {
         description: "The member's role has been updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update role',
+        description: error instanceof Error ? error.message : 'Failed to update role',
         variant: 'destructive',
       });
     },
@@ -120,10 +120,10 @@ export function MemberList({ projectId }: MemberListProps) {
         description: 'The invite has been removed.',
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to remove invite',
+        description: error instanceof Error ? error.message : 'Failed to remove invite',
         variant: 'destructive',
       });
     },

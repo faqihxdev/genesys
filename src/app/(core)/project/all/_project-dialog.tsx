@@ -17,12 +17,13 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Project } from '@/db/schema/project';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { createProject, updateProject } from '@/server/projects';
 import { currentProjectIdAtom } from '@/stores/project';
 import { ProjectExtended } from '@/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -47,7 +48,6 @@ export function ProjectDialog({ mode, project, trigger }: ProjectDialogProps) {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, setCurrentProjectId] = useAtom(currentProjectIdAtom);
 
   const form = useForm<ProjectForm>({

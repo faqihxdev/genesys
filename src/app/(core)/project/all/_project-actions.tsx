@@ -1,5 +1,6 @@
 'use client';
 
+import { Button } from '@/components/custom/button';
 import { Spinner } from '@/components/custom/spinner';
 import {
   AlertDialog,
@@ -11,7 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/custom/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,8 +31,8 @@ import { useMutation } from '@tanstack/react-query';
 import { MoreHorizontal, Pencil, Settings, Star, Trash } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ProjectDialog } from './project-dialog';
-import { SelectDefaultProjectDialog } from './select-default-project-dialog';
+import { ProjectDialog } from './_project-dialog';
+import { SelectDefaultProjectDialog } from './_select-default-project-dialog';
 
 interface ProjectActionsProps {
   project: ProjectExtended;
@@ -191,7 +191,7 @@ export function ProjectActions({ project }: ProjectActionsProps) {
             ) : (
               <>
                 <Star className='h-4 w-4' />
-                <span>Set as Default</span>
+                {project.isDefault ? 'Unset as Default' : 'Set as Default'}
               </>
             )}
           </DropdownMenuItem>
