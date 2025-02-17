@@ -81,36 +81,32 @@ src/
 
    ```bash
    node >= 18.0.0
-   pnpm >= 8.0.0
+   pnpm >= 9.0.0
    ```
-
 2. **Installation**
 
    ```bash
    pnpm install
    ```
-
 3. **Environment Setup**
 
    ```bash
    cp .env.example .env
    # Fill in your environment variables
    ```
-
 4. **Database Setup**
 
    ```bash
    pnpm db:generate  # Generate migrations
    pnpm db:push     # Push to database
    ```
-
 5. **Development**
 
    ```bash
    pnpm dev
    ```
-
 6. **Build**
+
    ```bash
    pnpm build
    pnpm start
@@ -146,10 +142,8 @@ src/
 
 ### Server Actions Pattern
 
-#### Using `createAction`
-
 ```typescript
-// Example of a server action
+// Example of a server action with error handling
 export const createProject = createAction({
   // Zod validator for input
   validator: z.object({
@@ -160,36 +154,151 @@ export const createProject = createAction({
   requireAuth: true,
   // Action implementation
   actionFn: async ({ input, currentUser }) => {
-    // Implementation
+    // Check permissions
+    const { data: hasAccess, error: accessError } = await checkAccess(input.projectId);
+    if (accessError) return fail(accessError);
+    if (!hasAccess) {
+      return fail({ message: 'Access denied', status: 403 });
+    }
+
+    try {
+      // Implementation
+      const result = await db.transaction(async (tx) => {
+        // ... implementation
+      });
+
+      return result;
+    } catch (error) {
+      console.error('[createProject]:', error);
+      return fail({
+        message: 'Failed to create project',
+        status: 500,
+      });
+    }
   },
 });
 ```
 
 Key points:
 
-- Always use Zod for input validation
-- Specify authentication requirement
+- Built-in error handling with fail() helper
+- Consistent error response structure
+- Proper error propagation
 - Type-safe input and output
-- Built-in error handling
-- Automatic logging
+- Automatic error logging
+- Transaction support with error handling
 
-#### Using `withQuery`
+### Response Type
 
 ```typescript
-// In your React component
-const { data } = useQuery({
-  queryKey: queryKey.projects.getProjectById({ projectId }),
-  queryFn: () => withQuery(getProjectById)({ projectId }),
+// Standard response type for all server actions
+type ActionResponse<T> = {
+  data: T | null;
+  error: ActionError | null;
+};
+
+// Standard error type
+type ActionError = {
+  message: string;
+  status: number;
+  errors?: ZodError['errors'];
+};
+
+// Example usage
+const { data, error } = await createProject({
+  name: 'New Project',
+  description: 'Description',
 });
+
+if (error) {
+  // Handle error based on status code
+  switch (error.status) {
+    case 400: // Bad Request
+    case 401: // Unauthorized
+    case 403: // Forbidden
+    case 404: // Not Found
+    case 409: // Conflict
+    case 500: // Server Error
+  }
+}
+```
+
+### withQuery Wrapper Pattern
+
+```typescript
+// Type-safe query wrapper that handles ActionResponse
+export function withQuery<TInput, TOutput>(
+  action: (input: TInput) => Promise<ActionResponse<TOutput>>
+): (input: TInput) => Promise<TOutput>;
+
+// Usage with direct call
+const project = await withQuery(getProjectById)({ projectId: 'prj-123' });
+
+// Usage with TanStack Query
+const { data: project } = useQuery({
+  queryKey: queryKey.projects.getProjectById({ projectId }),
+  queryFn: withQuery(() => getProjectById({ projectId })),
+});
+```
+
+### Data Fetching Pattern
+
+```typescript
+// Example component showing the complete pattern
+export default function ProjectPage({ projectId }: { projectId: string }) {
+  // Query with proper key management and error handling
+  const { data: project, error } = useQuery({
+    queryKey: queryKey.projects.getProjectById({ projectId }),
+    queryFn: withQuery(() => getProjectById({ projectId })),
+  });
+
+  // Mutation example
+  const { mutate: updateProject } = useMutation({
+    mutationFn: withQuery(updateProjectDetails),
+    onSuccess: () => {
+      // Invalidate queries and show success message
+      queryClient.invalidateQueries({
+        queryKey: queryKey.projects.getProjectById({ projectId }),
+      });
+      toast({ title: 'Project updated successfully' });
+    },
+    onError: (error) => {
+      // Error is automatically handled and typed
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Usage in event handlers
+  const handleUpdate = async (data: UpdateProjectInput) => {
+    try {
+      await updateProject({ projectId, ...data });
+    } catch (error) {
+      // Error handling with proper types
+      console.error('[ProjectPage/handleUpdate]:', error);
+    }
+  };
+
+  return (
+    <div>
+      {/* Components using the fetched data */}
+    </div>
+  );
+}
 ```
 
 Key points:
 
-- Wraps server actions for use with TanStack Query
-- Handles error states automatically
-- Provides type safety
-- Consistent error handling
-- Automatic data transformation
+- Complete type safety from server to client
+- Consistent error handling across the stack
+- Centralized query key management
+- Automatic error transformation
+- Built-in loading states
+- Proper cache invalidation
+- Toast notification integration
 
 ### Query Key Management
 
@@ -244,21 +353,46 @@ Key points:
 ### Error Handling Pattern
 
 ```typescript
-try {
-  // Implementation
-} catch (error) {
-  console.error('[ComponentName/functionName]:', error);
-  throw new Error(error.message);
+// 1. Server Action throws error
+if (!hasPermission) {
+  return fail({ message: 'Access denied', status: 403 });
+}
+
+// 2. withQuery transforms error
+// Inside withQuery implementation
+if (response.error) {
+  throw new Error(response.error.message);
+}
+
+// 3. TanStack Query catches error
+const { error } = useQuery({
+  queryKey: queryKey.projects.getProjectById({ projectId }),
+  queryFn: withQuery(() => getProjectById({ projectId })),
+});
+
+// 4. Component handles error
+if (error) {
+  toast({
+    title: 'Error',
+    description: error.message,
+    variant: 'destructive',
+  });
 }
 ```
 
 Key points:
 
-- Consistent error logging format
+- Use fail() helper for standardized error responses
+- Consistent HTTP status codes:
+  - 400 Bad Request for validation errors
+  - 401 Unauthorized for auth errors
+  - 403 Forbidden for permission errors
+  - 404 Not Found for missing resources
+  - 409 Conflict for resource conflicts
+  - 500 Server Error for internal errors
+- Proper error propagation
 - Context-aware error messages
 - Type-safe error handling
-- Proper error propagation
-- Clear error boundaries
 
 ### State Management Pattern
 
@@ -314,36 +448,6 @@ Key points:
 - Consistent error messages
 - Reusable form schemas
 - Proper form state management
-
-### Component Pattern
-
-```typescript
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-}
-
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'default', size = 'md', ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={cn(buttonVariants({ variant, size }))}
-        {...props}
-      />
-    );
-  }
-);
-Button.displayName = 'Button';
-```
-
-Key points:
-
-- Proper TypeScript props
-- Forward refs when needed
-- Use proper display names
-- Consistent styling pattern
-- Accessibility support
 
 ## 🔒 Security
 

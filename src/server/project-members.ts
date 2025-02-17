@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { projectUsers } from '@/db/schema/project';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 import { isProjectOwner } from './projects';
 
 // ==================================================
@@ -32,9 +32,9 @@ export const addProjectMember = createAction({
       projectId: input.projectId,
       userId: currentUser.id,
     });
-    if (ownerError) throw ownerError;
+    if (ownerError) return fail(ownerError);
     if (!isOwner) {
-      throw new Error('Only project owners can add members');
+      return fail({ message: 'Only project owners can add members', status: 403 });
     }
 
     // Check if user is already a member
@@ -47,7 +47,7 @@ export const addProjectMember = createAction({
       .limit(1);
 
     if (existingMember.length > 0) {
-      throw new Error('User is already a member of this project');
+      return fail({ message: 'User is already a member of this project', status: 409 });
     }
 
     // Add new member
@@ -113,10 +113,10 @@ export const updateProjectMemberRole = createAction({
       userId: currentUser.id,
     });
 
-    if (ownerError) throw ownerError;
+    if (ownerError) return fail(ownerError);
 
     if (!isOwner) {
-      throw new Error('Only project owners can update member roles');
+      return fail({ message: 'Only project owners can update member roles', status: 403 });
     }
 
     // If demoting from owner, check if there will still be at least one owner
@@ -127,7 +127,7 @@ export const updateProjectMemberRole = createAction({
         .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
 
       if (owners.length <= 1 && owners[0].userId === input.userId) {
-        throw new Error('Cannot demote the last owner of the project');
+        return fail({ message: 'Cannot demote the last owner of the project', status: 400 });
       }
     }
 
@@ -166,10 +166,10 @@ export const removeProjectMember = createAction({
       userId: currentUser.id,
     });
 
-    if (ownerError) throw ownerError;
+    if (ownerError) return fail(ownerError);
 
     if (!isOwner) {
-      throw new Error('Only project owners can remove members');
+      return fail({ message: 'Only project owners can remove members', status: 403 });
     }
 
     // Prevent removing the last owner
@@ -180,7 +180,7 @@ export const removeProjectMember = createAction({
         .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
 
       if (owners.length <= 1) {
-        throw new Error('Cannot remove the last owner of the project');
+        return fail({ message: 'Cannot remove the last owner of the project', status: 400 });
       }
     }
 

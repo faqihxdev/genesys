@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { projectUsers, projects } from '@/db/schema/project';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -119,9 +119,9 @@ export const getProjectById = createAction({
       userId: currentUser.id,
     });
 
-    if (accessError) throw accessError;
+    if (accessError) return fail(accessError);
     if (!hasAccess) {
-      throw new Error('Access denied');
+      return fail({ message: 'Access denied', status: 403 });
     }
 
     const project = await db.query.projects.findFirst({
@@ -129,7 +129,7 @@ export const getProjectById = createAction({
     });
 
     if (!project) {
-      throw new Error('Project not found');
+      return fail({ message: 'Project not found', status: 404 });
     }
 
     return project;
@@ -159,9 +159,9 @@ export const updateProject = createAction({
       projectId: input.projectId,
       userId: currentUser.id,
     });
-    if (accessError) throw accessError;
+    if (accessError) return fail(accessError);
     if (!hasAccess) {
-      throw new Error('Access denied');
+      return fail({ message: 'Access denied', status: 403 });
     }
 
     return await db.transaction(async (tx) => {
@@ -182,14 +182,14 @@ export const updateProject = createAction({
           .returning();
 
         if (!project) {
-          throw new Error('Project not found');
+          return fail({ message: 'Project not found', status: 404 });
         }
       } else {
         // If no project details to update, just get the project
         [project] = await tx.select().from(projects).where(eq(projects.id, input.projectId));
 
         if (!project) {
-          throw new Error('Project not found');
+          return fail({ message: 'Project not found', status: 404 });
         }
       }
 
@@ -255,9 +255,9 @@ export const deleteProject = createAction({
       projectId: input.projectId,
       userId: currentUser.id,
     });
-    if (accessError) throw accessError;
+    if (accessError) return fail(accessError);
     if (!hasAccess) {
-      throw new Error('Access denied');
+      return fail({ message: 'Access denied', status: 403 });
     }
 
     // Check if user is the owner
@@ -273,7 +273,7 @@ export const deleteProject = createAction({
       );
 
     if (!projectUser) {
-      throw new Error('Only project owners can delete projects');
+      return fail({ message: 'Only project owners can delete projects', status: 403 });
     }
 
     const [project] = await db.delete(projects).where(eq(projects.id, input.projectId)).returning();

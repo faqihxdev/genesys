@@ -5,7 +5,7 @@ import { projectInvites } from '@/db/schema/invite';
 import { projectUsers } from '@/db/schema/project';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 import { isProjectOwner } from './projects';
 import { getUsersByIds, searchUsersByEmail } from './users';
 
@@ -30,18 +30,19 @@ export const createProjectInvite = createAction({
       projectId: input.projectId,
       userId: currentUser.id,
     });
-    if (ownerError) throw ownerError;
+    if (ownerError) return fail(ownerError);
     if (!isOwner) {
-      throw new Error('Only project owners can invite members');
+      return fail({ message: 'Only project owners can invite members', status: 403 });
     }
 
     // Search for user by email
     const { data: invitedUser, error: searchError } = await searchUsersByEmail({
       email: input.email,
     });
-    if (searchError) throw searchError;
+
+    if (searchError) return fail(searchError);
     if (!invitedUser) {
-      throw new Error('User not found');
+      return fail({ message: 'User not found', status: 404 });
     }
 
     // Check if user is already a member
@@ -54,7 +55,7 @@ export const createProjectInvite = createAction({
       .limit(1);
 
     if (existingMember.length > 0) {
-      throw new Error('User is already a member of this project');
+      return fail({ message: 'User is already a member of this project', status: 409 });
     }
 
     // Check if there's already a pending invite
@@ -71,7 +72,7 @@ export const createProjectInvite = createAction({
       .limit(1);
 
     if (existingInvite.length > 0) {
-      throw new Error('User already has a pending invite');
+      return fail({ message: 'User already has a pending invite', status: 409 });
     }
 
     // Create invite
@@ -108,11 +109,10 @@ export const getProjectInvites = createAction({
       projectId: input.projectId,
       userId: currentUser.id,
     });
-
-    if (ownerError) throw ownerError;
+    if (ownerError) return fail(ownerError);
 
     if (!isOwner) {
-      throw new Error('Only project owners can view invites');
+      return fail({ message: 'Only project owners can view invites', status: 403 });
     }
 
     const invites = await db
@@ -216,7 +216,7 @@ export const acceptProjectInvite = createAction({
         );
 
       if (!invite) {
-        throw new Error('Invalid or expired invite');
+        return fail({ message: 'Invalid or expired invite', status: 404 });
       }
 
       // Add user to project
@@ -285,7 +285,7 @@ export const removeProjectInvite = createAction({
         .from(projectInvites)
         .where(eq(projectInvites.id, input.inviteId));
       if (!invite) {
-        throw new Error('Invite not found');
+        return fail({ message: 'Invite not found', status: 404 });
       }
 
       // Check if user is project owner
@@ -293,9 +293,9 @@ export const removeProjectInvite = createAction({
         projectId: invite.projectId,
         userId: currentUser.id,
       });
-      if (ownerError) throw ownerError;
+      if (ownerError) return fail(ownerError);
       if (!isOwner) {
-        throw new Error('Only project owners can remove invites');
+        return fail({ message: 'Only project owners can remove invites', status: 403 });
       }
 
       const result = await db

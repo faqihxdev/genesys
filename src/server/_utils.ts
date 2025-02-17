@@ -1,9 +1,10 @@
+import env from '@/env';
 import { getCurrentUser } from '@/server/auth';
 import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 /**
- * @description Generic server action error type
+ * Generic server action error type
  */
 export type ActionError = {
   message: string;
@@ -12,12 +13,34 @@ export type ActionError = {
 };
 
 /**
- * @description Generic server action response type
+ * Generic server action response type
  */
 export type ActionResponse<T> = {
   data: T | null;
   error: ActionError | null;
 };
+
+/**
+ * A unique symbol used for branding fail results.
+ */
+const FAIL_SYMBOL = Symbol('fail');
+
+/**
+ * The branded type used to signal an error.
+ */
+export type FailReturn = { [FAIL_SYMBOL]: true; error: ActionError };
+
+/**
+ * Use this helper to “return” an error from your action function.
+ */
+export function fail(error: ActionError): FailReturn {
+  return { [FAIL_SYMBOL]: true, error } as FailReturn;
+}
+
+// A type guard for our FailReturn type.
+function isFail<T>(result: T | FailReturn): result is FailReturn {
+  return typeof result === 'object' && result !== null && FAIL_SYMBOL in result;
+}
 
 /* ----------------------------------------------------------------------------
    Overloads for createAction
@@ -27,7 +50,7 @@ export type ActionResponse<T> = {
 export function createAction<TOutput>(config: {
   validator: null;
   requireAuth: false;
-  actionFn: (params: object) => Promise<TOutput>;
+  actionFn: (params: object) => Promise<TOutput | FailReturn>;
 }): () => Promise<ActionResponse<TOutput>>;
 
 /* ----------------------------------------------------------------------------
@@ -36,7 +59,7 @@ export function createAction<TOutput>(config: {
 export function createAction<TInput, TOutput>(config: {
   validator: z.ZodType<TInput>;
   requireAuth: false;
-  actionFn: (params: { input: TInput }) => Promise<TOutput>;
+  actionFn: (params: { input: TInput }) => Promise<TOutput | FailReturn>;
 }): (input: TInput) => Promise<ActionResponse<TOutput>>;
 
 /* ----------------------------------------------------------------------------
@@ -45,7 +68,7 @@ export function createAction<TInput, TOutput>(config: {
 export function createAction<TOutput>(config: {
   validator: null;
   requireAuth: true;
-  actionFn: (params: { currentUser: User }) => Promise<TOutput>;
+  actionFn: (params: { currentUser: User }) => Promise<TOutput | FailReturn>;
 }): () => Promise<ActionResponse<TOutput>>;
 
 /* ----------------------------------------------------------------------------
@@ -54,7 +77,7 @@ export function createAction<TOutput>(config: {
 export function createAction<TInput, TOutput>(config: {
   validator: z.ZodType<TInput>;
   requireAuth: true;
-  actionFn: (params: { input: TInput; currentUser: User }) => Promise<TOutput>;
+  actionFn: (params: { input: TInput; currentUser: User }) => Promise<TOutput | FailReturn>;
 }): (input: TInput) => Promise<ActionResponse<TOutput>>;
 
 /* ----------------------------------------------------------------------------
@@ -64,27 +87,24 @@ export function createAction<TInput, TOutput>(config: {
   validator: z.ZodType<TInput> | null;
   requireAuth: boolean;
   actionFn:
-    | ((params: { input: TInput }) => Promise<TOutput>)
-    | ((params: { currentUser: User }) => Promise<TOutput>)
-    | ((params: { input: TInput; currentUser: User }) => Promise<TOutput>)
-    | ((params: object) => Promise<TOutput>);
+    | ((params: { input: TInput }) => Promise<TOutput | FailReturn>)
+    | ((params: { currentUser: User }) => Promise<TOutput | FailReturn>)
+    | ((params: { input: TInput; currentUser: User }) => Promise<TOutput | FailReturn>)
+    | ((params: object) => Promise<TOutput | FailReturn>);
 }) {
   return async (input?: TInput): Promise<ActionResponse<TOutput>> => {
     try {
       let currentUser: User | undefined = undefined;
       if (config.requireAuth) {
         const { data, error } = await getCurrentUser();
-        if (error) throw error;
-        if (!data) throw new Error('Unauthorized');
+        if (error) return { data: null, error };
+        if (!data) return { data: null, error: { message: 'Unauthorized', status: 401 } };
         currentUser = data;
       }
 
-      // Branch based on the provided options.
       if (config.validator) {
-        // Validate the input using the provided Zod schema.
         const validatedInput = config.validator.parse(input);
         if (config.requireAuth) {
-          // Branch: with validator and auth.
           const params: { input: TInput; currentUser: User } = {
             input: validatedInput,
             currentUser: currentUser!,
@@ -92,34 +112,39 @@ export function createAction<TInput, TOutput>(config: {
           const fn = config.actionFn as (params: {
             input: TInput;
             currentUser: User;
-          }) => Promise<TOutput>;
-          const data = await fn(params);
-          return { data, error: null };
+          }) => Promise<TOutput | FailReturn>;
+          const result = await fn(params);
+          if (isFail(result)) return { data: null, error: result.error };
+          return { data: result, error: null };
         } else {
-          // Branch: with validator but no auth.
           const params: { input: TInput } = { input: validatedInput };
-          const fn = config.actionFn as (params: { input: TInput }) => Promise<TOutput>;
-          const data = await fn(params);
-          return { data, error: null };
+          const fn = config.actionFn as (params: {
+            input: TInput;
+          }) => Promise<TOutput | FailReturn>;
+          const result = await fn(params);
+          if (isFail(result)) return { data: null, error: result.error };
+          return { data: result, error: null };
         }
       } else {
-        // No validator provided.
         if (config.requireAuth) {
-          // Branch: no validator, but auth is required.
           const params: { currentUser: User } = { currentUser: currentUser! };
-          const fn = config.actionFn as (params: { currentUser: User }) => Promise<TOutput>;
-          const data = await fn(params);
-          return { data, error: null };
+          const fn = config.actionFn as (params: {
+            currentUser: User;
+          }) => Promise<TOutput | FailReturn>;
+          const result = await fn(params);
+          if (isFail(result)) return { data: null, error: result.error };
+          return { data: result, error: null };
         } else {
-          // Branch: no validator and no auth.
           const params: object = {};
-          const fn = config.actionFn as (params: object) => Promise<TOutput>;
-          const data = await fn(params);
-          return { data, error: null };
+          const fn = config.actionFn as (params: object) => Promise<TOutput | FailReturn>;
+          const result = await fn(params);
+          if (isFail(result)) return { data: null, error: result.error };
+          return { data: result, error: null };
         }
       }
     } catch (error) {
       console.error('[createAction error]:', error);
+      const isProd = env.NODE_ENV === 'production';
       if (error instanceof z.ZodError) {
         return {
           data: null,
@@ -134,12 +159,18 @@ export function createAction<TInput, TOutput>(config: {
         return {
           data: null,
           error: {
-            message: error.message,
+            message: isProd ? 'Unknown error occurred' : error.message,
             status: 'status' in error ? (error as ActionError).status : 500,
           },
         };
       }
-      throw error;
+      return {
+        data: null,
+        error: {
+          message: isProd ? 'Unknown error occurred' : JSON.stringify(error),
+          status: 500,
+        },
+      };
     }
   };
 }

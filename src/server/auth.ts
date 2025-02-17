@@ -4,7 +4,7 @@ import env from '@/env';
 import { createClient } from '@/lib/supabase/server';
 import type { User } from '@/types';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -27,9 +27,9 @@ export const signUp = createAction({
 
     // Verify invite code first
     const { data: isValid, error: verifyError } = await verifyInviteCode({ code: inviteCode });
-    if (verifyError) throw verifyError;
+    if (verifyError) return fail(verifyError);
     if (!isValid) {
-      throw new Error('Invalid invite code');
+      return fail({ message: 'Invalid invite code', status: 400 });
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -39,7 +39,7 @@ export const signUp = createAction({
 
     if (error) {
       console.error('[Auth/signUp]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return data.user as User;
@@ -71,7 +71,7 @@ export const signIn = createAction({
 
     if (error) {
       console.error('[Auth/signIn]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return { user: data.user as User };
@@ -95,7 +95,7 @@ export const signInWithGoogle = createAction({
 
     if (error) {
       console.error('[Auth/signInWithGoogle]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return null;
@@ -114,7 +114,7 @@ export const signOut = createAction({
 
     if (error) {
       console.error('[Auth/signOut]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return null;
@@ -135,12 +135,12 @@ export const getCurrentUser = createAction({
     } = await supabase.auth.getUser();
 
     if (error) {
-      if (error.name === 'AuthSessionMissingError') {
+      if (error.code === 'refresh_token_not_found') {
         return null;
       }
 
       console.error('[Auth/getCurrentUser]:', JSON.stringify(error, null, 2));
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return user as User;
@@ -161,7 +161,7 @@ export const verifyInviteCode = createAction({
 
     if (!inviteCode) {
       console.error('[Auth/verifyInviteCode]: INVITE_CODE not set in environment variables');
-      throw new Error('Server configuration error');
+      return fail({ message: 'Server configuration error', status: 500 });
     }
 
     return input.code === inviteCode;
@@ -183,7 +183,7 @@ export const refreshSession = createAction({
 
     if (error) {
       console.error('[Auth/refreshSession]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     try {
@@ -192,7 +192,7 @@ export const refreshSession = createAction({
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
-      if (userError) throw userError;
+      if (userError) return fail({ message: userError.message, status: 401 });
 
       return {
         session,
@@ -230,7 +230,7 @@ export const resetPassword = createAction({
 
     if (error) {
       console.error('[Auth/resetPassword]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return null;
@@ -254,7 +254,7 @@ export const updatePassword = createAction({
 
     if (error) {
       console.error('[Auth/updatePassword]:', error);
-      throw new Error(error.message);
+      return fail({ message: error.message, status: 401 });
     }
 
     return null;

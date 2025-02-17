@@ -4,6 +4,7 @@ import { Button } from '@/components/custom/button';
 import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
@@ -11,6 +12,7 @@ import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -42,7 +44,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 const AuthTabs = ({
   onSignInSubmit,
   onSignUpSubmit,
-  handleGoogleSignIn,
+  // handleGoogleSignIn,
   isSignInLoading,
   isSignUpLoading,
   isGoogleLoading,
@@ -138,16 +140,25 @@ const AuthTabs = ({
               <span className='bg-background px-2 text-muted-foreground'>Or continue with</span>
             </div>
           </div>
-          <Button
-            variant='outline'
-            isLoading={isGoogleLoading}
-            onClick={handleGoogleSignIn}
-            loadingText='Signing in...'
-            className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
-          >
-            <Google className='h-4 w-4' />
-            <span className='text-black'>Sign in with Google</span>
-          </Button>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  isLoading={isGoogleLoading}
+                  // onClick={handleGoogleSignIn}
+                  loadingText='Signing in...'
+                  className='gap-2 bg-white cursor-default hover:bg-gray-50 dark:hover:bg-white/90'
+                >
+                  <Google className='h-4 w-4' />
+                  <span className='text-black'>Sign in with Google</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Coming Soon</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </TabsContent>
 
@@ -214,16 +225,25 @@ const AuthTabs = ({
               <span className='bg-background px-2 text-muted-foreground'>Or continue with</span>
             </div>
           </div>
-          <Button
-            variant='outline'
-            isLoading={isGoogleLoading}
-            onClick={handleGoogleSignIn}
-            loadingText='Signing in...'
-            className='gap-2 bg-white hover:bg-gray-50 dark:hover:bg-white/90'
-          >
-            <Google className='h-4 w-4' />
-            <span className='text-black'>Sign in with Google</span>
-          </Button>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  isLoading={isGoogleLoading}
+                  // onClick={handleGoogleSignIn}
+                  loadingText='Signing in...'
+                  className='gap-2 bg-white cursor-default hover:bg-gray-50 dark:hover:bg-white/90'
+                >
+                  <Google className='h-4 w-4' />
+                  <span className='text-black'>Sign in with Google</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Coming Soon</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </TabsContent>
     </Tabs>

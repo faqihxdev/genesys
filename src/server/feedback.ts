@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { feedback } from '@/db/schema/feedback';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -88,7 +88,7 @@ export const getFeedbackById = createAction({
       .where(and(eq(feedback.id, input.feedbackId), eq(feedback.userId, currentUser.id)));
 
     if (!userFeedback) {
-      throw new Error('Feedback not found');
+      return fail({ message: 'Feedback not found', status: 404 });
     }
 
     return userFeedback;
@@ -127,7 +127,7 @@ export const updateFeedback = createAction({
       .where(and(eq(feedback.id, input.feedbackId), eq(feedback.userId, currentUser.id)));
 
     if (!existingFeedback) {
-      throw new Error('Feedback not found');
+      return fail({ message: 'Feedback not found', status: 404 });
     }
 
     // Update feedback

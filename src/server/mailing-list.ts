@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { mailingList } from '@/db/schema/mailing-list';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -30,7 +30,7 @@ export const subscribeToMailingList = createAction({
 
     if (existingSubscription) {
       if (!existingSubscription.deletedAt) {
-        throw new Error('This email is already subscribed');
+        return fail({ message: 'This email is already subscribed', status: 409 });
       }
 
       // Restore soft deleted subscription
@@ -156,7 +156,7 @@ export const toggleSubscription = createAction({
     } else {
       // Unsubscribe (soft delete)
       if (!existingSubscription) {
-        throw new Error('Subscription not found');
+        return fail({ message: 'Subscription not found', status: 404 });
       }
 
       const [updatedSubscription] = await db

@@ -2,7 +2,7 @@
 
 import supabaseAdmin from '@/lib/supabase/admin-client';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 export interface UserData {
   id: string;
@@ -25,9 +25,9 @@ export const getUserById = createAction({
   requireAuth: true,
   actionFn: async ({ input }) => {
     const { data: userData, error } = await supabaseAdmin.auth.admin.getUserById(input.userId);
-    if (error) throw error;
+    if (error) return fail({ message: error.message, status: 500 });
     if (!userData.user || !userData.user.email) {
-      throw new Error('User not found');
+      return fail({ message: 'User not found', status: 404 });
     }
 
     return {
@@ -100,7 +100,7 @@ export const searchUsersByEmail = createAction({
       p_email: input.email.toLowerCase(),
     });
 
-    if (error) throw error;
+    if (error) return fail({ message: error.message, status: 500 });
 
     // Since RPC returns a single row or nothing, we can simplify this
     const foundUser = Array.isArray(data) && data.length > 0 ? data[0] : null;

@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { supportTickets, ticketResponses } from '@/db/schema/support';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction } from './_utils';
+import { createAction, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -128,7 +128,7 @@ export const getTicketById = createAction({
     });
 
     if (!ticket) {
-      throw new Error('Ticket not found');
+      return fail({ message: 'Ticket not found', status: 404 });
     }
 
     return ticket;
@@ -175,7 +175,7 @@ export const updateTicket = createAction({
       .where(and(eq(supportTickets.id, input.ticketId), eq(supportTickets.userId, currentUser.id)));
 
     if (!existingTicket) {
-      throw new Error('Ticket not found');
+      return fail({ message: 'Ticket not found', status: 404 });
     }
 
     // Update ticket
