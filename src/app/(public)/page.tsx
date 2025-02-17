@@ -2,15 +2,16 @@ import { Button } from '@/components/custom/button';
 import { cn } from '@/lib/utils';
 import {
   LucideBarChart2,
-  LucideClock,
   LucideDatabase,
-  LucideGlobe,
-  LucideShieldCheck,
+  LucideTarget,
+  LucideTimer,
+  LucideUsers,
   LucideZap,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { EmailSubscriptionForm } from './_email-subscription';
 
 export const metadata: Metadata = {
   title: 'Genesys - AI-Powered Customer Behavior Simulation',
@@ -24,7 +25,7 @@ const features = [
     icon: LucideZap,
     label: 'Simulation',
     title: 'AI-Powered Behavior Simulation',
-    description: 'Create and run sophisticated customer journey simulations.',
+    description: 'Create and analyze detailed customer journey simulations with precision.',
     image: '/screenshots/simulation.png',
   },
   {
@@ -32,8 +33,7 @@ const features = [
     icon: LucideDatabase,
     label: 'Persona',
     title: 'Synthetic Persona Generation',
-    description:
-      'Generate diverse customer profiles with unique behaviors and interaction patterns.',
+    description: 'Generate realistic customer profiles with distinct behaviors and preferences.',
     image: '/screenshots/persona.png',
   },
   {
@@ -41,7 +41,7 @@ const features = [
     icon: LucideBarChart2,
     label: 'Analytics',
     title: 'Behavioral Analytics',
-    description: 'Uncover actionable insights from simulated customer interactions and behaviors.',
+    description: 'Extract valuable insights from simulated customer interactions.',
     image: '/screenshots/analytics.png',
   },
 ] as const;
@@ -161,18 +161,38 @@ export default async function Home({ searchParams }: HomeProps) {
                 The system of action for the next generation
               </h2>
               <p className='text-muted-foreground text-base sm:text-lg'>
-                Our customers test through millions of synthetic personas with sub-50ms latency.
+                Our platform efficiently processes thousands of synthetic personas with
+                industry-standard latency.
               </p>
             </div>
 
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto'>
               {[
-                { label: 'Personas Generated', value: '200M+' },
-                { label: 'Success Rate', value: '99.9%' },
-                { label: 'Enterprise Clients', value: '2,000+' },
-                { label: 'Response Time', value: '<50ms' },
+                {
+                  icon: LucideDatabase,
+                  label: 'Personas Generated',
+                  value: '50K+',
+                },
+                {
+                  icon: LucideTarget,
+                  label: 'Accuracy Rate',
+                  value: '95%',
+                },
+                {
+                  icon: LucideUsers,
+                  label: 'Active Users',
+                  value: '500+',
+                },
+                {
+                  icon: LucideTimer,
+                  label: 'Response Time',
+                  value: '<100ms',
+                },
               ].map((stat) => (
                 <div key={stat.label} className='text-center p-6 rounded-lg border bg-card'>
+                  <div className='flex justify-center mb-4'>
+                    <stat.icon className='h-8 w-8 text-primary' />
+                  </div>
                   <div className='text-2xl sm:text-3xl font-bold mb-2'>{stat.value}</div>
                   <div className='text-sm text-muted-foreground'>{stat.label}</div>
                 </div>
@@ -213,33 +233,33 @@ export default async function Home({ searchParams }: HomeProps) {
             </div>
           </div>
 
-          {/* Security Section */}
+          {/* Technology Stack Section */}
           <div className='py-24 border-t'>
             <div className='text-center mb-16'>
               <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>
-                Enterprise-grade security by default
+                Built with cutting-edge technology
               </h2>
               <p className='text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto'>
-                Genesys is audited and certified by industry-leading third party standards.
+                Leveraging modern tech stack for reliable performance and scalability.
               </p>
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto'>
               {[
                 {
-                  icon: LucideShieldCheck,
-                  title: 'SOC 2 Type II',
-                  description: 'Certified for security, availability, and confidentiality.',
+                  icon: LucideZap,
+                  title: 'Real-time Processing',
+                  description: 'Process and analyze customer behavior data in real-time.',
                 },
                 {
-                  icon: LucideGlobe,
-                  title: 'GDPR Compliant',
-                  description: 'Full compliance with EU data protection regulations.',
+                  icon: LucideDatabase,
+                  title: 'Advanced AI Models',
+                  description: 'State-of-the-art models for accurate predictions.',
                 },
                 {
-                  icon: LucideClock,
-                  title: '99.99% Uptime',
-                  description: 'Enterprise-grade reliability and performance.',
+                  icon: LucideBarChart2,
+                  title: 'Data Visualization',
+                  description: 'Interactive dashboards and reports for data visualization.',
                 },
               ].map((feature) => (
                 <div
@@ -470,8 +490,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   Ready to transform your customer insights?
                 </h2>
                 <p className='text-muted-foreground text-base sm:text-lg mb-8 max-w-2xl mx-auto'>
-                  Start generating synthetic personas and simulating customer behaviors today to
-                  optimize your business.
+                  Start generating synthetic personas and optimize your customer journey today.
                 </p>
                 <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
                   <Button size='lg' className='w-full sm:w-[200px]'>
@@ -495,21 +514,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <p className='text-muted-foreground text-base sm:text-lg mb-8'>
               Get notified about our latest features and updates.
             </p>
-            <form className='flex flex-col sm:flex-row items-center gap-4 sm:gap-3 max-w-xl mx-auto'>
-              <div className='flex-1 w-full'>
-                <input
-                  type='email'
-                  placeholder='Enter your email address'
-                  className='h-12 sm:h-14 px-6 rounded-lg border bg-background text-base w-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors'
-                />
-              </div>
-              <Button
-                size='lg'
-                className='whitespace-nowrap w-full sm:w-auto h-12 sm:h-14 text-base px-8'
-              >
-                Keep me updated
-              </Button>
-            </form>
+            <EmailSubscriptionForm />
           </div>
         </div>
       </div>
@@ -530,8 +535,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <span className='font-bold text-xl'>Genesys</span>
               </Link>
               <p className='text-sm text-muted-foreground mb-4 max-w-sm'>
-                AI-powered customer behavior simulation platform for the next generation of
-                businesses.
+                Next-generation AI platform for customer behavior simulation and analysis.
               </p>
             </div>
 

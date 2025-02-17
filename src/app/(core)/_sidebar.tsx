@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/custom/button';
+import { MailingListDialog } from '@/components/custom/mailing-list-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +49,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const getProjectNavItems = (projectId: string) => [
   {
@@ -134,6 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
   const [currentProjectId, setCurrentProjectId] = useAtom(currentProjectIdAtom);
   const [lastValidProjectId, setLastValidProjectId] = useAtom(lastValidProjectIdAtom);
+  const [showMailingList, setShowMailingList] = useState(false);
 
   // Get all projects
   const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
@@ -477,17 +479,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 Get unlimited access to all features & unlock full potential.
               </p>
             </div>
-            <Button className='w-full bg-yellow-600 hover:bg-yellow-500' size='sm'>
+            <Button
+              className='w-full bg-yellow-600 hover:bg-yellow-500'
+              size='sm'
+              onClick={() => setShowMailingList(true)}
+            >
               Upgrade Now
             </Button>
           </div>
           {/* Icon only state */}
           <div className='hidden group-data-[collapsible=icon]:block'>
             <div className='flex flex-col items-center text-center'>
-              <Sparkles className='h-5 w-5 text-yellow-500' />
+              <Button
+                variant='ghost'
+                size='icon'
+                className='p-0'
+                onClick={() => setShowMailingList(true)}
+              >
+                <Sparkles className='h-5 w-5 text-yellow-500' />
+              </Button>
             </div>
           </div>
         </div>
+
+        <MailingListDialog
+          open={showMailingList}
+          onOpenChange={setShowMailingList}
+          defaultEmail={user?.email}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
