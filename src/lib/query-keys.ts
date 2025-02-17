@@ -38,4 +38,14 @@ export const queryKey = {
     getUserTickets: () => ['support', 'tickets'] as const,
     getTicketById: ({ ticketId }: { ticketId: string }) => ['support', 'ticket', ticketId] as const,
   },
+  mailingList: {
+    isEmailSubscribed: ({ email }: { email: string }) =>
+      ['mailing-list', 'subscribe', email] as const,
+    getSubscriptionByEmail: ({ email }: { email: string }) =>
+      ['mailing-list', 'status', email] as const,
+  },
+  notifications: {
+    getUnreadCount: () => ['notifications', 'unread-count'] as const,
+    getUserNotifications: () => ['notifications', 'list'] as const,
+  },
 } as const;
