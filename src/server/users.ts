@@ -44,8 +44,7 @@ export const getUserById = createAction({
  */
 export const getUsersByIds = createAction({
   validator: z.object({
-    userIds: z
-      .array(z.string().min(1, 'User ID is required'))
+    userIds: z.array(z.string().min(1, 'User ID is required')),
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {

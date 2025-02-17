@@ -5,7 +5,7 @@ A generative AI-powered platform that creates diverse synthetic customer persona
 ## 📸 Screenshot
 
 ![Genesys Platform Screenshot](./.github/docs/screenshot.png)
-*AI-Powered Customer Behavior Simulation Platform*
+_AI-Powered Customer Behavior Simulation Platform_
 
 ## 🚀 Features
 
@@ -52,6 +52,7 @@ src/
 ## 🏗️ Architecture
 
 ### Database Schema
+
 - Drizzle ORM with PostgreSQL
 - Consistent ID generation with prefixes
 - Timestamp tracking (created, updated, deleted)
@@ -59,6 +60,7 @@ src/
 - Optimized indexing
 
 ### Server Actions
+
 - Type-safe server functions
 - Built-in Zod validation
 - Comprehensive error handling
@@ -66,6 +68,7 @@ src/
 - Clear separation of concerns
 
 ### API Patterns
+
 - RESTful CRUD operations
 - Server-side validation
 - Type-safe query keys
@@ -75,29 +78,34 @@ src/
 ## 🚦 Getting Started
 
 1. **Prerequisites**
+
    ```bash
    node >= 18.0.0
    pnpm >= 8.0.0
    ```
 
 2. **Installation**
+
    ```bash
    pnpm install
    ```
 
 3. **Environment Setup**
+
    ```bash
    cp .env.example .env
    # Fill in your environment variables
    ```
 
 4. **Database Setup**
+
    ```bash
    pnpm db:generate  # Generate migrations
    pnpm db:push     # Push to database
    ```
 
 5. **Development**
+
    ```bash
    pnpm dev
    ```
@@ -111,6 +119,7 @@ src/
 ## 🧪 Development Guidelines
 
 ### Coding Standards
+
 - Use JSDocs for functions and components
 - Follow TypeScript best practices
 - Implement proper error handling
@@ -118,6 +127,7 @@ src/
 - Support both light and dark themes
 
 ### Component Guidelines
+
 - Use ShadcnUI when possible
 - Implement proper loading states
 - Handle all error cases
@@ -125,6 +135,7 @@ src/
 - Use React Hook Form for forms
 
 ### State Management
+
 - Use Jotai for global state
 - Keep state close to where it's used
 - Implement proper loading states
@@ -136,6 +147,7 @@ src/
 ### Server Actions Pattern
 
 #### Using `createAction`
+
 ```typescript
 // Example of a server action
 export const createProject = createAction({
@@ -149,11 +161,12 @@ export const createProject = createAction({
   // Action implementation
   actionFn: async ({ input, currentUser }) => {
     // Implementation
-  }
+  },
 });
 ```
 
 Key points:
+
 - Always use Zod for input validation
 - Specify authentication requirement
 - Type-safe input and output
@@ -161,15 +174,17 @@ Key points:
 - Automatic logging
 
 #### Using `withQuery`
+
 ```typescript
 // In your React component
 const { data } = useQuery({
   queryKey: queryKey.projects.getProjectById({ projectId }),
-  queryFn: () => withQuery(getProjectById)({ projectId })
+  queryFn: () => withQuery(getProjectById)({ projectId }),
 });
 ```
 
 Key points:
+
 - Wraps server actions for use with TanStack Query
 - Handles error states automatically
 - Provides type safety
@@ -184,13 +199,13 @@ export const queryKey = {
   projects: {
     getProjectById: ({ projectId }: { projectId: string }) =>
       ['projects', 'detail', projectId] as const,
-    getCurrentUserProjects: () => 
-      ['projects', 'user'] as const,
-  }
+    getCurrentUserProjects: () => ['projects', 'user'] as const,
+  },
 } as const;
 ```
 
 Key points:
+
 - Centralized query key management
 - Type-safe key generation
 - Consistent key structure
@@ -209,9 +224,7 @@ export const projects = pgTable(
     description: text(),
     ...timestamps,
   },
-  (table) => [
-    index('project_name_idx').on(table.name),
-  ]
+  (table) => [index('project_name_idx').on(table.name)]
 );
 
 // Relations definition
@@ -221,6 +234,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
 ```
 
 Key points:
+
 - Use consistent ID generation with prefixes
 - Include standard timestamps
 - Define proper indexes
@@ -239,6 +253,7 @@ try {
 ```
 
 Key points:
+
 - Consistent error logging format
 - Context-aware error messages
 - Type-safe error handling
@@ -262,6 +277,7 @@ export const userThemeAtom = atom((get) => {
 ```
 
 Key points:
+
 - Use atoms for global state
 - Derive state when possible
 - Keep state minimal
@@ -282,7 +298,7 @@ export const ProjectForm = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
-  
+
   return (
     <Form {...form}>
       {/* Form fields */}
@@ -292,6 +308,7 @@ export const ProjectForm = () => {
 ```
 
 Key points:
+
 - Use Zod for form validation
 - Type-safe form fields
 - Consistent error messages
@@ -321,6 +338,7 @@ Button.displayName = 'Button';
 ```
 
 Key points:
+
 - Proper TypeScript props
 - Forward refs when needed
 - Use proper display names
@@ -338,6 +356,7 @@ Key points:
 ## 🚀 Deployment
 
 The application is deployed on Vercel with the following configuration:
+
 - Automatic deployments from main branch
 - Environment variable management
 - Edge functions support
