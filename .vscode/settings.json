@@ -4,5 +4,5 @@
     "source.fixAll": "always"
   },
   "prettier.requireConfig": true,
-  "eslint.lintTask.enable": true,
+  "eslint.lintTask.enable": true
 }

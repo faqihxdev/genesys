@@ -173,7 +173,8 @@ export default function AccountPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to log out. Please try again.',
+        description:
+          error instanceof Error ? error.message : 'Failed to log out. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -198,7 +199,8 @@ export default function AccountPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send reset link. Please try again.',
+        description:
+          error instanceof Error ? error.message : 'Failed to send reset link. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -229,7 +231,8 @@ export default function AccountPage() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update password. Please try again.',
+        description:
+          error instanceof Error ? error.message : 'Failed to update password. Please try again.',
         variant: 'destructive',
       });
     } finally {
