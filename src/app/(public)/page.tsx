@@ -39,10 +39,10 @@ const features = [
   {
     id: 'ana',
     icon: LucideBarChart2,
-    label: 'Analytics',
-    title: 'Behavioral Analytics',
+    label: 'Analysis',
+    title: 'Behavioral Analysis',
     description: 'Extract valuable insights from simulated customer interactions.',
-    image: '/screenshots/analytics.png',
+    image: '/screenshots/analysis.png',
   },
 ] as const;
 
@@ -215,7 +215,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   {[
                     'Instant persona generation',
                     'Real-time behavior simulation',
-                    'Advanced analytics dashboard',
+                    'Advanced analysis dashboard',
                     'Custom scenario builder',
                   ].map((feature) => (
                     <div key={feature} className='flex items-center gap-2'>
@@ -355,7 +355,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                    <span>Basic analytics</span>
+                    <span>Basic analysis</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />
@@ -404,7 +404,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                    <span>Advanced analytics</span>
+                    <span>Advanced analysis</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />
@@ -451,7 +451,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                    <span>Enterprise analytics</span>
+                    <span>Enterprise analysis</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='h-1.5 w-1.5 rounded-full bg-primary' />

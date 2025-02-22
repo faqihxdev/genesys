@@ -73,8 +73,8 @@ const getProjectNavItems = (projectId: string) => [
     icon: ArrowRightCircle,
   },
   {
-    title: 'Analytics',
-    url: `/project/${projectId}/analytics`,
+    title: 'Analysis',
+    url: `/project/${projectId}/analysis`,
     icon: BarChart,
   },
   {
