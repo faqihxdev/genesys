@@ -1,6 +1,6 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { AnyPgColumn, index, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
+import { index, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
 

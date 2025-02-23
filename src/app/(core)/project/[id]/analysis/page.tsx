@@ -90,7 +90,6 @@ export default function AnalysisPage() {
   const {
     data: simulationsData,
     isLoading: isSimulationsLoading,
-    error: simulationsError,
   }: UseQueryResult<SimulationOption[], ApiError> = useQuery({
     queryKey: ['simulations', selectedFunnelId],
     queryFn: () => withQuery(getFunnelSimulations)({ funnelId: selectedFunnelId! }),
@@ -109,10 +108,7 @@ export default function AnalysisPage() {
   });
 
   // Query for fetching comparison analysis
-  const {
-    data: comparisonAnalysisData,
-    isLoading: isComparisonLoading,
-  }: UseQueryResult<FunnelAnalysis, ApiError> = useQuery({
+  const { data: comparisonAnalysisData }: UseQueryResult<FunnelAnalysis, ApiError> = useQuery({
     queryKey: ['analysis', compareSimulationId],
     queryFn: () => withQuery(getSimulationAnalysis)({ simulationId: compareSimulationId! }),
     enabled: !!compareSimulationId && isComparisonMode,

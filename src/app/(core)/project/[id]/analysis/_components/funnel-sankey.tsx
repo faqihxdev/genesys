@@ -141,14 +141,6 @@ export function FunnelSankey({
     };
   }, [data]);
 
-  // Calculate total value for conversion rate
-  const totalValue = useMemo(() => {
-    const rootNodes = data.nodes.filter(
-      (node) => !data.links.some((link) => link.target === node.id)
-    );
-    return rootNodes.reduce((sum, node) => sum + node.value, 0);
-  }, [data]);
-
   // Custom color function to make Drop Off node gray and Completed node green
   const getNodeColor = (node: { id: string }) => {
     if (node.id === 'drop-off') {
@@ -227,20 +219,10 @@ export function FunnelSankey({
           }
         }}
         nodeTooltip={({ node }) => {
-          // Find initial node (node with no incoming links)
-          const initialNode = transformedData.nodes.find(
-            (n) => !transformedData.links.some((link) => link.target === n.id)
-          );
-          const initialValue = initialNode?.value || 0;
-
           // Calculate total value from initial nodes (nodes with no incoming links)
           const totalValue = transformedData.nodes
             .filter((n) => !transformedData.links.some((link) => link.target === n.id))
             .reduce((sum, n) => sum + n.value, 0);
-
-          // Calculate incoming value (sum of incoming links)
-          const incomingLinks = transformedData.links.filter((link) => link.target === node.id);
-          const incomingValue = incomingLinks.reduce((sum, link) => sum + link.value, 0);
 
           // Calculate outgoing value (sum of outgoing links excluding Drop Off)
           const outgoingLinks = transformedData.links.filter(
@@ -253,9 +235,6 @@ export function FunnelSankey({
             (link) => link.source === node.id && link.target.includes('drop')
           );
           const dropOffValue = dropOffLinks.reduce((sum, link) => sum + link.value, 0);
-
-          // Check if this is an end node (only connects to completed/drop-off)
-          const isEndNode = outgoingLinks.every((link) => link.target === 'completed');
 
           // For regular stage nodes, use the node's actual value
           if (node.type === 'stage') {
