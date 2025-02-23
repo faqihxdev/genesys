@@ -4,6 +4,28 @@ import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 /**
+ * Get colored text based on execution time
+ * @param ms - Time in milliseconds
+ * @returns Colored string with timing
+ */
+function getColoredTiming(ms: number): string {
+  // ANSI escape codes for colors
+  const green = '\x1b[32m';
+  const yellow = '\x1b[33m';
+  const red = '\x1b[31m';
+  const reset = '\x1b[0m';
+
+  // Thresholds for different colors
+  if (ms < 100) {
+    return `${green}${ms}${reset}`;
+  } else if (ms < 500) {
+    return `${yellow}${ms}${reset}`;
+  } else {
+    return `${red}${ms}${reset}`;
+  }
+}
+
+/**
  * Generic server action error type
  */
 export type ActionError = {
@@ -31,7 +53,7 @@ const FAIL_SYMBOL = Symbol('fail');
 export type FailReturn = { [FAIL_SYMBOL]: true; error: ActionError };
 
 /**
- * Use this helper to “return” an error from your action function.
+ * Use this helper to "return" an error from your action function.
  */
 export function fail(error: ActionError): FailReturn {
   return { [FAIL_SYMBOL]: true, error } as FailReturn;
@@ -48,6 +70,7 @@ function isFail<T>(result: T | FailReturn): result is FailReturn {
    1. No validator, no auth.
 ---------------------------------------------------------------------------- */
 export function createAction<TOutput>(config: {
+  name?: string;
   validator: null;
   requireAuth: false;
   actionFn: (params: object) => Promise<TOutput | FailReturn>;
@@ -57,6 +80,7 @@ export function createAction<TOutput>(config: {
    2. With validator, no auth.
 ---------------------------------------------------------------------------- */
 export function createAction<TInput, TOutput>(config: {
+  name?: string;
   validator: z.ZodType<TInput>;
   requireAuth: false;
   actionFn: (params: { input: TInput }) => Promise<TOutput | FailReturn>;
@@ -66,6 +90,7 @@ export function createAction<TInput, TOutput>(config: {
    3. No validator, with auth.
 ---------------------------------------------------------------------------- */
 export function createAction<TOutput>(config: {
+  name?: string;
   validator: null;
   requireAuth: true;
   actionFn: (params: { currentUser: User }) => Promise<TOutput | FailReturn>;
@@ -75,6 +100,7 @@ export function createAction<TOutput>(config: {
    4. With validator, with auth.
 ---------------------------------------------------------------------------- */
 export function createAction<TInput, TOutput>(config: {
+  name?: string;
   validator: z.ZodType<TInput>;
   requireAuth: true;
   actionFn: (params: { input: TInput; currentUser: User }) => Promise<TOutput | FailReturn>;
@@ -84,6 +110,7 @@ export function createAction<TInput, TOutput>(config: {
    Implementation
 ---------------------------------------------------------------------------- */
 export function createAction<TInput, TOutput>(config: {
+  name?: string;
   validator: z.ZodType<TInput> | null;
   requireAuth: boolean;
   actionFn:
@@ -93,6 +120,7 @@ export function createAction<TInput, TOutput>(config: {
     | ((params: object) => Promise<TOutput | FailReturn>);
 }) {
   return async (input?: TInput): Promise<ActionResponse<TOutput>> => {
+    const startTime = performance.now();
     try {
       let currentUser: User | undefined = undefined;
       if (config.requireAuth) {
@@ -171,6 +199,15 @@ export function createAction<TInput, TOutput>(config: {
           status: 500,
         },
       };
+    } finally {
+      const endTime = performance.now();
+      const duration = Math.round(endTime - startTime);
+      // Only log in development
+      if (env.NODE_ENV !== 'production') {
+        console.log(
+          `[Action${config.name ? `/${config.name}` : ''}]: Completed in ${getColoredTiming(duration)} ms`
+        );
+      }
     }
   };
 }

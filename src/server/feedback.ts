@@ -16,6 +16,7 @@ import { createAction, fail } from './_utils';
  * @returns Promise with the created feedback
  */
 export const createFeedback = createAction({
+  name: 'createFeedback',
   validator: z.object({
     title: z.string().min(5, 'Title must be at least 5 characters'),
     type: z.enum(['bug', 'feature', 'improvement', 'other'], {
@@ -58,6 +59,7 @@ export const createFeedback = createAction({
  * @returns Promise with the user's feedback
  */
 export const getUserFeedback = createAction({
+  name: 'getUserFeedback',
   validator: null,
   requireAuth: true,
   actionFn: async ({ currentUser }) => {
@@ -77,6 +79,7 @@ export const getUserFeedback = createAction({
  * @returns Promise with the feedback data
  */
 export const getFeedbackById = createAction({
+  name: 'getFeedbackById',
   validator: z.object({
     feedbackId: z.string().min(1, 'Feedback ID is required'),
   }),
@@ -105,6 +108,7 @@ export const getFeedbackById = createAction({
  * @returns Promise with the updated feedback
  */
 export const updateFeedback = createAction({
+  name: 'updateFeedback',
   validator: z.object({
     feedbackId: z.string().min(1, 'Feedback ID is required'),
     title: z.string().min(5, 'Title must be at least 5 characters').optional(),
@@ -160,6 +164,7 @@ export const updateFeedback = createAction({
  * @returns Promise with success status
  */
 export const deleteFeedback = createAction({
+  name: 'deleteFeedback',
   validator: z.object({
     feedbackId: z.string().min(1, 'Feedback ID is required'),
   }),

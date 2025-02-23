@@ -182,6 +182,7 @@ async function generateOpenAISummary(data: {
  * @returns Promise with the generated summaries
  */
 export const generateSimulationSummary = createAction({
+  name: 'generateSimulationSummary',
   validator: z.object({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
@@ -515,6 +516,7 @@ interface StageAnalysisWithMetrics {
  * @returns Promise with the complete funnel analysis data
  */
 export const getSimulationAnalysis = createAction({
+  name: 'getSimulationAnalysis',
   validator: z.object({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
@@ -850,39 +852,27 @@ export const getSimulationAnalysis = createAction({
  * @returns Promise with the list of funnels that have simulations
  */
 export const getProjectFunnelsWithSimulations = createAction({
+  name: 'getProjectFunnelsWithSimulations',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {
-    // First check if project exists
-    const project = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, input.projectId))
-      .limit(1);
-
-    if (!project.length) {
-      return fail({
-        message: 'Project not found',
-        status: 404,
-      });
-    }
-
-    // Get funnels with simulation counts
+    // Single optimized query combining project check and funnel data
     const funnelsWithSimulations = await db
       .select({
         id: funnels.id,
         name: funnels.name,
         description: funnels.description,
-        simulationCount: sql<number>`count(${simulations.id})`,
+        simulationCount: sql<number>`count(DISTINCT ${simulations.id})`,
         lastSimulated: sql<Date>`max(${simulations.createdAt})`,
       })
       .from(funnels)
+      .innerJoin(projects, eq(projects.id, funnels.projectId))
       .innerJoin(simulations, eq(funnels.id, simulations.funnelId))
       .where(eq(funnels.projectId, input.projectId))
       .groupBy(funnels.id, funnels.name, funnels.description)
-      .having(sql`count(${simulations.id}) > 0`);
+      .having(sql`count(DISTINCT ${simulations.id}) > 0`);
 
     if (!funnelsWithSimulations.length) {
       return fail({
@@ -901,6 +891,7 @@ export const getProjectFunnelsWithSimulations = createAction({
  * @returns Promise with the list of simulations
  */
 export const getFunnelSimulations = createAction({
+  name: 'getFunnelSimulations',
   validator: z.object({
     funnelId: z.string().min(1, 'Funnel ID is required'),
   }),
