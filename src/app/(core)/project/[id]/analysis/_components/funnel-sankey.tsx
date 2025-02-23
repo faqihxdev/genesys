@@ -194,7 +194,7 @@ export function FunnelSankey({
     >
       <ResponsiveSankey<SankeyNode, SankeyLink>
         data={transformedData}
-        margin={{ top: 20, right: 160, bottom: 20, left: 160 }}
+        margin={{ top: 20, right: 80, bottom: 20, left: 80 }}
         align='justify'
         colors={getNodeColor}
         nodeOpacity={1}

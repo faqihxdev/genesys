@@ -4,6 +4,7 @@ import { FunnelAnalysis, StageAnalysis } from '@/app/(core)/project/[id]/analysi
 import { db } from '@/db';
 import {
   funnels,
+  projects,
   simulationStages,
   simulations,
   stageItems,
@@ -16,7 +17,7 @@ import {
 import { personas } from '@/db/schema/persona';
 import { ResponseWithDetails, responses } from '@/db/schema/response';
 import env from '@/env';
-import { eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -697,11 +698,6 @@ export const getSimulationAnalysis = createAction({
         value: Number(simulationSummary.sentiment).toFixed(2),
         description: 'Overall sentiment score across all stages',
       },
-      {
-        label: 'Total Completions',
-        value: simulationWithStages.completeCount,
-        description: 'Number of personas that completed the funnel',
-      },
     ];
 
     // Generate Sankey nodes: use simulation_stages.completedCount as incoming value for each stage
@@ -845,5 +841,121 @@ export const getSimulationAnalysis = createAction({
     };
 
     return analysis;
+  },
+});
+
+/**
+ * @description Get all funnels with simulations for a project
+ * @param projectId - The ID of the project
+ * @returns Promise with the list of funnels that have simulations
+ */
+export const getProjectFunnelsWithSimulations = createAction({
+  validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    // First check if project exists
+    const project = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, input.projectId))
+      .limit(1);
+
+    if (!project.length) {
+      return fail({
+        message: 'Project not found',
+        status: 404,
+      });
+    }
+
+    // Get funnels with simulation counts
+    const funnelsWithSimulations = await db
+      .select({
+        id: funnels.id,
+        name: funnels.name,
+        description: funnels.description,
+        simulationCount: sql<number>`count(${simulations.id})`,
+        lastSimulated: sql<Date>`max(${simulations.createdAt})`,
+      })
+      .from(funnels)
+      .innerJoin(simulations, eq(funnels.id, simulations.funnelId))
+      .where(eq(funnels.projectId, input.projectId))
+      .groupBy(funnels.id, funnels.name, funnels.description)
+      .having(sql`count(${simulations.id}) > 0`);
+
+    if (!funnelsWithSimulations.length) {
+      return fail({
+        message: 'No funnels with simulations found for this project',
+        status: 404,
+      });
+    }
+
+    return funnelsWithSimulations;
+  },
+});
+
+/**
+ * @description Get all simulations for a funnel
+ * @param funnelId - The ID of the funnel
+ * @returns Promise with the list of simulations
+ */
+export const getFunnelSimulations = createAction({
+  validator: z.object({
+    funnelId: z.string().min(1, 'Funnel ID is required'),
+  }),
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    // First check if funnel exists
+    const funnel = await db.select().from(funnels).where(eq(funnels.id, input.funnelId)).limit(1);
+
+    if (!funnel.length) {
+      return fail({
+        message: 'Funnel not found',
+        status: 404,
+      });
+    }
+
+    // Get simulations with summary check
+    const funnelSimulations = await db
+      .select({
+        id: simulations.id,
+        status: simulations.status,
+        completeCount: simulations.completeCount,
+        createdAt: simulations.createdAt,
+      })
+      .from(simulations)
+      .where(eq(simulations.funnelId, input.funnelId))
+      .orderBy(desc(simulations.createdAt));
+
+    if (!funnelSimulations.length) {
+      return fail({
+        message: 'No simulations found for this funnel',
+        status: 404,
+      });
+    }
+
+    // Get all summaries for these simulations
+    const summaries = await db
+      .select({
+        simulationId: summary.simulationId,
+      })
+      .from(summary)
+      .where(
+        sql`${summary.simulationId} IN (${funnelSimulations
+          .map((s) => s.id)
+          .join(',')}) AND ${summary.deletedAt} IS NULL`
+      );
+
+    // Create a Set of simulation IDs that have summaries for O(1) lookup
+    const simulationsWithSummaries = new Set(summaries.map((s) => s.simulationId));
+
+    // Map the results to include hasSummary flag
+    const results = funnelSimulations.map((simulation) => ({
+      ...simulation,
+      hasSummary: simulationsWithSummaries.has(simulation.id),
+    }));
+
+    return results;
   },
 });

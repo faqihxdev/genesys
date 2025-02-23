@@ -31,17 +31,17 @@ import { Summary, SummaryStage, SummaryStageItem } from '@/db/schema/summary';
 export interface FunnelOption {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   simulationCount: number;
   lastSimulated: Date;
 }
 
 export interface SimulationOption {
   id: string;
-  createdAt: Date;
-  status: string;
+  status: 'idle' | 'processing' | 'complete' | 'error';
   completeCount: number;
-  conversionRate: number;
+  createdAt: Date;
+  hasSummary: boolean;
 }
 
 export interface StageLink {

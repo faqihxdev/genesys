@@ -49,10 +49,6 @@ export function StageDetails({
 
   return (
     <div className={className}>
-      <div className='flex items-center justify-between mb-4'>
-        <h3 className='font-medium'>{stage.stage.name}</h3>
-        <span className='text-sm font-medium text-primary'>{stage.conversionRate}% Conversion</span>
-      </div>
       <div className='space-y-4'>
         {/* Analysis Section */}
         <div className='space-y-3'>
@@ -144,16 +140,6 @@ export function StageDetails({
                 </div>
                 <div className='flex items-center justify-between'>
                   <p className='text-xs text-muted-foreground'>{item.summary}</p>
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className='h-4 w-4 text-muted-foreground/50 ml-2' />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{item.summary}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </div>
             ))}
