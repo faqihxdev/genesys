@@ -29,9 +29,8 @@ export const funnels = pgTable(
 
 /**
  * Stages table schema
- * Represents a stage in a funnel where personas interact with content
- * Stages form a tree structure where parentId null indicates root/first stage
- * and childId indicates the next stage in the sequence
+ * Represents a stage in a funnel where personas interact with content.
+ * Removed parentId and childId fields to allow unlimited branching via a separate relationship table.
  */
 export const stages = pgTable(
   'stages',
@@ -42,19 +41,42 @@ export const stages = pgTable(
     funnelId: text() // FK: which funnel is this stage for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    parentId: text() // FK: parent stage, null means this is a root/first stage
-      .references((): AnyPgColumn => stages.id, { onDelete: 'set null' }),
-    childId: text() // FK: child stage, null means this is a leaf/last stage
-      .references((): AnyPgColumn => stages.id, { onDelete: 'set null' }),
     name: text().notNull(), // name of the stage
     description: text(), // description of the stage
     ...timestamps,
   },
   (table) => [
     index('stage_funnel_id_idx').on(table.funnelId),
-    index('stage_parent_id_idx').on(table.parentId),
-    index('stage_child_id_idx').on(table.childId),
     index('stage_name_idx').on(table.name),
+  ]
+);
+
+/**
+ * Stage links table schema
+ * Represents directed relationships (edges) between stages.
+ * This allows a stage to have multiple parents or children.
+ */
+export const stageLinks = pgTable(
+  'stage_links',
+  {
+    id: text()
+      .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sln-' }))
+      .primaryKey(),
+    funnelId: text() // FK: which funnel is this relationship for?
+      .references(() => funnels.id, { onDelete: 'cascade' })
+      .notNull(),
+    fromStageId: text() // FK: the parent (source) stage
+      .references(() => stages.id, { onDelete: 'cascade' })
+      .notNull(),
+    toStageId: text() // FK: the child (target) stage
+      .references(() => stages.id, { onDelete: 'cascade' })
+      .notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    index('stage_links_funnel_id_idx').on(table.funnelId),
+    index('stage_links_from_stage_id_idx').on(table.fromStageId),
+    index('stage_links_to_stage_id_idx').on(table.toStageId),
   ]
 );
 
@@ -80,7 +102,7 @@ export const stageItems = pgTable(
     name: text().notNull(), // name of the item
     description: text(), // description of the item
     type: stageItemTypeEnum().notNull(), // type of the item (text, image, video)
-    content: text().notNull(), // text: string, image: url, video: url
+    content: text().notNull(), // text: string, image: URL, video: URL
     ...timestamps,
   },
   (table) => [
@@ -102,8 +124,8 @@ export const funnelsRelations = relations(funnels, ({ one, many }) => ({
 }));
 
 /**
- * One stage to one funnel and many stage items
- * Also includes self-referential parent-child relationships
+ * One stage to one funnel and many stage items.
+ * Parent/child relationships are now handled via stageLinks.
  */
 export const stagesRelations = relations(stages, ({ one, many }) => ({
   funnel: one(funnels, {
@@ -111,14 +133,6 @@ export const stagesRelations = relations(stages, ({ one, many }) => ({
     references: [funnels.id],
   }),
   items: many(stageItems),
-  parent: one(stages, {
-    fields: [stages.parentId],
-    references: [stages.id],
-  }),
-  child: one(stages, {
-    fields: [stages.childId],
-    references: [stages.id],
-  }),
 }));
 
 /**
@@ -127,6 +141,25 @@ export const stagesRelations = relations(stages, ({ one, many }) => ({
 export const stageItemsRelations = relations(stageItems, ({ one }) => ({
   stage: one(stages, {
     fields: [stageItems.stageId],
+    references: [stages.id],
+  }),
+}));
+
+/**
+ * Stage links relations
+ * Represents the directed connections between stages.
+ */
+export const stageLinksRelations = relations(stageLinks, ({ one }) => ({
+  funnel: one(funnels, {
+    fields: [stageLinks.funnelId],
+    references: [funnels.id],
+  }),
+  fromStage: one(stages, {
+    fields: [stageLinks.fromStageId],
+    references: [stages.id],
+  }),
+  toStage: one(stages, {
+    fields: [stageLinks.toStageId],
     references: [stages.id],
   }),
 }));

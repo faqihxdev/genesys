@@ -4,28 +4,30 @@ import { PageTitle } from '@/components/custom/page-title';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeftRight, BarChart3, Download, GitCompare, Info, LineChart } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { withQuery } from '@/lib/utils';
+import { generateSimulationSummary, getSimulationAnalysis } from '@/server/analysis';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import {
+  AlertCircle,
+  BarChart3,
+  Download,
+  GitCompare,
+  HelpCircle,
+  Info,
+  LineChart,
+  Sparkles,
+} from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { AnalysisSection } from './_components/analysis-section';
 import { AnalysisSkeleton } from './_components/analysis-skeleton';
 import { FunnelSankey } from './_components/funnel-sankey';
 import { StageDetails } from './_components/stage-details';
-import {
-  mockAnalysisByFunnel,
-  mockFunnelOptions,
-  mockSimulationOptionsByFunnel,
-} from './mock-data';
-import { FunnelOption, KeyMetric } from './types';
+import { KeyMetric } from './types';
 
 /**
  * Calculate the percentage difference between two numbers
@@ -35,71 +37,68 @@ function calculatePercentageDiff(current: number, base: number): number {
 }
 
 export default function AnalysisPage() {
+  const { toast } = useToast();
   const { id: projectId } = useParams();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedFunnelId, setSelectedFunnelId] = useState('fnl-mock-1');
-  const [selectedSimulationId, setSelectedSimulationId] = useState('sim-mock-1');
+  const [selectedFunnelId] = useState('fnl-mock-1');
+  const [selectedSimulationId] = useState('sim-mock-1');
   const [isComparisonMode, setIsComparisonMode] = useState(false);
   const [compareFunnelId, setCompareFunnelId] = useState<string | null>(null);
   const [compareSimulationId, setCompareSimulationId] = useState<string | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
 
-  // In a real app, these would be API calls
-  const handleFunnelChange = (funnelId: string) => {
-    setIsLoading(true);
-    setSelectedFunnelId(funnelId);
-    // Reset simulation selection for new funnel
-    const firstSimulation = mockSimulationOptionsByFunnel[funnelId][0];
-    setSelectedSimulationId(firstSimulation.id);
-    setSelectedStageId(null);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  };
+  // Query for fetching simulation analysis
+  const {
+    data: analysisData,
+    isLoading: isAnalysisLoading,
+    error: analysisError,
+  } = useQuery({
+    queryKey: ['analysis', selectedSimulationId],
+    queryFn: () => withQuery(getSimulationAnalysis)({ simulationId: selectedSimulationId }),
+    enabled: !!selectedSimulationId,
+  });
 
-  const handleSimulationChange = (simulationId: string) => {
-    setIsLoading(true);
-    setSelectedSimulationId(simulationId);
-    setSelectedStageId(null);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  };
+  // Query for fetching comparison analysis
+  const { data: comparisonAnalysisData, isLoading: isComparisonLoading } = useQuery({
+    queryKey: ['analysis', compareSimulationId],
+    queryFn: () => withQuery(getSimulationAnalysis)({ simulationId: compareSimulationId! }),
+    enabled: !!compareSimulationId && isComparisonMode,
+  });
 
-  const handleComparisonToggle = (enabled: boolean) => {
-    setIsLoading(true);
-    setIsComparisonMode(enabled);
-    if (!enabled) {
-      setCompareFunnelId(null);
-      setCompareSimulationId(null);
-    } else if (!compareFunnelId) {
-      // Default to the second funnel if available
-      const otherFunnel = mockFunnelOptions.find((f: FunnelOption) => f.id !== selectedFunnelId);
-      if (otherFunnel) {
-        setCompareFunnelId(otherFunnel.id);
-        setCompareSimulationId(mockSimulationOptionsByFunnel[otherFunnel.id][0].id);
-      }
-    }
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  };
+  // Mutation for generating simulation summary
+  const generateSummaryMutation = useMutation({
+    mutationFn: withQuery(generateSimulationSummary),
+    onSuccess: () => {
+      toast({
+        title: 'Analysis Complete',
+        description: 'The simulation analysis has been generated successfully.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Analysis Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const handleCompareFunnelChange = (funnelId: string) => {
-    setIsLoading(true);
-    setCompareFunnelId(funnelId);
-    // Reset simulation selection for new funnel
-    const firstSimulation = mockSimulationOptionsByFunnel[funnelId][0];
-    setCompareSimulationId(firstSimulation.id);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  };
+  // Get the current analysis data
+  const currentAnalysis = analysisData;
 
-  const handleCompareSimulationChange = (simulationId: string) => {
-    setIsLoading(true);
-    setCompareSimulationId(simulationId);
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 1000);
-  };
+  // Get comparison analysis data
+  const comparisonAnalysis =
+    isComparisonMode && compareFunnelId && compareSimulationId ? comparisonAnalysisData : null;
 
-  if (isLoading) {
+  // Find selected stage details
+  const selectedStage = selectedStageId
+    ? currentAnalysis?.stages.find((stage) => stage.stage.id === selectedStageId)
+    : null;
+  const comparisonStage =
+    comparisonAnalysis && selectedStageId
+      ? comparisonAnalysis.stages.find((stage) => stage.stage.id === selectedStageId)
+      : null;
+
+  if (isAnalysisLoading || isComparisonLoading) {
     return (
       <div className='space-y-6'>
         <PageTitle
@@ -111,21 +110,106 @@ export default function AnalysisPage() {
     );
   }
 
-  // Get the current analysis data
-  const currentAnalysis = mockAnalysisByFunnel[selectedFunnelId][selectedSimulationId];
-  const comparisonAnalysis =
-    isComparisonMode && compareFunnelId && compareSimulationId
-      ? mockAnalysisByFunnel[compareFunnelId][compareSimulationId]
-      : null;
+  if (analysisError) {
+    return (
+      <div className='space-y-6'>
+        <div className='flex items-center justify-between'>
+          <PageTitle
+            title='Analysis Dashboard'
+            description='Comprehensive analysis and insights about your marketing funnels, persona behaviors, and conversion metrics across all campaigns.'
+          />
+          <div className='flex items-center gap-4'>
+            <Button
+              variant='outline'
+              size='sm'
+              className='gap-2'
+              onClick={() => generateSummaryMutation.mutate({ simulationId: selectedSimulationId })}
+              disabled={generateSummaryMutation.isPending}
+            >
+              <Sparkles className='h-4 w-4' />
+              {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
+            </Button>
+          </div>
+        </div>
+        <Card className='bg-card'>
+          <CardContent className='flex flex-col items-center justify-center py-12'>
+            <div className='flex flex-col items-center gap-4 text-center'>
+              <AlertCircle className='h-12 w-12 text-muted-foreground/50' />
+              <div className='space-y-2'>
+                <h3 className='text-lg font-semibold'>No Analysis Available</h3>
+                <p className='text-sm text-muted-foreground max-w-sm'>{analysisError.message}</p>
+                <div className='flex items-center justify-center gap-4 mt-6'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() =>
+                      generateSummaryMutation.mutate({ simulationId: selectedSimulationId })
+                    }
+                    disabled={generateSummaryMutation.isPending}
+                  >
+                    <Sparkles className='h-4 w-4 mr-2' />
+                    {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
+                  </Button>
+                  <Link href='/account/support'>
+                    <Button variant='default' size='sm'>
+                      <HelpCircle className='h-4 w-4 mr-2' />
+                      Contact Support
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  // Find selected stage details
-  const selectedStage = selectedStageId
-    ? currentAnalysis.stages.find((stage) => stage.stage.id === selectedStageId)
-    : null;
-  const comparisonStage =
-    comparisonAnalysis && selectedStageId
-      ? comparisonAnalysis.stages.find((stage) => stage.stage.id === selectedStageId)
-      : null;
+  if (!currentAnalysis) {
+    return (
+      <div className='space-y-6'>
+        <div className='flex items-center justify-between'>
+          <PageTitle
+            title='Analysis Dashboard'
+            description='Comprehensive analysis and insights about your marketing funnels, persona behaviors, and conversion metrics across all campaigns.'
+          />
+          <div className='flex items-center gap-4'>
+            <Button
+              variant='outline'
+              size='sm'
+              className='gap-2'
+              onClick={() => generateSummaryMutation.mutate({ simulationId: selectedSimulationId })}
+              disabled={generateSummaryMutation.isPending}
+            >
+              <Sparkles className='h-4 w-4' />
+              {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
+            </Button>
+          </div>
+        </div>
+        <Card className='bg-card'>
+          <CardContent className='flex flex-col items-center justify-center py-12'>
+            <div className='flex flex-col items-center gap-4 text-center'>
+              <LineChart className='h-12 w-12 text-muted-foreground/50' />
+              <div className='space-y-2'>
+                <h3 className='text-lg font-semibold'>No Analysis Available</h3>
+                <p className='text-sm text-muted-foreground'>
+                  Generate an analysis to view insights about your funnel performance.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const handleComparisonToggle = (enabled: boolean) => {
+    setIsComparisonMode(enabled);
+    if (!enabled) {
+      setCompareFunnelId(null);
+      setCompareSimulationId(null);
+    }
+  };
 
   return (
     <div className='space-y-6'>
@@ -135,6 +219,16 @@ export default function AnalysisPage() {
           description='Comprehensive analysis and insights about your marketing funnels, persona behaviors, and conversion metrics across all campaigns.'
         />
         <div className='flex items-center gap-4'>
+          <Button
+            variant='outline'
+            size='sm'
+            className='gap-2'
+            onClick={() => generateSummaryMutation.mutate({ simulationId: 'sim-mock-1' })}
+            disabled={generateSummaryMutation.isPending}
+          >
+            <Sparkles className='h-4 w-4' />
+            {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
+          </Button>
           <div className='flex items-center gap-2'>
             <Switch
               id='comparison-mode'
@@ -156,83 +250,6 @@ export default function AnalysisPage() {
           </Button>
         </div>
       </div>
-
-      <Card className='bg-card'>
-        <CardContent className='p-4'>
-          <div className='flex flex-col gap-4 md:flex-row md:items-center'>
-            <div className='flex flex-1 items-center gap-4'>
-              <Select defaultValue={mockFunnelOptions[0].id} onValueChange={handleFunnelChange}>
-                <SelectTrigger className='w-[250px] bg-background'>
-                  <SelectValue placeholder='Select funnel' />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockFunnelOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <ArrowLeftRight className='h-4 w-4 text-muted-foreground' />
-
-              <Select
-                defaultValue={mockSimulationOptionsByFunnel[mockFunnelOptions[0].id][0].id}
-                onValueChange={handleSimulationChange}
-              >
-                <SelectTrigger className='w-[200px] bg-background'>
-                  <SelectValue placeholder='Select simulation' />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockSimulationOptionsByFunnel[mockFunnelOptions[0].id].map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      Simulation {option.id.split('-').pop()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isComparisonMode && (
-              <div className='flex items-center gap-4 md:pl-8 md:border-l border-border/50'>
-                <Select
-                  defaultValue={mockFunnelOptions[0].id}
-                  onValueChange={handleCompareFunnelChange}
-                >
-                  <SelectTrigger className='w-[250px] bg-background'>
-                    <SelectValue placeholder='Select comparison funnel' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockFunnelOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <ArrowLeftRight className='h-4 w-4 text-muted-foreground' />
-
-                <Select
-                  defaultValue={mockSimulationOptionsByFunnel[mockFunnelOptions[0].id][0].id}
-                  onValueChange={handleCompareSimulationChange}
-                >
-                  <SelectTrigger className='w-[200px] bg-background'>
-                    <SelectValue placeholder='Select comparison simulation' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockSimulationOptionsByFunnel[mockFunnelOptions[0].id].map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        Simulation {option.id.split('-').pop()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <div className='grid gap-6 lg:grid-cols-5'>
         {/* Sankey Diagram */}
@@ -344,118 +361,163 @@ export default function AnalysisPage() {
       </div>
 
       {/* Overall Summary */}
-      <Card className='bg-card'>
-        <CardHeader className='p-4 border-b'>
-          <div className='flex items-center gap-2'>
-            <GitCompare className='h-5 w-5 text-muted-foreground' />
-            <CardTitle className='text-lg font-semibold'>Overall Simulation Summary</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className='p-6'>
-          <div className='space-y-6'>
-            {/* Analysis Section with equal heights */}
-            <AnalysisSection
-              baseSummary={currentAnalysis.summary}
-              compareSummary={comparisonAnalysis?.summary}
-              isComparisonMode={isComparisonMode}
-              baseFunnelName={currentAnalysis.funnel.name}
-              baseSimulationId={currentAnalysis.simulation.id}
-              compareFunnelName={comparisonAnalysis?.funnel.name}
-              compareSimulationId={comparisonAnalysis?.simulation.id}
-            />
+      {currentAnalysis.summary && (
+        <Card className='bg-card'>
+          <CardHeader className='p-4 border-b'>
+            <div className='flex items-center gap-2'>
+              <GitCompare className='h-5 w-5 text-muted-foreground' />
+              <CardTitle className='text-lg font-semibold'>Overall Simulation Summary</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className='p-6'>
+            <div className='space-y-6'>
+              {/* Analysis Section with equal heights */}
+              <AnalysisSection
+                baseSummary={currentAnalysis.summary}
+                compareSummary={comparisonAnalysis?.summary || undefined}
+                isComparisonMode={isComparisonMode}
+                baseFunnelName={currentAnalysis.funnel.name}
+                baseSimulationId={currentAnalysis.simulation.id}
+                compareFunnelName={comparisonAnalysis?.funnel.name}
+                compareSimulationId={comparisonAnalysis?.simulation.id}
+              />
 
-            {/* Key Metrics Grid */}
-            <div className={`grid gap-8 ${isComparisonMode ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
-              <div className='grid gap-4 grid-cols-2'>
-                {currentAnalysis.metrics.map((metric: KeyMetric, index: number) => (
-                  <div
-                    key={index}
-                    className='rounded-lg border bg-background/50 p-4 flex flex-col justify-between'
-                  >
-                    <div className='flex items-center justify-between'>
-                      <p className='text-sm text-muted-foreground'>{metric.label}</p>
-                      <TooltipProvider delayDuration={100}>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Info className='h-4 w-4 text-muted-foreground/50' />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{metric.description}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className='mt-2'>
-                      <div className='flex items-baseline gap-2'>
-                        <p className='text-2xl font-bold text-primary'>{metric.value}</p>
+              {/* Key Metrics Grid */}
+              <div
+                className={`grid gap-8 ${isComparisonMode ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}
+              >
+                <div className='grid gap-4 grid-cols-2'>
+                  {currentAnalysis.metrics.map((metric: KeyMetric, index: number) => (
+                    <div
+                      key={index}
+                      className='rounded-lg border bg-background/50 p-4 flex flex-col justify-between'
+                    >
+                      <div className='flex items-center justify-between'>
+                        <p className='text-sm text-muted-foreground'>{metric.label}</p>
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className='h-4 w-4 text-muted-foreground/50' />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{metric.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <div className='mt-2'>
+                        <div className='flex items-baseline gap-2'>
+                          <p className='text-2xl font-bold text-primary'>{metric.value}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              {comparisonAnalysis && (
-                <div className='grid gap-4 grid-cols-2'>
-                  {comparisonAnalysis.metrics.map((metric: KeyMetric, index: number) => {
-                    const baseMetric = currentAnalysis.metrics.find(
-                      (m) => m.label === metric.label
-                    );
-                    const diff = baseMetric
-                      ? calculatePercentageDiff(
-                          typeof metric.value === 'string'
-                            ? parseFloat(metric.value)
-                            : metric.value,
-                          typeof baseMetric.value === 'string'
-                            ? parseFloat(baseMetric.value)
-                            : baseMetric.value
-                        )
-                      : undefined;
-                    const showDiff = isComparisonMode && diff !== undefined && !isNaN(diff);
+                {comparisonAnalysis && comparisonAnalysis.summary && (
+                  <div className='grid gap-4 grid-cols-2'>
+                    {comparisonAnalysis.metrics.map((metric: KeyMetric, index: number) => {
+                      const baseMetric = currentAnalysis.metrics.find(
+                        (m) => m.label === metric.label
+                      );
+                      const diff = baseMetric
+                        ? calculatePercentageDiff(
+                            typeof metric.value === 'string'
+                              ? parseFloat(metric.value)
+                              : metric.value,
+                            typeof baseMetric.value === 'string'
+                              ? parseFloat(baseMetric.value)
+                              : baseMetric.value
+                          )
+                        : undefined;
+                      const showDiff = isComparisonMode && diff !== undefined && !isNaN(diff);
 
-                    return (
-                      <div
-                        key={index}
-                        className='rounded-lg border bg-background/50 p-4 flex flex-col justify-between'
-                      >
-                        <div className='flex items-center justify-between'>
-                          <p className='text-sm text-muted-foreground'>{metric.label}</p>
-                          <TooltipProvider delayDuration={100}>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Info className='h-4 w-4 text-muted-foreground/50' />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{metric.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className='mt-2'>
-                          <div className='flex items-baseline gap-2'>
-                            <p className='text-2xl font-bold text-primary'>{metric.value}</p>
-                            {showDiff && (
-                              <span
-                                className={`text-xs ${
-                                  diff > 0
-                                    ? 'text-green-500 dark:text-green-400'
-                                    : 'text-red-500 dark:text-red-400'
-                                }`}
-                              >
-                                {diff > 0 ? '+' : ''}
-                                {diff.toFixed(1)}%
-                              </span>
-                            )}
+                      return (
+                        <div
+                          key={index}
+                          className='rounded-lg border bg-background/50 p-4 flex flex-col justify-between'
+                        >
+                          <div className='flex items-center justify-between'>
+                            <p className='text-sm text-muted-foreground'>{metric.label}</p>
+                            <TooltipProvider delayDuration={100}>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Info className='h-4 w-4 text-muted-foreground/50' />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{metric.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className='mt-2'>
+                            <div className='flex items-baseline gap-2'>
+                              <p className='text-2xl font-bold text-primary'>{metric.value}</p>
+                              {showDiff && (
+                                <span
+                                  className={`text-xs ${
+                                    diff > 0
+                                      ? 'text-green-500 dark:text-green-400'
+                                      : 'text-red-500 dark:text-red-400'
+                                  }`}
+                                >
+                                  {diff > 0 ? '+' : ''}
+                                  {diff.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Analysis Data Debug Views */}
+      <div className='space-y-4'>
+        {/* Current Analysis Debug View */}
+        {analysisData && (
+          <Card className='bg-card'>
+            <CardHeader className='p-4 border-b'>
+              <div className='flex items-center gap-2'>
+                <LineChart className='h-5 w-5 text-muted-foreground' />
+                <CardTitle className='text-lg font-semibold'>
+                  Current Analysis Data (Debug View)
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className='p-4'>
+              <pre className='whitespace-pre-wrap overflow-auto max-h-[500px] text-xs'>
+                {JSON.stringify(analysisData, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Comparison Analysis Debug View */}
+        {isComparisonMode && comparisonAnalysis && (
+          <Card className='bg-card'>
+            <CardHeader className='p-4 border-b'>
+              <div className='flex items-center gap-2'>
+                <GitCompare className='h-5 w-5 text-muted-foreground' />
+                <CardTitle className='text-lg font-semibold'>
+                  Comparison Analysis Data (Debug View)
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className='p-4'>
+              <pre className='whitespace-pre-wrap overflow-auto max-h-[500px] text-xs'>
+                {JSON.stringify(comparisonAnalysis, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

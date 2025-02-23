@@ -66,48 +66,76 @@ export function FunnelSankey({
 
   // Transform data to use names for display while keeping IDs for reference
   const transformedData = useMemo(() => {
-    // Group all drop-off nodes into a single node
+    // Keep regular nodes as is to maintain hierarchy
+    const regularNodes = data.nodes.filter(
+      (node) => node.name !== 'Drop Off' && node.name !== 'Completed'
+    );
+
+    // Group drop-off nodes at the end
     const dropOffNodes = data.nodes.filter((node) => node.name === 'Drop Off');
-    const regularNodes = data.nodes.filter((node) => node.name !== 'Drop Off');
+    const completedNode = data.nodes.find((node) => node.name === 'Completed');
 
     const totalDropOffValue = dropOffNodes.reduce((sum, node) => sum + node.value, 0);
-    const dropOffLinks = data.links.filter((link) =>
-      dropOffNodes.some((node) => node.id === link.target)
+
+    // Keep original links between regular nodes for proper flow
+    const regularLinks = data.links.filter(
+      (link) => !link.target.includes('-drop') && link.target !== 'completed'
     );
+
+    // Collect drop-off and completion links
+    const dropOffLinks = data.links.filter((link) => link.target.includes('-drop'));
+    const completedLinks = data.links.filter((link) => link.target === 'completed');
 
     return {
       nodes: [
+        // Keep regular nodes with original IDs for proper flow
         ...regularNodes.map((node) => ({
           ...node,
           nodeId: node.id,
-          id: node.name,
+          id: node.id,
         })),
-        // Add single drop-off node if there are any drop-offs
+        // Add completion node if it exists
+        ...(completedNode
+          ? [
+              {
+                nodeId: 'completed',
+                id: 'completed',
+                name: 'Completed',
+                type: 'path',
+                value: Math.round(completedNode.value),
+              },
+            ]
+          : []),
+        // Add consolidated drop-off node
         ...(dropOffNodes.length > 0
           ? [
               {
                 nodeId: 'drop-off',
-                id: 'Drop Off',
+                id: 'drop-off',
                 name: 'Drop Off',
-                type: 'stage',
-                value: totalDropOffValue,
+                type: 'path',
+                value: Math.round(totalDropOffValue),
               },
             ]
           : []),
       ],
       links: [
-        ...data.links
-          .filter((link) => !dropOffNodes.some((node) => node.id === link.target))
-          .map((link) => ({
-            ...link,
-            source: data.nodes.find((n) => n.id === link.source)?.name || link.source,
-            target: data.nodes.find((n) => n.id === link.target)?.name || link.target,
-          })),
-        // Add consolidated drop-off links
+        // Keep original links between regular nodes for proper flow
+        ...regularLinks.map((link) => ({
+          ...link,
+          value: Math.round(link.value),
+        })),
+        // Add completion links
+        ...completedLinks.map((link) => ({
+          source: link.source,
+          target: 'completed',
+          value: Math.round(link.value),
+        })),
+        // Consolidate drop-off links
         ...dropOffLinks.map((link) => ({
-          source: data.nodes.find((n) => n.id === link.source)?.name || link.source,
-          target: 'Drop Off',
-          value: link.value,
+          source: link.source,
+          target: 'drop-off',
+          value: Math.round(link.value),
         })),
       ],
     };
@@ -121,10 +149,13 @@ export function FunnelSankey({
     return rootNodes.reduce((sum, node) => sum + node.value, 0);
   }, [data]);
 
-  // Custom color function to make Drop Off node gray
+  // Custom color function to make Drop Off node gray and Completed node green
   const getNodeColor = (node: { id: string }) => {
-    if (node.id === 'Drop Off') {
+    if (node.id === 'drop-off') {
       return isDarkMode ? '#4b5563' : '#6b7280'; // Gray-600/500
+    }
+    if (node.id === 'completed') {
+      return isDarkMode ? '#22c55e' : '#16a34a'; // Green-500/600
     }
     const index = transformedData.nodes.findIndex((n) => n.id === node.id);
     return tailwind600Colors[index % tailwind600Colors.length];
@@ -163,7 +194,7 @@ export function FunnelSankey({
     >
       <ResponsiveSankey<SankeyNode, SankeyLink>
         data={transformedData}
-        margin={{ top: 20, right: 100, bottom: 20, left: 100 }}
+        margin={{ top: 20, right: 160, bottom: 20, left: 160 }}
         align='justify'
         colors={getNodeColor}
         nodeOpacity={1}
@@ -172,11 +203,7 @@ export function FunnelSankey({
         nodeSpacing={24}
         nodeBorderWidth={2}
         nodeBorderColor={(node) =>
-          data.nodes.find((n) => n.name === node.id)?.id === selectedNodeId
-            ? isDarkMode
-              ? '#e1e7ef'
-              : '#475569'
-            : 'transparent'
+          node.id === selectedNodeId ? (isDarkMode ? '#e1e7ef' : '#475569') : 'transparent'
         }
         nodeBorderRadius={3}
         linkOpacity={isDarkMode ? 0.25 : 0.5}
@@ -195,12 +222,8 @@ export function FunnelSankey({
         animate={true}
         motionConfig='gentle'
         onClick={(node) => {
-          if ('id' in node) {
-            // Find the original node ID from the name
-            const originalNode = data.nodes.find((n) => n.name === node.id);
-            if (originalNode) {
-              onNodeClick?.(originalNode.id);
-            }
+          if ('id' in node && node.id !== 'drop-off' && node.id !== 'completed') {
+            onNodeClick?.(node.id);
           }
         }}
         nodeTooltip={({ node }) => {
@@ -210,48 +233,80 @@ export function FunnelSankey({
           );
           const initialValue = initialNode?.value || 0;
 
+          // Calculate total value from initial nodes (nodes with no incoming links)
+          const totalValue = transformedData.nodes
+            .filter((n) => !transformedData.links.some((link) => link.target === n.id))
+            .reduce((sum, n) => sum + n.value, 0);
+
           // Calculate incoming value (sum of incoming links)
-          const incomingValue = transformedData.links
-            .filter((link) => link.target === node.id)
-            .reduce((sum, link) => sum + link.value, 0);
+          const incomingLinks = transformedData.links.filter((link) => link.target === node.id);
+          const incomingValue = incomingLinks.reduce((sum, link) => sum + link.value, 0);
 
           // Calculate outgoing value (sum of outgoing links excluding Drop Off)
-          const outgoingValue = transformedData.links
-            .filter((link) => link.source === node.id && link.target !== 'Drop Off')
-            .reduce((sum, link) => sum + link.value, 0);
-
-          // Check if this is an end node (no outgoing links or only to Drop Off)
-          const isEndNode = !transformedData.links.some(
-            (link) => link.source === node.id && link.target !== 'Drop Off'
+          const outgoingLinks = transformedData.links.filter(
+            (link) => link.source === node.id && !link.target.includes('drop')
           );
+          const outgoingValue = outgoingLinks.reduce((sum, link) => sum + link.value, 0);
 
-          // Calculate conversion rate based on node type
-          const conversionRate = isEndNode
-            ? ((node.value / initialValue) * 100).toFixed(1) // End nodes: relative to initial node
-            : incomingValue > 0
-              ? ((outgoingValue / incomingValue) * 100).toFixed(1) // Middle nodes: relative to incoming
-              : ((outgoingValue / node.value) * 100).toFixed(1); // Initial node: outgoing vs total value
+          // Calculate drop-off value (sum of outgoing links to drop-off)
+          const dropOffLinks = transformedData.links.filter(
+            (link) => link.source === node.id && link.target.includes('drop')
+          );
+          const dropOffValue = dropOffLinks.reduce((sum, link) => sum + link.value, 0);
 
+          // Check if this is an end node (only connects to completed/drop-off)
+          const isEndNode = outgoingLinks.every((link) => link.target === 'completed');
+
+          // For regular stage nodes, use the node's actual value
+          if (node.type === 'stage') {
+            const conversionRate = ((outgoingValue / node.value) * 100).toFixed(1);
+            return (
+              <div className='flex flex-col gap-1 bg-background border border-border rounded-md p-3 shadow-md'>
+                <strong className='text-sm'>{node.name}</strong>
+                <div className='flex items-baseline gap-1 text-xs'>
+                  <span>Value:</span>
+                  <span className='font-medium'>{Math.round(node.value)}</span>
+                </div>
+                {dropOffValue > 0 && (
+                  <div className='flex items-baseline gap-1 text-xs'>
+                    <span>Drop Off:</span>
+                    <span className='font-medium'>{Math.round(dropOffValue)}</span>
+                  </div>
+                )}
+                {outgoingValue > 0 && (
+                  <div className='flex items-baseline gap-1 text-xs'>
+                    <span>Proceeding:</span>
+                    <span className='font-medium'>{Math.round(outgoingValue)}</span>
+                  </div>
+                )}
+                <div className='flex items-baseline gap-1 text-xs'>
+                  <span>Conversion Rate:</span>
+                  <span className='font-medium'>{conversionRate}%</span>
+                </div>
+              </div>
+            );
+          }
+
+          // For path nodes (completed/drop-off), show simpler tooltip
           return (
             <div className='flex flex-col gap-1 bg-background border border-border rounded-md p-3 shadow-md'>
-              <strong className='text-sm'>{node.id}</strong>
-              <div className='flex items-baseline gap-1 text-xs'>
-                <span>Stage Conversion:</span>
-                <span className='font-medium'>{conversionRate}%</span>
-              </div>
+              <strong className='text-sm'>{node.name}</strong>
               <div className='flex items-baseline gap-1 text-xs'>
                 <span>Value:</span>
-                <span className='font-medium'>{node.value}</span>
+                <span className='font-medium'>{Math.round(node.value)}</span>
               </div>
-              {(incomingValue > 0 || (!incomingValue && node.value > outgoingValue)) && (
+              {node.id === 'completed' && (
                 <div className='flex items-baseline gap-1 text-xs'>
-                  <span>Drop Off:</span>
-                  <span className='font-medium'>{(node.value - outgoingValue).toFixed(0)}</span>
+                  <span>Conversion Rate:</span>
+                  <span className='font-medium'>
+                    {((node.value / totalValue) * 100).toFixed(1)}%
+                  </span>
                 </div>
               )}
             </div>
           );
         }}
+        label={(node) => node.name}
       />
     </div>
   );

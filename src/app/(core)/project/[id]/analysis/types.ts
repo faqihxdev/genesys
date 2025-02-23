@@ -1,6 +1,31 @@
-import { Funnel, Stage, StageItem } from '@/db/schema/funnel';
+import { Funnel, StageItem } from '@/db/schema/funnel';
 import { Simulation } from '@/db/schema/simulation';
 import { Summary, SummaryStage, SummaryStageItem } from '@/db/schema/summary';
+
+/**
+ * @description Type definitions for funnel analysis with dependency tree
+ *
+ * Type Dependency Tree:
+ *
+ * ComparisonAnalysis
+ * └── FunnelAnalysis
+ *     ├── Funnel (from @/db/schema/funnel)
+ *     ├── Simulation (from @/db/schema/simulation)
+ *     ├── Summary (from @/db/schema/summary)
+ *     ├── StageAnalysis
+ *     │   ├── SummaryStage (from @/db/schema/summary)
+ *     │   ├── Stage (from @/db/schema/funnel)
+ *     │   ├── SummaryStageItem (from @/db/schema/summary)
+ *     │   ├── StageItem (from @/db/schema/funnel)
+ *     │   └── KeyMetric
+ *     ├── KeyMetric
+ *     └── SankeyData
+ *         ├── SankeyNode
+ *         └── SankeyLink
+ *
+ * FunnelOption (standalone)
+ * SimulationOption (standalone)
+ */
 
 // Extended types for the analysis page
 export interface FunnelOption {
@@ -17,6 +42,12 @@ export interface SimulationOption {
   status: string;
   completeCount: number;
   conversionRate: number;
+}
+
+export interface StageLink {
+  id: string;
+  fromStageId: string;
+  toStageId: string;
 }
 
 export interface SankeyNode {
@@ -44,7 +75,15 @@ export interface KeyMetric {
 }
 
 export interface StageAnalysis extends SummaryStage {
-  stage: Stage;
+  stage: {
+    id: string;
+    name: string;
+    description?: string | null;
+    items: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
   items: Array<SummaryStageItem & { item: StageItem }>;
   metrics: KeyMetric[];
 }
@@ -56,6 +95,7 @@ export interface FunnelAnalysis {
   stages: StageAnalysis[];
   metrics: KeyMetric[];
   sankey: SankeyData;
+  stageLinks: StageLink[];
 }
 
 export interface ComparisonAnalysis {
