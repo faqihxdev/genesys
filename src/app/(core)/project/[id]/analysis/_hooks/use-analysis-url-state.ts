@@ -14,12 +14,12 @@ export function useAnalysisUrlState({ funnels, isFunnelsLoading }: UseAnalysisUr
   const searchParams = useSearchParams();
   const { id: projectId } = useParams();
 
-  // Get initial states from URL
-  const initialFunnelId = searchParams.get('funnelId');
-  const initialSimulationId = searchParams.get('simulationId');
-  const initialCompareFunnelId = searchParams.get('compareFunnelId');
-  const initialCompareSimulationId = searchParams.get('compareSimulationId');
-  const initialComparisonMode = searchParams.get('compare') === 'true';
+  // Get initial states from URL with shortened parameter names
+  const initialFunnelId = searchParams.get('fid');
+  const initialSimulationId = searchParams.get('sid');
+  const initialCompareFunnelId = searchParams.get('cfid');
+  const initialCompareSimulationId = searchParams.get('csid');
+  const initialComparisonMode = searchParams.get('c') === 'true';
 
   // State management
   const [selectedFunnelId, setSelectedFunnelId] = useState<string | null>(initialFunnelId);
@@ -95,7 +95,7 @@ export function useAnalysisUrlState({ funnels, isFunnelsLoading }: UseAnalysisUr
     }
   }, [funnels, isFunnelsLoading, validateUrlState, resetToCleanState]);
 
-  // Function to update URL with current state
+  // Function to update URL with current state using shortened parameter names
   const updateUrlParams = useCallback(
     (params: {
       funnelId?: string | null;
@@ -106,22 +106,21 @@ export function useAnalysisUrlState({ funnels, isFunnelsLoading }: UseAnalysisUr
     }) => {
       const current = new URLSearchParams(Array.from(searchParams.entries()));
 
-      // Update or remove parameters based on values
-      if (params.funnelId) current.set('funnelId', params.funnelId);
-      else current.delete('funnelId');
+      // Update or remove parameters based on values with shortened names
+      if (params.funnelId) current.set('fid', params.funnelId);
+      else current.delete('fid');
 
-      if (params.simulationId) current.set('simulationId', params.simulationId);
-      else current.delete('simulationId');
+      if (params.simulationId) current.set('sid', params.simulationId);
+      else current.delete('sid');
 
       if (params.compare) {
-        current.set('compare', 'true');
-        if (params.compareFunnelId) current.set('compareFunnelId', params.compareFunnelId);
-        if (params.compareSimulationId)
-          current.set('compareSimulationId', params.compareSimulationId);
+        current.set('c', 'true');
+        if (params.compareFunnelId) current.set('cfid', params.compareFunnelId);
+        if (params.compareSimulationId) current.set('csid', params.compareSimulationId);
       } else {
-        current.delete('compare');
-        current.delete('compareFunnelId');
-        current.delete('compareSimulationId');
+        current.delete('c');
+        current.delete('cfid');
+        current.delete('csid');
       }
 
       // Update URL without reload
