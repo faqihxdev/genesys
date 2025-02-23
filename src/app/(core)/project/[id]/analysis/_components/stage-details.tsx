@@ -1,7 +1,9 @@
 'use client';
 
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { FileText, Info, Lightbulb } from 'lucide-react';
+import { ChevronDown, FileText, Info, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
 import { KeyMetric, StageAnalysis } from '../types';
 
 interface StageDetailsProps {
@@ -31,6 +33,14 @@ export function StageDetails({
   className,
   showChanges = false,
 }: StageDetailsProps) {
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+  const toggleItem = (itemId: string) => {
+    setExpandedItems((current) =>
+      current.includes(itemId) ? current.filter((id) => id !== itemId) : [...current, itemId]
+    );
+  };
+
   // Calculate metric differences if in comparison mode and we have a base stage
   const getMetricDiff = (metric: KeyMetric): number | undefined => {
     if (!showChanges || !baseStage) return undefined;
@@ -123,25 +133,61 @@ export function StageDetails({
           <div className='space-y-3'>
             <h4 className='text-sm font-medium mb-2'>Content Items</h4>
             {stage.items.map((item, idx) => (
-              <div key={idx} className='rounded-lg border bg-background/50 p-3 space-y-2'>
-                <div className='flex items-center justify-between'>
-                  <p className='text-sm font-medium'>{item.item.name}</p>
+              <Collapsible
+                key={idx}
+                open={expandedItems.includes(item.item.id)}
+                onOpenChange={() => toggleItem(item.item.id)}
+                className='rounded-lg border bg-background/50 group transition-all duration-200 hover:shadow-sm'
+              >
+                <CollapsibleTrigger className='flex items-center justify-between w-full p-3 hover:bg-muted/50 transition-colors'>
+                  <div className='flex items-center gap-2'>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ease-in-out ${
+                        expandedItems.includes(item.item.id) ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                    <p className='text-sm font-medium group-hover:text-primary transition-colors'>
+                      {item.item.name}
+                    </p>
+                  </div>
                   <span
-                    className={`text-xs ${
+                    className={`text-xs font-medium px-2 py-1 rounded-full ${
                       parseFloat(item.sentiment) > 0.5
-                        ? 'text-green-500 dark:text-green-400'
+                        ? 'bg-green-500/10 text-green-500 dark:bg-green-400/10 dark:text-green-400'
                         : parseFloat(item.sentiment) < 0.3
-                          ? 'text-red-500 dark:text-red-400'
-                          : 'text-yellow-500 dark:text-yellow-400'
+                          ? 'bg-red-500/10 text-red-500 dark:bg-red-400/10 dark:text-red-400'
+                          : 'bg-yellow-500/10 text-yellow-500 dark:bg-yellow-400/10 dark:text-yellow-400'
                     }`}
                   >
                     Sentiment: {item.sentiment}
                   </span>
-                </div>
-                <div className='flex items-center justify-between'>
-                  <p className='text-xs text-muted-foreground'>{item.summary}</p>
-                </div>
-              </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className='data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up'>
+                  <div
+                    className={`
+                      px-4 pb-4 pt-4 border-t space-y-4 bg-muted/30
+                      transition-all duration-200 ease-in-out
+                      data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2
+                      data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2
+                    `}
+                  >
+                    <div className='space-y-2'>
+                      <div className='flex items-center gap-2'>
+                        <FileText className='h-4 w-4 text-primary/70' />
+                        <p className='text-xs font-medium text-primary/70'>Summary</p>
+                      </div>
+                      <p className='text-sm text-muted-foreground pl-6'>{item.summary}</p>
+                    </div>
+                    <div className='space-y-2'>
+                      <div className='flex items-center gap-2'>
+                        <Lightbulb className='h-4 w-4 text-primary/70' />
+                        <p className='text-xs font-medium text-primary/70'>Recommendation</p>
+                      </div>
+                      <p className='text-sm text-muted-foreground pl-6'>{item.recommendation}</p>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             ))}
           </div>
         )}

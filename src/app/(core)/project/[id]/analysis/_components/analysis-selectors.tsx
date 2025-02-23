@@ -75,27 +75,35 @@ export function AnalysisSelectors({
     <div className='flex items-center justify-between gap-4'>
       {/* Base Selectors */}
       <div className='flex items-center gap-4'>
-        <Select
-          value={selectedFunnelId || undefined}
-          onValueChange={onFunnelSelect}
-          disabled={!funnels?.length}
-        >
-          <SelectTrigger className='w-[250px]'>
-            <SelectValue placeholder='Select a funnel' />
-          </SelectTrigger>
-          <SelectContent>
-            {funnels?.map((funnel) => (
-              <SelectItem key={funnel.id} value={funnel.id}>
-                <div className='flex items-center justify-between w-full gap-4'>
-                  <span className='font-medium truncate'>{funnel.name}</span>
-                  <span className='text-xs text-muted-foreground shrink-0'>
-                    {funnel.simulationCount} simulations
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className='relative'>
+          {!selectedFunnelId && funnels?.length > 0 && (
+            <span className='absolute -top-0.5 -left-0.5 flex h-3 w-3'>
+              <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75'></span>
+              <span className='relative inline-flex rounded-full h-3 w-3 bg-primary'></span>
+            </span>
+          )}
+          <Select
+            value={selectedFunnelId || undefined}
+            onValueChange={onFunnelSelect}
+            disabled={!funnels?.length}
+          >
+            <SelectTrigger className='w-[250px]'>
+              <SelectValue placeholder='Select a funnel' />
+            </SelectTrigger>
+            <SelectContent>
+              {funnels?.map((funnel) => (
+                <SelectItem key={funnel.id} value={funnel.id}>
+                  <div className='flex items-center justify-between w-full gap-4'>
+                    <span className='font-medium truncate'>{funnel.name}</span>
+                    <span className='text-xs text-muted-foreground shrink-0'>
+                      {funnel.simulationCount} simulations
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Select
           value={selectedSimulationId || undefined}

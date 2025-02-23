@@ -34,6 +34,7 @@ import { AnalysisSelectors } from './_components/analysis-selectors';
 import { AnalysisSkeleton } from './_components/analysis-skeleton';
 import { FunnelSankey } from './_components/funnel-sankey';
 import { StageDetails } from './_components/stage-details';
+import { useAnalysisUrlState } from './_hooks/use-analysis-url-state';
 import { FunnelAnalysis, KeyMetric, SimulationOption, StageAnalysis } from './types';
 
 // Add type for error
@@ -52,11 +53,8 @@ function calculatePercentageDiff(current: number, base: number): number {
 export default function AnalysisPage() {
   const { toast } = useToast();
   const { id: projectId } = useParams();
-  const [selectedFunnelId, setSelectedFunnelId] = useState<string | null>(null);
-  const [selectedSimulationId, setSelectedSimulationId] = useState<string | null>(null);
-  const [isComparisonMode, setIsComparisonMode] = useState(false);
-  const [compareFunnelId, setCompareFunnelId] = useState<string | null>(null);
-  const [compareSimulationId, setCompareSimulationId] = useState<string | null>(null);
+
+  // State for selected stages
   const [baseSelectedStageId, setBaseSelectedStageId] = useState<string | null>(null);
   const [compareSelectedStageId, setCompareSelectedStageId] = useState<string | null>(null);
 
@@ -69,6 +67,23 @@ export default function AnalysisPage() {
     queryKey: ['funnels', projectId],
     queryFn: () => withQuery(getProjectFunnelsWithSimulations)({ projectId: projectId as string }),
     enabled: !!projectId,
+  });
+
+  // URL state management using the custom hook
+  const {
+    selectedFunnelId,
+    selectedSimulationId,
+    isComparisonMode,
+    compareFunnelId,
+    compareSimulationId,
+    handleFunnelSelect,
+    handleSimulationSelect,
+    handleCompareFunnelSelect,
+    handleCompareSimulationSelect,
+    handleComparisonToggle,
+  } = useAnalysisUrlState({
+    funnels: funnelsData,
+    isFunnelsLoading,
   });
 
   // Query for fetching available simulations for selected funnel
@@ -152,15 +167,6 @@ export default function AnalysisPage() {
         )
       : null;
 
-  const handleComparisonToggle = (enabled: boolean) => {
-    setIsComparisonMode(enabled);
-    if (!enabled) {
-      setCompareFunnelId(null);
-      setCompareSimulationId(null);
-      setCompareSelectedStageId(null);
-    }
-  };
-
   // Handle loading states
   if (isFunnelsLoading) {
     return (
@@ -190,9 +196,9 @@ export default function AnalysisPage() {
                 <h3 className='text-lg font-semibold'>No Funnels Available</h3>
                 <p className='text-sm text-muted-foreground max-w-md'>{funnelsError.message}</p>
                 <div className='flex items-center justify-center gap-4 mt-6'>
-                  <Link href={`/project/${projectId}/funnel`}>
+                  <Link href={`/project/${projectId}/funnels`}>
                     <Button variant='default' size='sm'>
-                      <LineChart className='h-4 w-4 mr-2' />
+                      <LineChart className='h-4 w-4' />
                       Create Funnel
                     </Button>
                   </Link>
@@ -207,6 +213,7 @@ export default function AnalysisPage() {
 
   return (
     <div className='space-y-6'>
+      {/* Header */}
       <div className='flex items-center justify-between'>
         <PageTitle
           title='Analysis Dashboard'
@@ -252,10 +259,10 @@ export default function AnalysisPage() {
           isComparisonMode={isComparisonMode}
           isLoadingSimulations={isSimulationsLoading}
           isLoadingComparisonSimulations={isComparisonSimulationsLoading}
-          onFunnelSelect={setSelectedFunnelId}
-          onSimulationSelect={setSelectedSimulationId}
-          onCompareFunnelSelect={setCompareFunnelId}
-          onCompareSimulationSelect={setCompareSimulationId}
+          onFunnelSelect={handleFunnelSelect}
+          onSimulationSelect={handleSimulationSelect}
+          onCompareFunnelSelect={handleCompareFunnelSelect}
+          onCompareSimulationSelect={handleCompareSimulationSelect}
         />
       </section>
 
@@ -272,7 +279,9 @@ export default function AnalysisPage() {
                     {isComparisonMode ? 'Base Simulation Summary' : 'Overall Simulation Summary'}
                   </h2>
                 </div>
-                <Badge className='bg-primary/10 text-primary'>{currentAnalysis.funnel.name}</Badge>
+                <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
+                  {currentAnalysis.funnel.name}
+                </Badge>
               </div>
             </header>
             <div className='p-6 space-y-6'>
@@ -341,7 +350,7 @@ export default function AnalysisPage() {
                     <h2 className='text-lg font-semibold'>Comparison Simulation Summary</h2>
                   </div>
                   {comparisonAnalysis?.summary && (
-                    <Badge className='bg-primary/10 text-primary'>
+                    <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
                       {comparisonAnalysis.funnel.name}
                     </Badge>
                   )}
@@ -572,7 +581,9 @@ export default function AnalysisPage() {
                 </h2>
               </div>
               {currentAnalysis && (
-                <Badge className='bg-primary/10 text-primary'>{currentAnalysis.funnel.name}</Badge>
+                <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
+                  {currentAnalysis.funnel.name}
+                </Badge>
               )}
             </div>
           </header>
@@ -645,7 +656,7 @@ export default function AnalysisPage() {
                   <h2 className='text-lg font-semibold'>Comparison Funnel Flow</h2>
                 </div>
                 {comparisonAnalysis && (
-                  <Badge className='bg-primary/10 text-primary'>
+                  <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
                     {comparisonAnalysis.funnel.name}
                   </Badge>
                 )}
@@ -695,7 +706,9 @@ export default function AnalysisPage() {
                     {selectedStage ? `${selectedStage.stage.name} Analysis` : 'Stage Analysis'}
                   </h2>
                 </div>
-                <Badge className='bg-primary/10 text-primary'>{currentAnalysis.funnel.name}</Badge>
+                <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
+                  {currentAnalysis.funnel.name}
+                </Badge>
               </div>
             </header>
             <div className='p-6 h-full'>
@@ -727,7 +740,7 @@ export default function AnalysisPage() {
                     </h2>
                   </div>
                   {comparisonAnalysis && (
-                    <Badge className='bg-primary/10 text-primary'>
+                    <Badge className='bg-primary/10 text-primary hover:bg-primary/15'>
                       {comparisonAnalysis.funnel.name}
                     </Badge>
                   )}
