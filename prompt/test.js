@@ -2,7 +2,7 @@ const OpenAI = require('openai');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
@@ -12,13 +12,13 @@ const openai = new OpenAI({
  */
 function getColorRecommendation(traits) {
   const rainbowColors = {
-    red: { meaning: "energy, passion, excitement" },
-    orange: { meaning: "sociability, adventure, confidence" },
-    yellow: { meaning: "optimism, cheerfulness, creativity" },
-    green: { meaning: "balance, growth, harmony" },
-    blue: { meaning: "calmness, trust, stability" },
-    indigo: { meaning: "intuition, deep thinking, wisdom" },
-    violet: { meaning: "creativity, spirituality, imagination" }
+    red: { meaning: 'energy, passion, excitement' },
+    orange: { meaning: 'sociability, adventure, confidence' },
+    yellow: { meaning: 'optimism, cheerfulness, creativity' },
+    green: { meaning: 'balance, growth, harmony' },
+    blue: { meaning: 'calmness, trust, stability' },
+    indigo: { meaning: 'intuition, deep thinking, wisdom' },
+    violet: { meaning: 'creativity, spirituality, imagination' },
   };
 
   // This is a simple mock logic - in reality, you'd have more sophisticated matching
@@ -35,7 +35,7 @@ function getColorRecommendation(traits) {
 
   return {
     color,
-    meaning: rainbowColors[color].meaning
+    meaning: rainbowColors[color].meaning,
   };
 }
 
@@ -55,28 +55,29 @@ async function demonstratePersonalityColors(personalityData) {
             traits: {
               type: 'array',
               items: { type: 'string' },
-              description: 'List of personality traits to base the color recommendation on'
-            }
+              description: 'List of personality traits to base the color recommendation on',
+            },
           },
-          required: ['traits']
-        }
-      }
+          required: ['traits'],
+        },
+      },
     ];
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: 'gpt-3.5-turbo',
       messages: [
         {
-          role: "system",
-          content: "You are an insightful assistant that helps people discover their personality-matching rainbow color. You analyze their traits and select the most suitable color."
+          role: 'system',
+          content:
+            'You are an insightful assistant that helps people discover their personality-matching rainbow color. You analyze their traits and select the most suitable color.',
         },
         {
-          role: "user",
-          content: `Here is my personality data: ${JSON.stringify(personalityData)}. What rainbow color matches my personality?`
-        }
+          role: 'user',
+          content: `Here is my personality data: ${JSON.stringify(personalityData)}. What rainbow color matches my personality?`,
+        },
       ],
       functions,
-      function_call: 'auto'
+      function_call: 'auto',
     });
 
     const responseMessage = completion.choices[0].message;
@@ -100,10 +101,10 @@ async function demonstratePersonalityColors(personalityData) {
 
 // Example usage with sample personality data
 const samplePersonalityData = {
-  name: "Sarah",
-  traits: ["creative", "energetic", "thoughtful"],
-  interests: ["art", "music", "nature"],
-  mood: "inspired"
+  name: 'Sarah',
+  traits: ['creative', 'energetic', 'thoughtful'],
+  interests: ['art', 'music', 'nature'],
+  mood: 'inspired',
 };
 
 // Execute the function
