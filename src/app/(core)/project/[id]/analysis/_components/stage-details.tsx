@@ -165,7 +165,7 @@ export function StageDetails({
                 <CollapsibleContent className='data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up'>
                   <div
                     className={`
-                      px-4 pb-4 pt-4 border-t space-y-4 bg-muted/30
+                      px-4 pb-4 pt-4 border-t space-y-4
                       transition-all duration-200 ease-in-out
                       data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-2
                       data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2
@@ -173,15 +173,15 @@ export function StageDetails({
                   >
                     <div className='space-y-2'>
                       <div className='flex items-center gap-2'>
-                        <FileText className='h-4 w-4 text-primary/70' />
-                        <p className='text-xs font-medium text-primary/70'>Summary</p>
+                        <FileText className='h-4 w-4 text-primary' />
+                        <p className='text-sm font-medium text-primary'>Summary</p>
                       </div>
                       <p className='text-sm text-muted-foreground pl-6'>{item.summary}</p>
                     </div>
                     <div className='space-y-2'>
                       <div className='flex items-center gap-2'>
-                        <Lightbulb className='h-4 w-4 text-primary/70' />
-                        <p className='text-xs font-medium text-primary/70'>Recommendation</p>
+                        <Lightbulb className='h-4 w-4 text-primary' />
+                        <p className='text-sm font-medium text-primary'>Recommendation</p>
                       </div>
                       <p className='text-sm text-muted-foreground pl-6'>{item.recommendation}</p>
                     </div>

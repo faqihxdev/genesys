@@ -1,5 +1,6 @@
 'use client';
 
+import { FloatingDebugPanel } from '@/components/custom/debug';
 import { PageTitle } from '@/components/custom/page-title';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -773,40 +774,7 @@ export default function AnalysisPage() {
         </section>
       )}
 
-      {/* Debug Views */}
-      <div className='space-y-4'>
-        {analysisData && (
-          <div className='bg-card border rounded-lg'>
-            <header className='p-4 border-b'>
-              <div className='flex items-center gap-2'>
-                <LineChart className='h-5 w-5 text-primary' />
-                <h2 className='text-lg font-semibold'>Current Analysis Data (Debug View)</h2>
-              </div>
-            </header>
-            <div className='p-4'>
-              <pre className='whitespace-pre-wrap overflow-auto max-h-[500px] text-xs'>
-                {JSON.stringify(analysisData, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-
-        {isComparisonMode && comparisonAnalysis && (
-          <div className='bg-card border rounded-lg'>
-            <header className='p-4 border-b'>
-              <div className='flex items-center gap-2'>
-                <GitCompare className='h-5 w-5 text-primary' />
-                <h2 className='text-lg font-semibold'>Comparison Analysis Data (Debug View)</h2>
-              </div>
-            </header>
-            <div className='p-4'>
-              <pre className='whitespace-pre-wrap overflow-auto max-h-[500px] text-xs'>
-                {JSON.stringify(comparisonAnalysis, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
-      </div>
+      <FloatingDebugPanel data={{ currentAnalysis, comparisonAnalysis }} />
     </div>
   );
 }

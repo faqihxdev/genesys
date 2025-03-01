@@ -54,6 +54,7 @@ export const personas = pgTable(
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
     name: text().notNull(), // user reference: name of the persona
+    description: text(), // user reference: description of the persona
     demographic: jsonb().notNull(), // demographic of the persona (age, gender, location, etc.)
     psychographic: jsonb().notNull(), // psychographic of the persona (values, interests, personal traits, etc.)
     behavior: jsonb().notNull(), // behavior of the persona (budget, brand affinity, responsiveness, etc.)

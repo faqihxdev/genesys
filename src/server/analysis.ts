@@ -188,16 +188,8 @@ export const generateSimulationSummary = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {
-    const startTime = performance.now();
-    console.log(
-      '[generateSimulationSummary]: Starting analysis for simulation',
-      input.simulationId
-    );
-
     // Start a transaction for atomic operations
     return await db.transaction(async (tx) => {
-      console.log('[generateSimulationSummary]: Checking for existing summaries');
-
       // Check if summaries already exist
       const existingSummary = await tx
         .select()
@@ -212,8 +204,6 @@ export const generateSimulationSummary = createAction({
           status: 409,
         });
       }
-
-      console.log('[generateSimulationSummary]: Fetching simulation responses');
 
       // Get all responses for the simulation with their related data
       const simulationResponses = (await tx
@@ -264,8 +254,6 @@ export const generateSimulationSummary = createAction({
         });
       }
 
-      console.log('[generateSimulationSummary]: Fetching simulation details');
-
       // Get simulation details
       const [simulation] = await tx
         .select({
@@ -293,8 +281,6 @@ export const generateSimulationSummary = createAction({
         });
       }
 
-      console.log('[generateSimulationSummary]: Generating stage item summaries');
-
       // First, generate summaries for all stage items
       const itemResponses = simulationResponses.reduce(
         (acc, response) => {
@@ -307,8 +293,6 @@ export const generateSimulationSummary = createAction({
       );
 
       const itemSummaryPromises = Object.entries(itemResponses).map(async ([itemId, responses]) => {
-        console.log('[generateSimulationSummary]: Analyzing stage item', itemId);
-
         const itemSentiment =
           responses.reduce((acc, r) => acc + Number(r.sentiment), 0) / responses.length;
 
@@ -341,10 +325,7 @@ export const generateSimulationSummary = createAction({
       });
 
       const itemSummaries = await Promise.all(itemSummaryPromises);
-      console.log('[generateSimulationSummary]: Saving stage item summaries');
       await tx.insert(summaryStageItems).values(itemSummaries.map((s) => s.dbRecord));
-
-      console.log('[generateSimulationSummary]: Generating stage summaries');
 
       // Then, generate summaries for all stages using item summaries
       const stageResponses = simulationResponses.reduce(
@@ -359,8 +340,6 @@ export const generateSimulationSummary = createAction({
 
       const stageSummaryPromises = Object.entries(stageResponses).map(
         async ([stageId, responses]) => {
-          console.log('[generateSimulationSummary]: Analyzing stage', stageId);
-
           const stageSentiment =
             responses.reduce((acc, r) => acc + Number(r.sentiment), 0) / responses.length;
           const stageConversionRate = responses.filter((r) => r.proceed).length / responses.length;
@@ -406,10 +385,7 @@ export const generateSimulationSummary = createAction({
       );
 
       const stageSummaries = await Promise.all(stageSummaryPromises);
-      console.log('[generateSimulationSummary]: Saving stage summaries');
       await tx.insert(summaryStages).values(stageSummaries.map((s) => s.dbRecord));
-
-      console.log('[generateSimulationSummary]: Generating overall simulation summary');
 
       // Finally, generate overall simulation summary using stage summaries
       const overallSentiment =
@@ -431,8 +407,6 @@ export const generateSimulationSummary = createAction({
         })),
       });
 
-      console.log('[generateSimulationSummary]: Saving overall summary');
-
       // Create overall summary
       const [createdSummary] = await tx
         .insert(summary)
@@ -448,9 +422,6 @@ export const generateSimulationSummary = createAction({
         })
         .returning();
 
-      console.log('[generateSimulationSummary]: Analysis completed successfully');
-      const endTime = performance.now();
-      console.log(`[generateSimulationSummary]: Time taken: ${endTime - startTime} milliseconds`);
       return createdSummary;
     });
   },
@@ -522,7 +493,6 @@ export const getSimulationAnalysis = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {
-    console.log('[getSimulationAnalysis]: Fetching analysis for simulation', input.simulationId);
 
     // Get simulation with funnel details
     const simulationResult = await db

@@ -204,9 +204,7 @@ export function createAction<TInput, TOutput>(config: {
       const duration = Math.round(endTime - startTime);
       // Only log in development
       if (env.NODE_ENV !== 'production') {
-        console.log(
-          `[Action${config.name ? `/${config.name}` : ''}]: Completed in ${getColoredTiming(duration)} ms`
-        );
+        console.log(` >>> ${config.name ? `${config.name}` : ''} ${getColoredTiming(duration)} ms`);
       }
     }
   };
