@@ -493,7 +493,6 @@ export const getSimulationAnalysis = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {
-
     // Get simulation with funnel details
     const simulationResult = await db
       .select({
