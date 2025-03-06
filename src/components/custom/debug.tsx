@@ -1,16 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { Bug, ChevronRight, Copy, Download, Filter, Search, XCircle } from 'lucide-react';
+import { Bug, ChevronRight, Clipboard, Copy, Download, Search, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface DebugPanelProps {
@@ -105,12 +98,11 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
   const [expanded, setExpanded] = useState<string[]>([]);
   const [expandedValues, setExpandedValues] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPath, setCurrentPath] = useState<string>('');
+  const [previousData, setPreviousData] = useState<Record<string, unknown>>({});
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
-  const [previousData, setPreviousData] = useState<Record<string, unknown>>({});
-  const [typeFilters, setTypeFilters] = useState<string[]>([]);
-  const allTypes = ['string', 'number', 'boolean', 'object', 'array', 'null', 'undefined'];
 
   // Debounced search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
@@ -122,34 +114,34 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
   // Store previous data for change detection
   useEffect(() => {
     if (open) {
-      setPreviousData(JSON.parse(JSON.stringify(data)));
+      setPreviousData(data);
     }
   }, [data, open]);
 
-  // Check if a value has changed
-  const hasValueChanged = (path: string[], currentValue: unknown): boolean => {
-    if (!previousData || Object.keys(previousData).length === 0) return false;
+  // Check if a value has changed since last render
+  const hasValueChanged = useCallback(
+    (path: string[], value: unknown): boolean => {
+      if (!previousData || Object.keys(previousData).length === 0) return false;
 
-    let prevValue = previousData;
-    for (let i = 0; i < path.length; i++) {
-      if (i === 0) continue; // Skip the first element which is the prop name
-      if (prevValue === undefined || prevValue === null) return true;
-      prevValue = prevValue[path[i] as keyof typeof prevValue] as Record<string, unknown>;
-    }
+      let current = previousData;
+      for (let i = 0; i < path.length - 1; i++) {
+        if (!current[path[i]] || typeof current[path[i]] !== 'object') return false;
+        current = current[path[i]] as Record<string, unknown>;
+      }
 
-    if (typeof currentValue !== typeof prevValue) return true;
-    if (currentValue === null || prevValue === null) return currentValue !== prevValue;
+      const lastKey = path[path.length - 1];
+      if (!(lastKey in current)) return false;
 
-    if (Array.isArray(currentValue) && Array.isArray(prevValue)) {
-      return JSON.stringify(currentValue) !== JSON.stringify(prevValue);
-    }
+      // For primitive values, do a simple comparison
+      if (typeof value !== 'object' || value === null) {
+        return current[lastKey] !== value;
+      }
 
-    if (typeof currentValue === 'object' && typeof prevValue === 'object') {
-      return JSON.stringify(currentValue) !== JSON.stringify(prevValue);
-    }
-
-    return currentValue !== prevValue;
-  };
+      // For objects, check if they're different references
+      return current[lastKey] !== value;
+    },
+    [previousData]
+  );
 
   // Enhanced search results with parent-child relationships
   const searchResults = useMemo(() => {
@@ -215,13 +207,14 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
     });
   }, [searchResults, expanded, debouncedSearchTerm]);
 
-  // Dynamic height calculation
+  // Dynamic height calculation - improved to ensure all content is visible
   useEffect(() => {
     if (!containerRef.current || !open) return;
 
     const resizeObserver = new ResizeObserver((entries) => {
       const height = entries[0].contentRect.height;
-      setContainerHeight(Math.min(height, 500)); // Max height of 500px
+      // Increase max height to accommodate more content
+      setContainerHeight(Math.min(height, 600)); // Increased from 500px to 600px
     });
 
     resizeObserver.observe(containerRef.current);
@@ -230,246 +223,30 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
 
   const handleCopy = useCallback(
     (value: unknown) => {
-      const stringValue =
-        typeof value === 'object' && value !== null
-          ? JSON.stringify(value, null, 2)
-          : String(value);
-      navigator.clipboard.writeText(stringValue);
-      toast({
-        title: 'Copied to clipboard',
-        duration: 2000,
-      });
+      navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+      toast({ title: 'Copied', duration: 1500 });
     },
     [toast]
   );
 
   const handleDownload = useCallback(() => {
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const file = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    a.href = URL.createObjectURL(file);
     a.download = 'debug-data.json';
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
   }, [data]);
 
   // Copy path to clipboard
-  const copyPath = (path: string[]) => {
-    const pathString = path.join('.');
-    navigator.clipboard.writeText(pathString);
-    toast({
-      title: 'Path copied to clipboard',
-      description: pathString,
-      duration: 2000,
-    });
-  };
-
-  const renderTree = (
-    matches: SearchMatch[],
-    depth = 0,
-    parentPath: string[] = [],
-    isLastGroup = true
-  ) => {
-    return matches.map((match, index) => {
-      const isLastChild = index === matches.length - 1;
-      const isRootProp = depth === 1;
-      const currentPath = [...parentPath, ...match.path];
-      const valueType = getValueType(match.value);
-      const hasChanged = hasValueChanged(currentPath, match.value);
-
-      // Skip if type filtering is active and this type is not included
-      if (typeFilters.length > 0 && !typeFilters.includes(valueType)) {
-        return null;
-      }
-
-      if (typeof match.value !== 'object' || match.value === null) {
-        return (
-          <div
-            key={currentPath.join('.')}
-            className={cn(
-              'grid grid-cols-[auto,1fr] relative',
-              isRootProp && 'border-t border-border/30 py-1'
-            )}
-          >
-            <div className='flex items-center'>
-              <TreeLines depth={depth} isLastChild={isLastChild} />
-              <div
-                className={cn(
-                  'flex items-center min-w-0',
-                  isRootProp && 'font-semibold text-primary'
-                )}
-              >
-                <span
-                  className={cn(
-                    'truncate',
-                    match.matches.key && 'bg-yellow-200 dark:bg-yellow-900'
-                  )}
-                >
-                  {match.path[match.path.length - 1]}:
-                </span>
-              </div>
-            </div>
-
-            <div className='flex items-center pr-2 min-w-0 gap-1'>
-              <span
-                className={cn(
-                  'truncate',
-                  match.matches.value && 'bg-yellow-200 dark:bg-yellow-900',
-                  hasChanged && 'bg-blue-100 dark:bg-blue-900/30'
-                )}
-              >
-                {String(match.value)}
-              </span>
-              <span className='text-[10px] px-1 rounded bg-muted/50 text-muted-foreground font-medium'>
-                {valueType}
-              </span>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity'
-                onClick={() => copyPath(currentPath)}
-              >
-                <Copy className='h-3 w-3' />
-              </Button>
-            </div>
-          </div>
-        );
-      }
-
-      const isArray = Array.isArray(match.value);
-      const isEmpty = isArray
-        ? (match.value as unknown[]).length === 0
-        : Object.keys(match.value as object).length === 0;
-      const nodeId = currentPath.join('.');
-      const isExpanded = expanded.includes(nodeId);
-
-      return (
-        <div key={nodeId} className='group'>
-          <div
-            className={cn(
-              'grid grid-cols-[auto,1fr] relative',
-              isRootProp && 'border-t border-border/30 py-1'
-            )}
-          >
-            <div className='flex items-center'>
-              <TreeLines depth={depth} isLastChild={isLastChild} />
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-4 w-4 p-0'
-                onClick={() => toggleExpand(nodeId)}
-                disabled={isEmpty}
-              >
-                {!isEmpty && (
-                  <>
-                    {isExpanded ? (
-                      <ChevronDown className='h-3 w-3' />
-                    ) : (
-                      <ChevronRight className='h-3 w-3' />
-                    )}
-                  </>
-                )}
-              </Button>
-              <div
-                className={cn(
-                  'flex items-center min-w-0',
-                  isRootProp && 'font-semibold text-primary'
-                )}
-              >
-                <span
-                  className={cn(
-                    'truncate',
-                    match.matches.key && 'bg-yellow-200 dark:bg-yellow-900'
-                  )}
-                >
-                  {match.path[match.path.length - 1]}:
-                </span>
-              </div>
-            </div>
-
-            <div className='flex items-center pr-2 min-w-0 gap-1'>
-              <span className={cn('truncate', hasChanged && 'bg-blue-100 dark:bg-blue-900/30')}>
-                {isArray ? `Array(${(match.value as unknown[]).length})` : 'Object'}
-              </span>
-              <span className='text-[10px] px-1 rounded bg-muted/50 text-muted-foreground font-medium'>
-                {valueType}
-              </span>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity'
-                onClick={() => copyPath(currentPath)}
-              >
-                <Copy className='h-3 w-3' />
-              </Button>
-            </div>
-          </div>
-
-          {isExpanded && !isEmpty && (
-            <div className='relative'>
-              {renderTree(
-                getChildrenAsMatches(match.value, match.path),
-                depth + 1,
-                currentPath,
-                isLastChild
-              )}
-            </div>
-          )}
-        </div>
-      );
-    });
-  };
-
-  // Toggle expand/collapse of a node
-  const toggleExpand = (nodeId: string) => {
-    setExpanded((exp) => {
-      if (exp.includes(nodeId)) {
-        return exp.filter((k) => !(k === nodeId || k.startsWith(nodeId + '.')));
-      } else {
-        return [...exp, nodeId];
-      }
-    });
-  };
-
-  // Get children of an object as SearchMatch[]
-  const getChildrenAsMatches = (obj: unknown, parentPath: string[]): SearchMatch[] => {
-    const results: SearchMatch[] = [];
-    const search = (obj: unknown, path: string[] = [], parentPath?: string): void => {
-      if (!obj || typeof obj !== 'object') return;
-
-      const entries = Object.entries(obj);
-      entries.forEach(([key, value], index) => {
-        const currentPath = [...path, key];
-        const currentKey = currentPath.join('.');
-        const matches = {
-          key: key.toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
-          value:
-            typeof value === 'object'
-              ? false
-              : String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
-        };
-
-        if (debouncedSearchTerm === '' || matches.key || matches.value) {
-          results.push({
-            path: currentPath,
-            value,
-            matches,
-            isLastChild: index === entries.length - 1,
-            parent: parentPath,
-          });
-        }
-
-        if (value && typeof value === 'object') {
-          search(value, currentPath, currentKey);
-        }
-      });
-    };
-
-    search(obj);
-    return results;
-  };
+  const handleCopyPath = useCallback(
+    (path: string[]) => {
+      const pathString = path.join('.');
+      navigator.clipboard.writeText(pathString);
+      toast({ title: 'Path copied', description: pathString, duration: 1500 });
+    },
+    [toast]
+  );
 
   return (
     <div className='fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2'>
@@ -485,45 +262,25 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
       {open && (
         <div
           className='bg-background border rounded-lg overflow-hidden shadow-lg transition-all duration-200 ease-in-out isolate w-[420px]'
-          style={{ maxHeight: `${containerHeight + 33}px` }}
+          style={{ maxHeight: `${containerHeight + 66}px` }} // Increased to account for both header bars
         >
           <div className='flex items-center gap-1 p-1.5 border-b sticky top-0 bg-background z-10'>
-            <Search className='h-3 w-3 text-muted-foreground' />
+            <Search className='h-3 w-3 ml-2 text-muted-foreground' />
             <Input
               placeholder='Search keys and values...'
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className='h-6 text-xs placeholder:text-xs border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20'
             />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon' className='h-6 w-6'>
-                  <Filter className='h-3 w-3' />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                {allTypes.map((type) => (
-                  <DropdownMenuCheckboxItem
-                    key={type}
-                    checked={typeFilters.includes(type)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setTypeFilters([...typeFilters, type]);
-                      } else {
-                        setTypeFilters(typeFilters.filter((t) => t !== type));
-                      }
-                    }}
-                  >
-                    {type}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             <Button variant='ghost' size='icon' className='h-6 w-6' onClick={handleDownload}>
               <Download className='h-3 w-3' />
             </Button>
+          </div>
+
+          {/* Path display - now always visible */}
+          <div className='px-2 py-1 text-xs border-b bg-muted/20 flex items-center gap-1 overflow-x-auto whitespace-nowrap sticky top-[33px] z-10'>
+            <span className='text-muted-foreground'>Path:</span>
+            <span className='font-mono'>{currentPath || 'Hover over an item to see its path'}</span>
           </div>
 
           <div
@@ -531,13 +288,150 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
             className='overflow-y-auto overflow-x-hidden'
             style={{
               height: 'auto',
-              maxHeight: '500px',
+              maxHeight: '600px', // Increased from 500px to 600px
             }}
           >
-            {searchResults.length > 0 ? (
-              <div className='p-1'>{renderTree(searchResults)}</div>
+            {visibleResults.length > 0 ? (
+              <div className='pb-2'>
+                {visibleResults.map((item, index) => {
+                  const key = item.path.join('.');
+                  const value = item.value;
+                  const isObject = typeof value === 'object' && value !== null;
+                  const depth = item.path.length;
+                  const stringValue = !isObject ? String(value) : '';
+                  const isLongValue = stringValue.length > 50;
+                  const isValueExpanded = expandedValues.includes(key);
+                  const isRootProp = depth === 1;
+                  const valueChanged = hasValueChanged(item.path, value);
+
+                  return (
+                    <div
+                      key={index}
+                      className={`group relative transition-colors
+                        ${isRootProp ? 'border-t first:border-t-0' : ''}
+                        ${depth % 2 === 0 ? 'bg-muted/20' : ''}
+                        ${debouncedSearchTerm && (item.matches.key || item.matches.value) ? 'bg-yellow-100/10 dark:bg-yellow-900/10' : ''}
+                        ${valueChanged ? 'bg-blue-100/10 dark:bg-blue-900/10' : ''}
+                        hover:bg-muted/50`}
+                      onMouseEnter={() => setCurrentPath(key)}
+                    >
+                      <div className='grid grid-cols-[auto,1fr] gap-0.5'>
+                        <div
+                          className='flex items-center gap-0.5 px-2 py-0.5 cursor-pointer text-xs'
+                          style={{
+                            paddingLeft: isRootProp ? '8px' : `${(depth - 1) * 12 + 20}px`,
+                            ...(isRootProp && { paddingTop: '8px', paddingBottom: '8px' }),
+                          }}
+                          onClick={() => {
+                            if (isObject) {
+                              setExpanded((exp) => {
+                                if (exp.includes(key)) {
+                                  return exp.filter((k) => !(k === key || k.startsWith(key + '.')));
+                                } else {
+                                  return [...exp, key];
+                                }
+                              });
+                            } else if (isLongValue) {
+                              setExpandedValues((exp) =>
+                                exp.includes(key) ? exp.filter((k) => k !== key) : [...exp, key]
+                              );
+                            }
+                          }}
+                        >
+                          <TreeLines depth={depth} isLastChild={item.isLastChild} />
+
+                          {isObject ? (
+                            <ChevronRight
+                              className={`h-2.5 w-2.5 transition-transform duration-200 flex-shrink-0
+                                ${expanded.includes(key) ? 'rotate-90' : ''}`}
+                            />
+                          ) : isLongValue ? (
+                            <ChevronRight
+                              className={`h-2.5 w-2.5 transition-transform duration-200 flex-shrink-0
+                                ${isValueExpanded ? 'rotate-90' : ''}`}
+                            />
+                          ) : null}
+
+                          <span
+                            className={`whitespace-nowrap ${isRootProp ? 'font-semibold text-primary' : 'font-medium'} ${valueChanged ? 'text-blue-600 dark:text-blue-400' : ''}`}
+                          >
+                            <HighlightText
+                              text={item.path[item.path.length - 1]}
+                              searchTerm={debouncedSearchTerm}
+                            />
+                            :
+                          </span>
+                        </div>
+
+                        {!isObject && (
+                          <div
+                            className='flex items-center pr-2 min-w-0 gap-1'
+                            style={{
+                              ...(isRootProp && { paddingTop: '8px', paddingBottom: '8px' }),
+                            }}
+                          >
+                            <span
+                              className={`text-muted-foreground truncate flex-1 text-xs ${valueChanged ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}`}
+                            >
+                              <HighlightText
+                                text={
+                                  isLongValue && !isValueExpanded
+                                    ? stringValue.slice(0, 50) + '...'
+                                    : stringValue
+                                }
+                                searchTerm={debouncedSearchTerm}
+                              />
+                            </span>
+                            <span className='text-[10px] px-1 rounded bg-muted/50 text-muted-foreground font-medium'>
+                              {getValueType(value)}
+                            </span>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(value);
+                              }}
+                              title='Copy value'
+                            >
+                              <Copy className='h-2.5 w-2.5' />
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyPath(item.path);
+                              }}
+                              title='Copy path'
+                            >
+                              <Clipboard className='h-2.5 w-2.5' />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expanded value section */}
+                      {!isObject && isValueExpanded && (
+                        <div
+                          className='bg-muted/5 text-xs'
+                          style={{
+                            paddingLeft: isRootProp ? '8px' : `${(depth - 1) * 12 + 20}px`,
+                          }}
+                        >
+                          <pre className='whitespace-pre-wrap font-mono p-2 overflow-x-auto'>
+                            <HighlightText text={stringValue} searchTerm={debouncedSearchTerm} />
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-              <div className='p-4 text-center text-sm text-muted-foreground'>No results found</div>
+              <div className='p-3 text-center text-xs text-muted-foreground'>No results found</div>
             )}
           </div>
         </div>
