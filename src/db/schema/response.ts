@@ -79,7 +79,7 @@ export interface ResponseWithDetails extends Response {
   stageItem: import('./funnel').StageItem;
 }
 
-export interface ResponseAnalytics {
+export interface ResponseAnalysis {
   averageSentiment: number;
   proceedRate: number;
   totalResponses: number;

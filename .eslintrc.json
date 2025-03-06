@@ -8,5 +8,5 @@
       }
     ]
   },
-  "exclude": ["prompt"]
+  "ignorePatterns": ["prompt/**/*"]
 }

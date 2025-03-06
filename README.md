@@ -83,28 +83,33 @@ src/
    node >= 18.0.0
    pnpm >= 9.0.0
    ```
+
 2. **Installation**
 
    ```bash
    pnpm install
    ```
+
 3. **Environment Setup**
 
    ```bash
    cp .env.example .env
    # Fill in your environment variables
    ```
+
 4. **Database Setup**
 
    ```bash
    pnpm db:generate  # Generate migrations
    pnpm db:push     # Push to database
    ```
+
 5. **Development**
 
    ```bash
    pnpm dev
    ```
+
 6. **Build**
 
    ```bash

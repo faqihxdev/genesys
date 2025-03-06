@@ -6,7 +6,7 @@ import { simulations } from './simulation';
 
 /**
  * Summary table schema
- * Contains the overall summary and analytics for a simulation
+ * Contains the overall summary and analysis for a simulation
  */
 export const summary = pgTable(
   'summary',
@@ -32,7 +32,7 @@ export const summary = pgTable(
 
 /**
  * Summary stages table schema
- * Contains summary and analytics for each stage in a simulation
+ * Contains summary and analysis for each stage in a simulation
  */
 export const summaryStages = pgTable(
   'summary_stages',
@@ -62,7 +62,7 @@ export const summaryStages = pgTable(
 
 /**
  * Summary stage items table schema
- * Contains summary and analytics for each stage item in a simulation
+ * Contains summary and analysis for each stage item in a simulation
  */
 export const summaryStageItems = pgTable(
   'summary_stage_items',
@@ -149,7 +149,7 @@ export interface SummaryStageItemWithDetails extends SummaryStageItem {
   stageItem: import('./funnel').StageItem;
 }
 
-export interface SummaryAnalytics {
+export interface SummaryAnalysis {
   totalSimulations: number;
   averageConversionRate: number;
   averageSentiment: number;

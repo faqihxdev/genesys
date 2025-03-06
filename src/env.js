@@ -11,6 +11,7 @@ const env = createEnv({
     SUPABASE_DATABASE_URL: z.string(),
     SUPABASE_SERVICE_ROLE_KEY: z.string(),
     INVITE_CODE: z.string(),
+    OPENAI_API_KEY: z.string(),
   },
   client: {},
   shared: {
@@ -24,6 +25,7 @@ const env = createEnv({
     SUPABASE_DATABASE_URL: process.env.SUPABASE_DATABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     INVITE_CODE: process.env.INVITE_CODE,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
 });
 
