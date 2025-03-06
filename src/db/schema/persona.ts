@@ -105,6 +105,8 @@ export interface PersonaDemographic {
   income?: number;
   education?: string;
   occupation?: string;
+  maritalStatus?: string;
+  ethnicity?: string;
   [key: string]: unknown;
 }
 
@@ -112,14 +114,17 @@ export interface PersonaPsychographic {
   values?: string[];
   interests?: string[];
   personalityTraits?: string[];
-  lifestyleChoices?: string[];
+  lifestyleChoices?: string[]; // minimalist, luxury-seeking, eco-friendly, etc
+  mediaConsumptionPreferences?: string[];
   [key: string]: unknown;
 }
 
 export interface PersonaBehavior {
   budget?: number;
-  brandAffinity?: number;
-  responsiveness?: number;
-  decisionMakingSpeed?: number;
+  brandAffinity?: string;
+  responsiveness?: string;
+  spendingHabits?: string; // frugal, impulsive, etc.
+  decisionMakingSpeed?: string; // quick, research-driven, etc.
+  responseToMarketing?: string; // discount-oriented, quality-oriented, etc., 
   [key: string]: unknown;
 }

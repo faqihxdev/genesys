@@ -1,110 +1,129 @@
-const OpenAI = require('openai');
+const OpenAI = require("openai");
+const API_KEY = process.env.OPENAI_API_KEY;
+
+if (!API_KEY) {
+  throw new Error("API Key does not exist");
+}
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: API_KEY,
 });
 
 /**
- * @description Get color recommendation based on personality traits
- * @param {string[]} traits - List of personality traits
- * @returns {Object} Color recommendation with meaning
+ * @description Generates personas based on a given persona configuration.
+ * @param {Object} personaConfig - The configuration for persona generation.
+ * @returns {Promise<Object[]>} A list of generated personas.
  */
-function getColorRecommendation(traits) {
-  const rainbowColors = {
-    red: { meaning: "energy, passion, excitement" },
-    orange: { meaning: "sociability, adventure, confidence" },
-    yellow: { meaning: "optimism, cheerfulness, creativity" },
-    green: { meaning: "balance, growth, harmony" },
-    blue: { meaning: "calmness, trust, stability" },
-    indigo: { meaning: "intuition, deep thinking, wisdom" },
-    violet: { meaning: "creativity, spirituality, imagination" }
-  };
+async function generatePersonas(personaConfig) {
+  try {
+    const promptTemplate = `
+You are an AI that generates realistic and diverse personas based on a given persona configuration.
 
-  // This is a simple mock logic - in reality, you'd have more sophisticated matching
-  const trait = traits[0].toLowerCase();
-  let color = 'blue'; // default color
-
-  if (trait.match(/energetic|passionate|bold/)) color = 'red';
-  if (trait.match(/social|adventurous|friendly/)) color = 'orange';
-  if (trait.match(/cheerful|optimistic|bright/)) color = 'yellow';
-  if (trait.match(/balanced|peaceful|growing/)) color = 'green';
-  if (trait.match(/calm|trustworthy|reliable/)) color = 'blue';
-  if (trait.match(/thoughtful|wise|deep/)) color = 'indigo';
-  if (trait.match(/creative|spiritual|artistic/)) color = 'violet';
-
-  return {
-    color,
-    meaning: rainbowColors[color].meaning
-  };
+### **Input Persona Configuration:**
+{
+  "name": "${personaConfig.name}",
+  "description": "${personaConfig.description}",
+  "type": "${personaConfig.type}",
+  "size": ${personaConfig.size},
+  "constraints": ${JSON.stringify(personaConfig.constraints)},
+  "demographics": ${JSON.stringify(personaConfig.demographics)},
+  "psychographics": ${JSON.stringify(personaConfig.psychographics)},
+  "behavior": ${JSON.stringify(personaConfig.behavior)}
 }
 
-/**
- * @description Demonstrates personality-based color recommendation using OpenAI
- * @param {Object} personalityData - Personality data in JSON format
- */
-async function demonstratePersonalityColors(personalityData) {
-  try {
-    const functions = [
-      {
-        name: 'get_color_recommendation',
-        description: 'Get a rainbow color recommendation based on personality traits',
-        parameters: {
-          type: 'object',
-          properties: {
-            traits: {
-              type: 'array',
-              items: { type: 'string' },
-              description: 'List of personality traits to base the color recommendation on'
-            }
-          },
-          required: ['traits']
-        }
-      }
-    ];
+### **Task:**
+- Generate **${personaConfig.size} personas** that follow the provided constraints.
+- Each persona should have distinct traits while aligning with the given demographics, psychographics, and behavior.
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: "You are an insightful assistant that helps people discover their personality-matching rainbow color. You analyze their traits and select the most suitable color."
-        },
-        {
-          role: "user",
-          content: `Here is my personality data: ${JSON.stringify(personalityData)}. What rainbow color matches my personality?`
-        }
-      ],
-      functions,
-      function_call: 'auto'
+### **Persona Output Format (JSON)**
+[
+  {
+    "name": "Full Name",
+    "demographics": {
+      "age": 30,
+      "gender": "Male",
+      "location": "New York, USA",
+      "income": 80000,
+      "education": "Bachelor’s Degree",
+      "occupation": "Software Engineer",
+      "maritalStatus": "Single",
+      "ethnicity": "Caucasian"
+    },
+    "psychographics": {
+      "values": ["innovation", "sustainability"],
+      "interests": ["AI", "Startups"],
+      "personalityTraits": ["analytical", "curious"],
+      "lifestyleChoices": ["eco-friendly"],
+      "mediaConsumptionPreferences": ["YouTube", "Tech Blogs"]
+    },
+    "behavior": {
+      "budget": 2000,
+      "brandAffinity": ["Apple", "Tesla"],
+      "responsiveness": "quick decision-maker",
+      "spendingHabits": "premium spender",
+      "decisionMakingSpeed": "research-driven",
+      "responseToMarketing": "brand loyalist"
+    }
+  }
+]
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: promptTemplate }],
+      temperature: 0.7,
     });
 
-    const responseMessage = completion.choices[0].message;
+    const jsonOutput = response.choices[0]?.message?.content;
 
-    // Handle function calling if the model wants to use it
-    if (responseMessage.function_call) {
-      const functionName = responseMessage.function_call.name;
-      const functionArgs = JSON.parse(responseMessage.function_call.arguments);
-
-      if (functionName === 'get_color_recommendation') {
-        const colorData = getColorRecommendation(functionArgs.traits);
-        console.log('Color recommendation:', colorData);
-      }
+    try {
+      return JSON.parse(jsonOutput);
+    } catch (error) {
+      console.error("Error parsing JSON:", error);
+      return [];
     }
-
-    console.log('Response:', responseMessage.content);
   } catch (error) {
-    console.error('Error in demonstratePersonalityColors:', error);
+    console.error("Error in generatePersonas:", error);
+    return [];
   }
 }
 
-// Example usage with sample personality data
-const samplePersonalityData = {
-  name: "Sarah",
-  traits: ["creative", "energetic", "thoughtful"],
-  interests: ["art", "music", "nature"],
-  mood: "inspired"
+// Persona config dummy data
+const personaConfig = {
+  name: "Tech Enthusiasts",
+  description: "A group of individuals who are passionate about technology and innovation.",
+  type: "preset",
+  size: 2,
+  constraints: { ageRange: [20, 40], location: ["USA", "UK"] },
+  demographics: {
+    // age: { min: 20, max: 40 },
+    gender: ["Male", "Female"],
+    occupation: "Software Engineer",
+    education: "Bachelor’s Degree",
+    income: { min: 60000, max: 150000 },
+    maritalStatus: "Single",
+    ethnicity: "Various",
+  },
+  psychographics: {
+    interests: ["AI", "Startups"],
+    values: ["innovation", "growth"],
+    personalityTraits: ["analytical", "curious"],
+    lifestyleChoices: ["tech-savvy", "early adopter"],
+    mediaConsumptionPreferences: ["YouTube", "Tech Blogs"],
+  },
+  behavior: {
+    budget: { min: 1000, max: 5000 },
+    brandAffinity: ["Apple", "Tesla"],
+    responsiveness: "fast decision-maker",
+    spendingHabits: "premium spender",
+    decisionMakingSpeed: "research-driven",
+    responseToMarketing: "quality-oriented",
+  },
 };
 
-// Execute the function
-demonstratePersonalityColors(samplePersonalityData);
+
+// Generate personas
+generatePersonas(personaConfig).then((personas) => {
+  console.log("Generated Personas:", JSON.stringify(personas, null, 2));
+});
