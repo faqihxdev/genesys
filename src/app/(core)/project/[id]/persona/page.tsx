@@ -1,9 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from 'react';
 import { PageTitle } from '@/components/custom/page-title';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useState } from 'react';
 
 const attributes = [
   'Openness to Experience',
@@ -15,7 +21,7 @@ const attributes = [
   'Triggers',
   'Values',
   'Age Range',
-  'Gender'
+  'Gender',
 ];
 
 const levels = [
@@ -27,7 +33,7 @@ const levels = [
 const decisionStyles = [
   { value: 'rational', label: 'Rational' },
   { value: 'heuristic', label: 'Heuristic' },
-  { value: 'emotional', label: 'Emotional' }
+  { value: 'emotional', label: 'Emotional' },
 ];
 
 const ageRanges = [
@@ -46,12 +52,10 @@ const genders = [
 ];
 
 export default function PersonaPage() {
-  const [persona, setPersona] = useState(
-    Object.fromEntries(attributes.map(attr => [attr, '']))
-  );
+  const [persona, setPersona] = useState(Object.fromEntries(attributes.map((attr) => [attr, ''])));
   const [results, setResults] = useState(null);
-  const handleSelectChange = (attribute, value) => {
-    setPersona(prev => ({ ...prev, [attribute]: value }));
+  const handleSelectChange = (attribute: string, value: string) => {
+    setPersona((prev) => ({ ...prev, [attribute]: value }));
   };
 
   const handleQueryDatabase = async () => {
@@ -61,7 +65,7 @@ export default function PersonaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(persona),
       });
-      
+
       const data = await response.json();
       setResults(data);
     } catch (error) {
@@ -76,7 +80,7 @@ export default function PersonaPage() {
         description='Create and manage AI-powered customer personas to simulate diverse user behaviors and preferences through your marketing funnels.'
       />
       <div className='grid grid-cols-2 gap-6'>
-        {attributes.map((attr, index) => (
+        {attributes.map((attr) => (
           <div key={attr} className='flex items-center space-x-4'>
             <span className='w-64 font-semibold'>{attr}</span>
             <Select onValueChange={(value) => handleSelectChange(attr, value)}>
@@ -84,29 +88,37 @@ export default function PersonaPage() {
                 <SelectValue placeholder='Select Level' />
               </SelectTrigger>
               <SelectContent>
-                {attr === 'Age Range' ? (
-                  ageRanges.map(range => (
-                    <SelectItem key={range.value} value={range.value}>{range.label}</SelectItem>
-                  ))
-                ) : attr === 'Gender' ? (
-                  genders.map(gender => (
-                    <SelectItem key={gender.value} value={gender.value}>{gender.label}</SelectItem>
-                  ))
-                ) : attr === 'Decision-Making Style' ? (
-                  decisionStyles.map(style => (
-                    <SelectItem key={style.value} value={style.value}>{style.label}</SelectItem>
-                  ))
-                ) : (
-                  levels.map(level => (
-                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                  ))
-                )}
+                {attr === 'Age Range'
+                  ? ageRanges.map((range) => (
+                      <SelectItem key={range.value} value={range.value}>
+                        {range.label}
+                      </SelectItem>
+                    ))
+                  : attr === 'Gender'
+                    ? genders.map((gender) => (
+                        <SelectItem key={gender.value} value={gender.value}>
+                          {gender.label}
+                        </SelectItem>
+                      ))
+                    : attr === 'Decision-Making Style'
+                      ? decisionStyles.map((style) => (
+                          <SelectItem key={style.value} value={style.value}>
+                            {style.label}
+                          </SelectItem>
+                        ))
+                      : levels.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
               </SelectContent>
             </Select>
           </div>
         ))}
       </div>
-      <Button onClick={handleQueryDatabase} className='mt-6'>Query Database</Button>
+      <Button onClick={handleQueryDatabase} className='mt-6'>
+        Query Database
+      </Button>
       {results && (
         <div className='mt-6 p-4 border rounded bg-gray-100'>
           <h2 className='text-lg font-bold'>Matching Entries:</h2>
@@ -116,4 +128,3 @@ export default function PersonaPage() {
     </div>
   );
 }
-
