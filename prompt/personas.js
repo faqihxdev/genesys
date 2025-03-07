@@ -1,11 +1,11 @@
-const OpenAI = require("openai");
-const { eq } = require("drizzle-orm");
+const OpenAI = require('openai');
+const { eq } = require('drizzle-orm');
 // const { db } = require("@/db");
 // const { personas, personaConfigs } = require("@/db/schema");
 
 // Ensure API key is available
 if (!process.env.OPENAI_API_KEY) {
-  throw new Error("API Key does not exist");
+  throw new Error('API Key does not exist');
 }
 
 // Initialize OpenAI client
@@ -19,7 +19,7 @@ const openai = new OpenAI({
  * @returns {Promise<Object[]>} A list of generated personas.
  */
 async function generatePersonas(personaConfig) {
-  console.log("Generating personas...");
+  console.log('Generating personas...');
   try {
     const promptTemplate = `
     You are an AI that generates realistic and diverse personas based on a given persona configuration.
@@ -75,7 +75,7 @@ async function generatePersonas(personaConfig) {
 
     const response = await openai.chat.completions.create({
       model: 'o3-mini',
-      messages: [{ role: "user", content: promptTemplate }],
+      messages: [{ role: 'user', content: promptTemplate }],
     });
 
     const jsonOutput = response.choices[0]?.message?.content;
@@ -83,11 +83,11 @@ async function generatePersonas(personaConfig) {
     try {
       return JSON.parse(jsonOutput);
     } catch (error) {
-      console.error("Error parsing JSON:", error);
+      console.error('Error parsing JSON:', error);
       return [];
     }
   } catch (error) {
-    console.error("Error in generatePersonas:", error);
+    console.error('Error in generatePersonas:', error);
     return [];
   }
 }
@@ -123,7 +123,7 @@ async function createPersonasFromConfig(personaConfigId) {
       .limit(1);
 
     if (!configData.length) {
-      console.error("Persona configuration not found");
+      console.error('Persona configuration not found');
       return;
     }
 
@@ -134,7 +134,7 @@ async function createPersonasFromConfig(personaConfigId) {
     await storeGeneratedPersonas(generatedPersonas);
     console.log(`Successfully stored ${generatedPersonas.length} personas in the database.`);
   } catch (error) {
-    console.error("Error creating personas:", error);
+    console.error('Error creating personas:', error);
   }
 }
 
@@ -144,38 +144,38 @@ async function createPersonasFromConfig(personaConfigId) {
  * Dummy Data for Testing
  */
 const personaConfig = {
-  name: "Tech Enthusiasts",
-  description: "A group of individuals who are passionate about technology and innovation.",
-  type: "preset",
+  name: 'Tech Enthusiasts',
+  description: 'A group of individuals who are passionate about technology and innovation.',
+  type: 'preset',
   size: 2,
-  constraints: { ageRange: [20, 40], location: ["USA", "UK"] },
+  constraints: { ageRange: [20, 40], location: ['USA', 'UK'] },
   demographics: {
     // age: { min: 20, max: 40 },
-    gender: ["Male", "Female"],
-    occupation: "Software Engineer",
-    education: "Bachelor’s Degree",
+    gender: ['Male', 'Female'],
+    occupation: 'Software Engineer',
+    education: 'Bachelor’s Degree',
     income: { min: 60000, max: 150000 },
-    maritalStatus: "Single",
-    ethnicity: "Various",
+    maritalStatus: 'Single',
+    ethnicity: 'Various',
   },
   psychographics: {
-    interests: ["AI", "Startups"],
-    values: ["innovation", "growth"],
-    personalityTraits: ["analytical", "curious"],
-    lifestyleChoices: ["tech-savvy", "early adopter"],
-    mediaConsumptionPreferences: ["YouTube", "Tech Blogs"],
+    interests: ['AI', 'Startups'],
+    values: ['innovation', 'growth'],
+    personalityTraits: ['analytical', 'curious'],
+    lifestyleChoices: ['tech-savvy', 'early adopter'],
+    mediaConsumptionPreferences: ['YouTube', 'Tech Blogs'],
   },
   behavior: {
     budget: { min: 1000, max: 5000 },
-    brandAffinity: ["Apple", "Tesla"],
-    responsiveness: "fast decision-maker",
-    spendingHabits: "premium spender",
-    decisionMakingSpeed: "research-driven",
-    responseToMarketing: "quality-oriented",
+    brandAffinity: ['Apple', 'Tesla'],
+    responsiveness: 'fast decision-maker',
+    spendingHabits: 'premium spender',
+    decisionMakingSpeed: 'research-driven',
+    responseToMarketing: 'quality-oriented',
   },
 };
 
 // Generate personas
 generatePersonas(personaConfig).then((personas) => {
-  console.log("Generated Personas:", JSON.stringify(personas, null, 2));
+  console.log('Generated Personas:', JSON.stringify(personas, null, 2));
 });

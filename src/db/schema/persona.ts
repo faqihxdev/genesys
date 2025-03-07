@@ -126,6 +126,6 @@ export interface PersonaBehavior {
   responsiveness?: string;
   spendingHabits?: string; // frugal, impulsive, etc.
   decisionMakingSpeed?: string; // quick, research-driven, etc.
-  responseToMarketing?: string; // discount-oriented, quality-oriented, etc., 
+  responseToMarketing?: string; // discount-oriented, quality-oriented, etc.,
   [key: string]: unknown;
 }
