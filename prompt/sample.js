@@ -1,8 +1,13 @@
 const OpenAI = require('openai');
+const API_KEY = process.env.OPENAI_API_KEY;
+
+if (!API_KEY) {
+  throw new Error('API Key does not exist');
+}
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: API_KEY,
 });
 
 /**
