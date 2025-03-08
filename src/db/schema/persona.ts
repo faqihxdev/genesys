@@ -435,6 +435,13 @@ export interface PersonaConfigWithPersonas extends PersonaConfig {
 }
 
 /**
+ * Extension of PersonaConfig that includes a count of generated personas
+ */
+export interface PersonaConfigWithCount extends PersonaConfig {
+  personaCount: number;
+}
+
+/**
  * Zod schema for TraitsConfig validation
  */
 export const TraitsConfigSchema = z.object({

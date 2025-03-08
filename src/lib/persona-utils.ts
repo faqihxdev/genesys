@@ -3,7 +3,7 @@
  * @description Utility functions for generating personas and working with persona configurations
  */
 
-import { Traits, TraitsConfig } from '@/db/schema';
+import { SpendingHabit, Traits, TraitsConfig } from '@/db/schema';
 
 /**
  * Gets a random item from an array with uniform distribution
@@ -268,6 +268,84 @@ export function generatePersonaTraitsFromConfig(config: TraitsConfig): Traits {
       lifestyle: getDistributedTrait(config.psychographics.lifestyle, 'LIFESTYLE'),
     };
 
+    // Helper function to get spending habits based on income
+    const getIncomeAdjustedSpendingHabits = (): SpendingHabit => {
+      // If no options available, throw an error
+      if (config.behavior.spendingHabits.length === 0) {
+        throw new Error('No spending habits options available');
+      }
+
+      // If only one option, return it
+      if (config.behavior.spendingHabits.length === 1) {
+        return config.behavior.spendingHabits[0];
+      }
+
+      // Get income index and normalize it between 0 and 1
+      const incomeIndex = config.demographics.income.indexOf(demographics.income);
+      const incomesCount = config.demographics.income.length;
+
+      if (incomeIndex === -1) {
+        console.warn(
+          '[getIncomeAdjustedSpendingHabits]: Income not found in config options, using standard distribution'
+        );
+        return getDistributedTrait(config.behavior.spendingHabits, 'SPENDING_HABITS');
+      }
+
+      // Normalize income level to a 0-1 scale
+      const normalizedIncome = incomesCount > 1 ? incomeIndex / (incomesCount - 1) : 0.5;
+
+      // Create adjusted spending habits weights based on income
+      const baseWeights = [...TRAIT_DISTRIBUTIONS.SPENDING_HABITS];
+      const options = config.behavior.spendingHabits;
+
+      // Map the standard spending habits to the available options
+      let adjustedWeights = [...baseWeights].slice(0, options.length);
+
+      // If we have standard spending habits available
+      if (
+        options.includes('frugal') &&
+        options.includes('moderate') &&
+        options.includes('impulsive') &&
+        options.includes('luxury')
+      ) {
+        // Apply income-based adjustments
+        const frugalIndex = options.indexOf('frugal');
+        const moderateIndex = options.indexOf('moderate');
+        const impulsiveIndex = options.indexOf('impulsive');
+        const luxuryIndex = options.indexOf('luxury');
+
+        // Create a new set of weights based on income level
+        adjustedWeights = Array(options.length).fill(0);
+
+        if (normalizedIncome < 0.33) {
+          // Lower income: more likely to be frugal, less likely to be luxury
+          adjustedWeights[frugalIndex] = 0.5 - normalizedIncome * 0.3; // 0.5 to 0.4
+          adjustedWeights[moderateIndex] = 0.4;
+          adjustedWeights[impulsiveIndex] = 0.1 + normalizedIncome * 0.2; // 0.1 to 0.17
+          adjustedWeights[luxuryIndex] = normalizedIncome * 0.1; // 0 to 0.03
+        } else if (normalizedIncome < 0.66) {
+          // Middle income: most likely to be moderate
+          adjustedWeights[frugalIndex] = 0.4 - normalizedIncome * 0.3; // 0.3 to 0.2
+          adjustedWeights[moderateIndex] = 0.5;
+          adjustedWeights[impulsiveIndex] = 0.1 + normalizedIncome * 0.1; // 0.13 to 0.17
+          adjustedWeights[luxuryIndex] = normalizedIncome * 0.2; // 0.07 to 0.13
+        } else {
+          // Higher income: more likely luxury, less likely frugal
+          adjustedWeights[frugalIndex] = 0.2 - normalizedIncome * 0.15; // 0.15 to 0.05
+          adjustedWeights[moderateIndex] = 0.4 - normalizedIncome * 0.1; // 0.35 to 0.3
+          adjustedWeights[impulsiveIndex] = 0.2;
+          adjustedWeights[luxuryIndex] = 0.25 + normalizedIncome * 0.3; // 0.3 to 0.45
+        }
+      }
+
+      // Normalize weights to sum to 1 and account for available options
+      const weightSum = adjustedWeights.reduce((sum, w) => sum + w, 0);
+      adjustedWeights = adjustedWeights.map((w) => w / weightSum);
+
+      // Use the adjusted weights for selection
+      return getWeightedRandomItem(options, adjustedWeights);
+    };
+
     // Generate behavior traits with appropriate distributions
     const behavior = {
       // Budget based on income level (wealthier people have higher budgets)
@@ -291,8 +369,8 @@ export function generatePersonaTraitsFromConfig(config: TraitsConfig): Traits {
       // Responsiveness
       responsiveness: getDistributedTrait(config.behavior.responsiveness, 'LEVELS'),
 
-      // Spending habits with realistic distribution
-      spendingHabits: getDistributedTrait(config.behavior.spendingHabits, 'SPENDING_HABITS'),
+      // Spending habits with income-correlated distribution
+      spendingHabits: getIncomeAdjustedSpendingHabits(),
     };
 
     // Generate consistent personality framework traits

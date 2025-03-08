@@ -17,7 +17,7 @@ import {
 } from '@/db/schema/persona';
 import env from '@/env';
 import { generatePersonaTraitsFromConfig } from '@/lib/persona-utils';
-import { eq } from 'drizzle-orm';
+import { count, eq, inArray } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -121,7 +121,7 @@ export const getPersonaConfigById = createAction({
 /**
  * Get all persona configurations for a project
  * @param input - Object containing the project ID
- * @returns Array of persona configurations
+ * @returns Array of persona configurations with persona counts
  */
 export const getPersonaConfigsByProject = createAction({
   name: 'getPersonaConfigsByProject',
@@ -131,13 +131,41 @@ export const getPersonaConfigsByProject = createAction({
   requireAuth: true,
   actionFn: async ({ input }) => {
     try {
+      // Get all configs for the project
       const configs = await db
         .select()
         .from(personaConfigs)
         .where(eq(personaConfigs.projectId, input.projectId))
         .orderBy(personaConfigs.createdAt);
 
-      return configs;
+      // Get persona counts for each config using a single efficient query
+      const personaCounts = await db
+        .select({
+          personaConfigId: personas.personaConfigId,
+          count: count(),
+        })
+        .from(personas)
+        .where(
+          inArray(
+            personas.personaConfigId,
+            configs.map((config) => config.id)
+          )
+        )
+        .groupBy(personas.personaConfigId);
+
+      // Create a map of config ID to persona count
+      const countMap: Record<string, number> = {};
+      personaCounts.forEach((item) => {
+        countMap[item.personaConfigId] = Number(item.count);
+      });
+
+      // Add persona count to each config
+      const configsWithCounts = configs.map((config) => ({
+        ...config,
+        personaCount: countMap[config.id] || 0,
+      }));
+
+      return configsWithCounts;
     } catch (error) {
       console.error('[getPersonaConfigsByProject]:', error);
       return fail({
