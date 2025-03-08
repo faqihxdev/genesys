@@ -1,187 +1,259 @@
+'use server';
+
 /**
  * @file Persona generation and management utilities
  * @description Functions for generating personas and working with persona configurations
  */
 
-import {
-  createDefaultTraitsConfigTemplate as createDefaultConfig,
-  NewPersona,
-  Traits,
-  TraitsConfig,
-} from '@/db/schema';
+import { db } from '@/db';
+import { NewPersonaConfig, personaConfigs, personas, TraitsConfigSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { createAction, fail } from './_utils';
+
+// ==================================================
+// SERVER ACTIONS
+// ==================================================
+
+// Input validators
+const personaConfigValidator = z.object({
+  projectId: z.string().min(1, 'Project ID is required'),
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional(),
+  type: z.enum(['preset', 'custom']).default('custom'),
+  size: z.number().int().min(1, 'Size must be at least 1').max(100, 'Size cannot exceed 100'),
+  constraints: z.string().default(''),
+  traitsConfig: TraitsConfigSchema,
+});
+
+const personaConfigIdValidator = z.object({
+  id: z.string().min(1, 'Persona config ID is required'),
+});
+
+const projectIdValidator = z.object({
+  projectId: z.string().min(1, 'Project ID is required'),
+});
+
+const updatePersonaConfigValidator = z.object({
+  id: z.string().min(1, 'Persona config ID is required'),
+  name: z.string().min(1, 'Name is required').optional(),
+  description: z.string().optional(),
+  size: z
+    .number()
+    .int()
+    .min(1, 'Size must be at least 1')
+    .max(100, 'Size cannot exceed 100')
+    .optional(),
+  constraints: z.string().optional(),
+  traitsConfig: TraitsConfigSchema.optional(),
+});
 
 /**
- * Gets a random item from an array
- * @param array - The array to pick from
- * @returns A random item from the array
+ * Create a new persona configuration
+ * @param input - The persona configuration data
+ * @returns The newly created persona configuration
  */
-function getRandomItem<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
-}
+export const createPersonaConfig = createAction({
+  name: 'createPersonaConfig',
+  validator: personaConfigValidator,
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    try {
+      // Create the persona config in the database
+      const [newConfig] = await db
+        .insert(personaConfigs)
+        .values({
+          projectId: input.projectId,
+          name: input.name,
+          description: input.description || '',
+          type: input.type,
+          size: input.size,
+          constraints: input.constraints || '',
+          traitsConfig: input.traitsConfig,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
 
-/**
- * Gets a random number between min and max (inclusive)
- * @param min - Minimum value
- * @param max - Maximum value
- * @returns A random number between min and max
- */
-function getRandomNumber(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+      if (!newConfig) {
+        return fail({ message: 'Failed to create persona configuration', status: 500 });
+      }
 
-/**
- * Generates a random persona trait value from a given trait configuration
- * @param config - The traits configuration
- * @returns A new persona traits object with concrete values derived from the config
- */
-export function generatePersonaTraitsFromConfig(config: TraitsConfig): Traits {
-  try {
-    return {
-      demographics: {
-        age: getRandomNumber(config.demographics.age.min, config.demographics.age.max),
-        gender: getRandomItem(config.demographics.gender),
-        location: getRandomItem(config.demographics.location),
-        income: getRandomItem(config.demographics.income),
-        education: getRandomItem(config.demographics.education),
-        occupation: getRandomItem(config.demographics.occupation),
-      },
-      psychographics: {
-        values:
-          config.psychographics.values.length > 0
-            ? [getRandomItem(config.psychographics.values)]
-            : ['undefined'],
-        interests:
-          config.psychographics.interests.length > 0
-            ? [getRandomItem(config.psychographics.interests)]
-            : ['undefined'],
-        lifestyle: getRandomItem(config.psychographics.lifestyle),
-      },
-      behavior: {
-        budget: getRandomNumber(config.behavior.budget.min, config.behavior.budget.max),
-        brandAffinity: getRandomItem(config.behavior.brandAffinity),
-        responsiveness: getRandomItem(config.behavior.responsiveness),
-        spendingHabits: getRandomItem(config.behavior.spendingHabits),
-      },
-      personalityFrameworks: {
-        bigFive: {
-          openness: getRandomItem(config.personalityFrameworks.bigFive.openness),
-          conscientiousness: getRandomItem(config.personalityFrameworks.bigFive.conscientiousness),
-          extraversion: getRandomItem(config.personalityFrameworks.bigFive.extraversion),
-          agreeableness: getRandomItem(config.personalityFrameworks.bigFive.agreeableness),
-          neuroticism: getRandomItem(config.personalityFrameworks.bigFive.neuroticism),
-        },
-        consumerDecisionMaking: {
-          rational: getRandomItem(config.personalityFrameworks.consumerDecisionMaking.rational),
-          heuristic: getRandomItem(config.personalityFrameworks.consumerDecisionMaking.heuristic),
-          emotional: getRandomItem(config.personalityFrameworks.consumerDecisionMaking.emotional),
-        },
-        theoryOfPlannedBehavior: {
-          attitude: getRandomItem(config.personalityFrameworks.theoryOfPlannedBehavior.attitude),
-          subjectiveNorms: getRandomItem(
-            config.personalityFrameworks.theoryOfPlannedBehavior.subjectiveNorms
-          ),
-          perceivedBehavioralControl: getRandomItem(
-            config.personalityFrameworks.theoryOfPlannedBehavior.perceivedBehavioralControl
-          ),
-        },
-        maslow: {
-          physiological: getRandomItem(config.personalityFrameworks.maslow.physiological),
-          safety: getRandomItem(config.personalityFrameworks.maslow.safety),
-          social: getRandomItem(config.personalityFrameworks.maslow.social),
-          esteem: getRandomItem(config.personalityFrameworks.maslow.esteem),
-          selfActualization: getRandomItem(config.personalityFrameworks.maslow.selfActualization),
-        },
-        fogg: {
-          motivation: getRandomItem(config.personalityFrameworks.fogg.motivation),
-          ability: getRandomItem(config.personalityFrameworks.fogg.ability),
-          triggers: getRandomItem(config.personalityFrameworks.fogg.triggers),
-        },
-        comB: {
-          capability: getRandomItem(config.personalityFrameworks.comB.capability),
-          opportunity: getRandomItem(config.personalityFrameworks.comB.opportunity),
-          motivation: getRandomItem(config.personalityFrameworks.comB.motivation),
-        },
-        behavioralEconomics: {
-          anchoringBias: getRandomItem(
-            config.personalityFrameworks.behavioralEconomics.anchoringBias
-          ),
-          lossAversion: getRandomItem(
-            config.personalityFrameworks.behavioralEconomics.lossAversion
-          ),
-          socialProof: getRandomItem(config.personalityFrameworks.behavioralEconomics.socialProof),
-        },
-        customerJourney: {
-          touchpointsEngagement: getRandomItem(
-            config.personalityFrameworks.customerJourney.touchpointsEngagement
-          ),
-          painPointsSensitivity: getRandomItem(
-            config.personalityFrameworks.customerJourney.painPointsSensitivity
-          ),
-          conversionTriggersResponsiveness: getRandomItem(
-            config.personalityFrameworks.customerJourney.conversionTriggersResponsiveness
-          ),
-        },
-      },
-    };
-  } catch (error) {
-    console.error('[generatePersonaTraitsFromConfig]:', error);
-    throw new Error('Failed to generate persona traits from config');
-  }
-}
+      // Note: Personas will be generated in a separate step
 
-/**
- * Generates multiple personas from a single persona configuration
- * @param config - The traits configuration to generate personas from
- * @param count - Number of personas to generate
- * @param personaConfigId - ID of the persona configuration
- * @returns An array of new persona objects ready to be inserted into the database
- */
-export function generatePersonasFromConfig(
-  config: TraitsConfig,
-  count: number,
-  personaConfigId: string
-): NewPersona[] {
-  try {
-    const personas: NewPersona[] = [];
-
-    for (let i = 0; i < count; i++) {
-      // Generate a persona name based on key characteristics
-      const traits = generatePersonaTraitsFromConfig(config);
-
-      // Create persona name based on key traits (age, gender, occupation, lifestyle)
-      const age = traits.demographics.age;
-      const gender = traits.demographics.gender;
-      const occupation = traits.demographics.occupation || 'Professional';
-      const lifestyle = traits.psychographics.lifestyle;
-
-      const personaName = `${age} y/o ${gender} ${occupation} (${lifestyle})`;
-
-      // Generate description based on key traits
-      const description = `A ${age} year old ${gender} ${occupation} with a ${lifestyle} lifestyle, 
-      ${traits.demographics.education} education level, and a ${traits.behavior.spendingHabits} spending habit.`;
-
-      personas.push({
-        personaConfigId,
-        name: personaName,
-        description,
-        traits,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      return newConfig;
+    } catch (error) {
+      console.error('[createPersonaConfig]:', error);
+      return fail({
+        message: 'Failed to create persona configuration',
+        status: 500,
       });
     }
-
-    return personas;
-  } catch (error) {
-    console.error('[generatePersonasFromConfig]:', error);
-    throw new Error('Failed to generate personas from config');
-  }
-}
+  },
+});
 
 /**
- * Creates a default template for persona trait configuration
- * This template can be used as a starting point for creating new persona configurations
- * @returns A default TraitsConfig object with reasonable defaults
+ * Get a persona configuration by ID
+ * @param input - Object containing the persona config ID
+ * @returns The persona configuration with its personas
  */
-export function createDefaultTraitsConfigTemplate(): TraitsConfig {
-  return createDefaultConfig();
-}
+export const getPersonaConfigById = createAction({
+  name: 'getPersonaConfigById',
+  validator: personaConfigIdValidator,
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    try {
+      // Get the persona config from the database
+      const config = await db
+        .select()
+        .from(personaConfigs)
+        .where(eq(personaConfigs.id, input.id))
+        .limit(1);
+
+      if (config.length === 0) {
+        return fail({ message: 'Persona configuration not found', status: 404 });
+      }
+
+      // Get associated personas
+      const personasList = await db
+        .select()
+        .from(personas)
+        .where(eq(personas.personaConfigId, input.id));
+
+      return {
+        ...config[0],
+        personas: personasList,
+      };
+    } catch (error) {
+      console.error('[getPersonaConfigById]:', error);
+      return fail({
+        message: 'Failed to get persona configuration',
+        status: 500,
+      });
+    }
+  },
+});
+
+/**
+ * Get all persona configurations for a project
+ * @param input - Object containing the project ID
+ * @returns Array of persona configurations
+ */
+export const getPersonaConfigsByProject = createAction({
+  name: 'getPersonaConfigsByProject',
+  validator: projectIdValidator,
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    try {
+      const configs = await db
+        .select()
+        .from(personaConfigs)
+        .where(eq(personaConfigs.projectId, input.projectId))
+        .orderBy(personaConfigs.createdAt);
+
+      return configs;
+    } catch (error) {
+      console.error('[getPersonaConfigsByProject]:', error);
+      return fail({
+        message: 'Failed to get persona configurations',
+        status: 500,
+      });
+    }
+  },
+});
+
+/**
+ * Update a persona configuration
+ * @param input - The updated persona configuration data
+ * @returns The updated persona configuration
+ */
+export const updatePersonaConfig = createAction({
+  name: 'updatePersonaConfig',
+  validator: updatePersonaConfigValidator,
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    try {
+      // Check if the persona config exists
+      const existingConfig = await db
+        .select()
+        .from(personaConfigs)
+        .where(eq(personaConfigs.id, input.id))
+        .limit(1);
+
+      if (existingConfig.length === 0) {
+        return fail({ message: 'Persona configuration not found', status: 404 });
+      }
+
+      // Prepare update values
+      const updateValues: Partial<NewPersonaConfig> = {
+        updatedAt: new Date(),
+      };
+
+      if (input.name) updateValues.name = input.name;
+      if (input.description !== undefined) updateValues.description = input.description;
+      if (input.size) updateValues.size = input.size;
+      if (input.constraints !== undefined) updateValues.constraints = input.constraints;
+      if (input.traitsConfig) updateValues.traitsConfig = input.traitsConfig;
+
+      // Update the persona config
+      const [updatedConfig] = await db
+        .update(personaConfigs)
+        .set(updateValues)
+        .where(eq(personaConfigs.id, input.id))
+        .returning();
+
+      if (!updatedConfig) {
+        return fail({ message: 'Failed to update persona configuration', status: 500 });
+      }
+
+      // Note: Personas will be generated in a separate step
+
+      return updatedConfig;
+    } catch (error) {
+      console.error('[updatePersonaConfig]:', error);
+      return fail({
+        message: 'Failed to update persona configuration',
+        status: 500,
+      });
+    }
+  },
+});
+
+/**
+ * Delete a persona configuration
+ * @param input - Object containing the persona config ID
+ * @returns True if deleted successfully
+ */
+export const deletePersonaConfig = createAction({
+  name: 'deletePersonaConfig',
+  validator: personaConfigIdValidator,
+  requireAuth: true,
+  actionFn: async ({ input }) => {
+    try {
+      // Check if the persona config exists
+      const existingConfig = await db
+        .select()
+        .from(personaConfigs)
+        .where(eq(personaConfigs.id, input.id))
+        .limit(1);
+
+      if (existingConfig.length === 0) {
+        return fail({ message: 'Persona configuration not found', status: 404 });
+      }
+
+      // Delete the persona config (this will cascade delete personas)
+      const deleted = await db
+        .delete(personaConfigs)
+        .where(eq(personaConfigs.id, input.id))
+        .returning();
+
+      return deleted.length > 0;
+    } catch (error) {
+      console.error('[deletePersonaConfig]:', error);
+      return fail({
+        message: 'Failed to delete persona configuration',
+        status: 500,
+      });
+    }
+  },
+});

@@ -94,7 +94,7 @@ function getValueType(value: unknown): string {
  * @param data - Object containing debug data to display
  */
 export function FloatingDebugPanel({ data }: DebugPanelProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [expanded, setExpanded] = useState<string[]>([]);
   const [expandedValues, setExpandedValues] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');

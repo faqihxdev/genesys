@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PERSONA_CONSTANTS, TraitsConfig } from '@/db/schema/persona';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Control, Controller, UseFormSetValue, UseFormWatch } from 'react-hook-form';
 
 /**
@@ -13,8 +13,13 @@ import { Control, Controller, UseFormSetValue, UseFormWatch } from 'react-hook-f
  */
 export interface TraitsConfigField {
   auto?: boolean;
-  value?: any; // Using any for now to avoid complex type issues
-  [key: string]: any; // For nested fields
+  // We're using 'any' here deliberately due to the complexity of possible value types
+  // Could be arrays, ranges with min/max, or primitive values
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value?: any;
+  // This index signature is needed for nested fields
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 export interface FormData {
@@ -472,31 +477,67 @@ function TraitCategory({
 }: TraitCategoryProps) {
   // Local state to track auto toggle to ensure immediate UI updates
   const [isAuto, setIsAuto] = useState(true);
+  // Ref to track if initialization has happened to prevent overriding
+  const hasInitialized = useRef(false);
 
   // Watch the form value to stay in sync with external changes
   const autoValue = watch(`traitsConfig.${path}.auto`);
 
+  console.log(`[DEBUG-UI] Category ${path} auto value from form:`, autoValue);
+
+  // Also watch all child fields to detect if any are non-auto
+  const watchedFieldValues = fields.map((field) => {
+    // Use type assertion to make TypeScript happy
+    const fieldPath = `traitsConfig.${path}.${field.name}.auto` as const;
+    const fieldAuto = watch(fieldPath);
+    console.log(`[DEBUG-UI] Field ${path}.${field.name} auto:`, fieldAuto);
+    return { name: field.name, auto: fieldAuto };
+  });
+
   // Initialize auto value and sync with form state
   useEffect(() => {
-    if (autoValue === undefined) {
+    // Only initialize if we haven't already and there's no explicit value
+    if (autoValue === undefined && !hasInitialized.current) {
+      console.log(`[DEBUG-UI] First-time initializing ${path} auto to true`);
       setValue(`traitsConfig.${path}.auto`, true);
-    } else {
+      hasInitialized.current = true;
+    }
+    // If we already have a value, sync our local state with it
+    else if (autoValue !== undefined) {
+      console.log(`[DEBUG-UI] Setting local state for ${path} to ${!!autoValue} (value exists)`);
       setIsAuto(!!autoValue);
+      hasInitialized.current = true;
     }
   }, [autoValue, path, setValue]);
 
+  // Effect to synchronize with any changes to child fields
+  useEffect(() => {
+    // If any fields change their values, recheck if we should update the parent auto state
+    const anyChildIsNotAuto = watchedFieldValues.some((field) => field.auto === false);
+
+    if (anyChildIsNotAuto && (autoValue === true || autoValue === undefined)) {
+      console.log(`[DEBUG-UI] Found non-auto child in ${path}, setting category to non-auto`);
+      setIsAuto(false);
+      setValue(`traitsConfig.${path}.auto`, false);
+    }
+  }, [watchedFieldValues, autoValue, path, setValue]);
+
   // Handler for toggling auto mode
   const handleAutoToggle = (checked: boolean) => {
+    console.log(`[DEBUG-UI] ${path} auto toggle clicked:`, checked);
+
     // Update local state immediately
     setIsAuto(checked);
 
     // Update form state
     setValue(`traitsConfig.${path}.auto`, checked);
 
-    // If turning auto on, clear any custom values
+    // If turning auto on, propagate to all children
     if (checked) {
       fields.forEach((field) => {
-        setValue(`traitsConfig.${path}.${field.name}`, undefined);
+        console.log(`[DEBUG-UI] Setting ${path}.${field.name}.auto to true`);
+        setValue(`traitsConfig.${path}.${field.name}.auto`, true);
+        setValue(`traitsConfig.${path}.${field.name}.value`, undefined);
       });
     }
   };
@@ -513,8 +554,9 @@ function TraitCategory({
           <Label htmlFor={`auto-${path}`} className='text-sm'>
             Auto
           </Label>
+          {/* Using 'as any' for dynamic path construction in react-hook-form */}
           <Controller
-            name={`traitsConfig.${path}.auto` as any}
+            name={`traitsConfig.${path}.auto` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
             control={control}
             defaultValue={true}
             render={({ field: { onChange, value: _value, ...field } }) => (
@@ -624,8 +666,9 @@ function TraitGroup({
           <Label htmlFor={`auto-${path}`} className='text-sm'>
             Auto
           </Label>
+          {/* Using 'as any' for dynamic path construction in react-hook-form */}
           <Controller
-            name={`traitsConfig.${path}.auto` as any}
+            name={`traitsConfig.${path}.auto` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
             control={control}
             defaultValue={true}
             render={({ field: { onChange, value: _value, ...field } }) => (
@@ -675,24 +718,39 @@ interface TraitFieldProps extends FormComponentProps {
 function TraitField({ field, path, control, watch, setValue, defaultValue }: TraitFieldProps) {
   // Local state to track auto toggle to ensure immediate UI updates
   const [isAuto, setIsAuto] = useState(true);
+  // Ref to track if initialization has happened to prevent overriding
+  const hasInitialized = useRef(false);
 
   // Watch the form value to stay in sync with external changes
   const autoValue = watch(`traitsConfig.${path}.auto`);
+
+  console.log(`[DEBUG-UI] Field ${path} auto value from form:`, autoValue);
 
   // Helper type for defaultValue
   type RangeValue = { min: number; max: number };
 
   // Initialize auto value and sync with form state
   useEffect(() => {
-    if (autoValue === undefined) {
+    // Only initialize if we haven't already and there's no explicit value
+    if (autoValue === undefined && !hasInitialized.current) {
+      console.log(`[DEBUG-UI] First-time initializing field ${path} auto to true`);
       setValue(`traitsConfig.${path}.auto`, true);
-    } else {
+      hasInitialized.current = true;
+    }
+    // If we already have a value, sync our local state with it
+    else if (autoValue !== undefined) {
+      console.log(
+        `[DEBUG-UI] Setting field local state for ${path} to ${!!autoValue} (value exists)`
+      );
       setIsAuto(!!autoValue);
+      hasInitialized.current = true;
     }
   }, [autoValue, path, setValue]);
 
   // Handler for toggling auto mode
   const handleAutoToggle = (checked: boolean) => {
+    console.log(`[DEBUG-UI] Field ${path} auto toggle clicked:`, checked);
+
     // Update local state immediately
     setIsAuto(checked);
 
@@ -701,7 +759,18 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
 
     // If turning auto on, clear any custom values
     if (checked) {
+      console.log(`[DEBUG-UI] Clearing field ${path} value`);
       setValue(`traitsConfig.${path}.value`, undefined);
+    }
+
+    // Get parent path to update parent's auto state
+    const pathParts = path.split('.');
+    if (pathParts.length > 1) {
+      pathParts.pop(); // Remove the field name
+      const parentPath = pathParts.join('.');
+      console.log(
+        `[DEBUG-UI] Need to update parent ${parentPath} auto state based on field change`
+      );
     }
   };
 
@@ -715,8 +784,9 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
         <div className='grid grid-cols-2 gap-4 mt-2'>
           <div>
             <Label htmlFor={`${path}-min`}>Minimum</Label>
+            {/* Using 'as any' for dynamic path construction in react-hook-form */}
             <Controller
-              name={`traitsConfig.${path}.value.min` as any}
+              name={`traitsConfig.${path}.value.min` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
               control={control}
               defaultValue={rangeDefault?.min ?? field.min}
               render={({ field: { value, ...inputField } }) => (
@@ -734,8 +804,9 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
           </div>
           <div>
             <Label htmlFor={`${path}-max`}>Maximum</Label>
+            {/* Using 'as any' for dynamic path construction in react-hook-form */}
             <Controller
-              name={`traitsConfig.${path}.value.max` as any}
+              name={`traitsConfig.${path}.value.max` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
               control={control}
               defaultValue={rangeDefault?.max ?? field.max}
               render={({ field: { value, ...inputField } }) => (
@@ -763,8 +834,9 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
           <div className='flex flex-wrap gap-2'>
             {field.options.map((option) => (
               <div key={option.value} className='flex items-center'>
+                {/* Using 'as any' for dynamic path construction in react-hook-form */}
                 <Controller
-                  name={`traitsConfig.${path}.value` as any}
+                  name={`traitsConfig.${path}.value` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
                   control={control}
                   defaultValue={[]}
                   render={({ field: { value = [], onChange, ...checkboxField } }) => {
@@ -814,8 +886,9 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
           <Label htmlFor={`auto-${path}`} className='text-sm'>
             Auto
           </Label>
+          {/* Using 'as any' for dynamic path construction in react-hook-form */}
           <Controller
-            name={`traitsConfig.${path}.auto` as any}
+            name={`traitsConfig.${path}.auto` as any} // eslint-disable-line @typescript-eslint/no-explicit-any
             control={control}
             defaultValue={true}
             render={({ field: { onChange, value: _value, ...field } }) => (

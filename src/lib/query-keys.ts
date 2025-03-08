@@ -48,4 +48,9 @@ export const queryKey = {
     getUnreadCount: () => ['notifications', 'unread-count'] as const,
     getUserNotifications: () => ['notifications', 'list'] as const,
   },
+  persona: {
+    getPersonaConfigsByProject: ({ projectId }: { projectId: string }) =>
+      ['persona', 'configs', projectId] as const,
+    getPersonaConfigById: ({ id }: { id: string }) => ['persona', 'config', id] as const,
+  },
 } as const;
