@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createDefaultTraitsConfigTemplate, TraitsConfig } from '@/db/schema/persona';
+import useHydration from '@/hooks/use-hydration';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
@@ -45,6 +46,7 @@ export default function PersonaConfigForm({
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isHydrated = useHydration();
 
   const [defaultTraitsConfig, setDefaultTraitsConfig] = useState<TraitsConfig | null>(null);
   const [formProcessed, setFormProcessed] = useState(false);
@@ -54,7 +56,7 @@ export default function PersonaConfigForm({
   const { data: existingConfig, isLoading: isConfigLoading } = useQuery({
     queryKey: configId ? queryKey.persona.getPersonaConfigById({ id: configId }) : [],
     queryFn: () => (configId ? withQuery(getPersonaConfigById)({ id: configId }) : null),
-    enabled: Boolean(configId), // Only run the query if configId is provided
+    enabled: Boolean(configId) && isHydrated, // Only run the query if configId is provided and component is hydrated
   });
 
   // Fetch default traits config template
@@ -94,15 +96,6 @@ export default function PersonaConfigForm({
     }
   }, [existingConfig, isEditMode, reset]);
 
-  // Add debug logs to monitor state
-  useEffect(() => {
-    console.log('[DEBUG] defaultTraitsConfig', defaultTraitsConfig);
-    console.log('[DEBUG] existingConfig', existingConfig);
-    console.log('[DEBUG] isEditMode', isEditMode);
-    console.log('[DEBUG] watch', watch());
-    console.log('[DEBUG] formProcessed', formProcessed);
-  }, [defaultTraitsConfig, existingConfig, isEditMode, watch, formProcessed]);
-
   // Initialize form values for trait categories
   useEffect(() => {
     if (defaultTraitsConfig) {
@@ -116,23 +109,8 @@ export default function PersonaConfigForm({
       }
       // For existing configs, map the traitsConfig back to form structure with auto flags
       else if (existingConfig && existingConfig.traitsConfig) {
-        console.log('[DEBUG] Existing config found, checking demographics.age:');
-
         const originalConfig = existingConfig.traitsConfig as TraitsConfig;
-
-        // Check specifically for age field
-        if (originalConfig.demographics && originalConfig.demographics.age) {
-          const originalAge = originalConfig.demographics.age;
-          const defaultAge = defaultTraitsConfig.demographics.age;
-
-          console.log('[DEBUG] Original age:', JSON.stringify(originalAge));
-          console.log('[DEBUG] Default age:', JSON.stringify(defaultAge));
-          console.log('[DEBUG] Are they equal?', compareObjects(originalAge, defaultAge));
-        }
-
         convertTraitsConfigToFormValues(originalConfig, defaultTraitsConfig);
-
-        // Mark form as processed after all values have been set
         setFormProcessed(true);
       }
     }
@@ -155,8 +133,6 @@ export default function PersonaConfigForm({
       'personalityFrameworks',
     ] as const;
 
-    console.log('[DEBUG] Starting traits config conversion');
-
     sections.forEach((section) => {
       // First, process all fields in the section to set their individual auto flags
       const sectionResults = processSectionAndGetResults(
@@ -165,14 +141,8 @@ export default function PersonaConfigForm({
         defaultConfig[section] as Record<string, unknown>
       );
 
-      console.log(
-        `[DEBUG] Section ${section} has ${sectionResults.customFieldCount} custom fields`
-      );
-
       // A section is auto only if ALL its fields are auto
       const isSectionAuto = sectionResults.customFieldCount === 0;
-
-      console.log(`[DEBUG] Setting section ${section} auto to ${isSectionAuto}`);
 
       // Set the section auto flag based on its fields
       setValue(`traitsConfig.${section}.auto`, isSectionAuto);
@@ -207,10 +177,6 @@ export default function PersonaConfigForm({
 
       if (!isUsingDefault) {
         customFieldCount++;
-        console.log(
-          `[DEBUG] Custom field found: ${sectionPath}.${key}`,
-          isRangeObject ? JSON.stringify(originalValue) : 'non-range'
-        );
       }
 
       // Set auto flag for this specific field
@@ -248,7 +214,7 @@ export default function PersonaConfigForm({
   };
 
   /**
-   * @description Compare two objects to see if they're equal (simplified version)
+   * @description Compare two objects to see if they're equal
    * @param obj1 - First object to compare
    * @param obj2 - Second object to compare
    * @returns Whether the objects are deeply equal
@@ -279,15 +245,7 @@ export default function PersonaConfigForm({
       const range1 = obj1 as { min: number; max: number };
       const range2 = obj2 as { min: number; max: number };
 
-      const result = range1.min === range2.min && range1.max === range2.max;
-
-      if (!result) {
-        console.log(
-          `[DEBUG] Range comparison: ${JSON.stringify(range1)} vs ${JSON.stringify(range2)} = ${result}`
-        );
-      }
-
-      return result;
+      return range1.min === range2.min && range1.max === range2.max;
     }
 
     // For nested objects, use recursive deep comparison
@@ -349,14 +307,12 @@ export default function PersonaConfigForm({
 
         if (isEditMode && configId) {
           // Update existing config
-          console.log('[DEBUG-SAVE] Updating existing config:', configId);
           result = await updatePersonaConfig({
             id: configId,
             ...configData,
           });
         } else {
           // Create new config
-          console.log('[DEBUG-SAVE] Creating new config');
           isCreate = true;
           result = await createPersonaConfig({
             projectId,
@@ -390,7 +346,7 @@ export default function PersonaConfigForm({
 
         // If we created a new config, we may need its ID for further operations
         if (isCreate && 'id' in result) {
-          console.log('[DEBUG-SAVE] Created new config with ID:', result.id);
+          // New config created successfully, but we don't need the ID right now
         }
 
         onSuccess();
@@ -417,9 +373,6 @@ export default function PersonaConfigForm({
     formTraitsConfig: Record<string, unknown>,
     defaultConfig: TraitsConfig
   ): TraitsConfig => {
-    console.log('[DEBUG-SAVE] Generating final traits config');
-    console.log('[DEBUG-SAVE] Form traits config:', formTraitsConfig);
-
     // Create a deep copy of the default config to avoid mutations
     const finalConfig = JSON.parse(JSON.stringify(defaultConfig)) as TraitsConfig;
 
@@ -448,11 +401,8 @@ export default function PersonaConfigForm({
           // Cast to our interface with proper shape
           const typedFormValue = formValue as AutoFormValue;
 
-          console.log(`[DEBUG-SAVE] Processing field: ${key}, auto: ${typedFormValue.auto}`);
-
           // If auto is false, use the custom values
           if (typedFormValue.auto === false && typedFormValue.value !== undefined) {
-            console.log(`[DEBUG-SAVE] Using custom value for ${key}:`, typedFormValue.value);
             // Handle different value types
             if (key === 'age' && typeof typedFormValue.value === 'object') {
               // Handle age range specifically
@@ -463,7 +413,6 @@ export default function PersonaConfigForm({
               if (ageValue.max !== undefined) {
                 (resultSection[key] as { max: number }).max = Number(ageValue.max);
               }
-              console.log(`[DEBUG-SAVE] Set age to:`, resultSection[key]);
             } else if (key === 'budget' && typeof typedFormValue.value === 'object') {
               // Handle budget range
               const budgetValue = typedFormValue.value as { min?: number; max?: number };
@@ -479,8 +428,6 @@ export default function PersonaConfigForm({
                 ? typedFormValue.value
                 : typedFormValue.value;
             }
-          } else {
-            console.log(`[DEBUG-SAVE] Using default value for ${key}`);
           }
 
           // If this has nested properties, process them recursively
@@ -507,7 +454,6 @@ export default function PersonaConfigForm({
         formTraitsConfig[section] !== null
       ) {
         const formSection = formTraitsConfig[section] as Record<string, unknown>;
-        console.log(`[DEBUG-SAVE] Processing section ${section}, auto: ${formSection.auto}`);
 
         // If section has auto=false, process its fields
         if (formSection.auto === false) {
@@ -516,21 +462,19 @@ export default function PersonaConfigForm({
             defaultConfig[section as keyof TraitsConfig] as Record<string, unknown>,
             finalConfig[section as keyof TraitsConfig] as Record<string, unknown>
           );
-        } else {
-          console.log(`[DEBUG-SAVE] Section ${section} is auto, using default values`);
         }
       }
     });
 
-    console.log('[DEBUG-SAVE] Final config:', finalConfig);
     return finalConfig;
   };
 
   // Combined loading state
   const isLoading = isTemplateLoading || (isEditMode && isConfigLoading);
+  const showContent = isHydrated && !isLoading && formProcessed && defaultTraitsConfig;
 
-  // Render loading state or form
-  if (isLoading || !formProcessed) {
+  // Show a loading indicator or nothing during server rendering
+  if (!showContent) {
     return (
       <div className='flex justify-center items-center h-64'>
         <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary'></div>

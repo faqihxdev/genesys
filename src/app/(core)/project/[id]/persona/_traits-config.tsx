@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PERSONA_CONSTANTS, TraitsConfig } from '@/db/schema/persona';
+import useHydration from '@/hooks/use-hydration';
 import { useEffect, useRef, useState } from 'react';
 import { Control, Controller, UseFormSetValue, UseFormWatch } from 'react-hook-form';
 
@@ -74,6 +75,12 @@ export function TraitsConfigurationSection({
   defaultTraitsConfig,
 }: TraitsConfigurationSectionProps) {
   const [activeTab, setActiveTab] = useState('demographics');
+  const isHydrated = useHydration();
+
+  // If not hydrated, show a minimal placeholder to prevent hydration mismatches
+  if (!isHydrated) {
+    return <div className='min-h-[200px]'></div>;
+  }
 
   return (
     <Tabs defaultValue='demographics' value={activeTab} onValueChange={setActiveTab}>
@@ -479,18 +486,16 @@ function TraitCategory({
   const [isAuto, setIsAuto] = useState(true);
   // Ref to track if initialization has happened to prevent overriding
   const hasInitialized = useRef(false);
+  const isHydrated = useHydration();
 
   // Watch the form value to stay in sync with external changes
   const autoValue = watch(`traitsConfig.${path}.auto`);
-
-  console.log(`[DEBUG-UI] Category ${path} auto value from form:`, autoValue);
 
   // Also watch all child fields to detect if any are non-auto
   const watchedFieldValues = fields.map((field) => {
     // Use type assertion to make TypeScript happy
     const fieldPath = `traitsConfig.${path}.${field.name}.auto` as const;
     const fieldAuto = watch(fieldPath);
-    console.log(`[DEBUG-UI] Field ${path}.${field.name} auto:`, fieldAuto);
     return { name: field.name, auto: fieldAuto };
   });
 
@@ -498,13 +503,11 @@ function TraitCategory({
   useEffect(() => {
     // Only initialize if we haven't already and there's no explicit value
     if (autoValue === undefined && !hasInitialized.current) {
-      console.log(`[DEBUG-UI] First-time initializing ${path} auto to true`);
       setValue(`traitsConfig.${path}.auto`, true);
       hasInitialized.current = true;
     }
     // If we already have a value, sync our local state with it
     else if (autoValue !== undefined) {
-      console.log(`[DEBUG-UI] Setting local state for ${path} to ${!!autoValue} (value exists)`);
       setIsAuto(!!autoValue);
       hasInitialized.current = true;
     }
@@ -516,7 +519,6 @@ function TraitCategory({
     const anyChildIsNotAuto = watchedFieldValues.some((field) => field.auto === false);
 
     if (anyChildIsNotAuto && (autoValue === true || autoValue === undefined)) {
-      console.log(`[DEBUG-UI] Found non-auto child in ${path}, setting category to non-auto`);
       setIsAuto(false);
       setValue(`traitsConfig.${path}.auto`, false);
     }
@@ -524,23 +526,25 @@ function TraitCategory({
 
   // Handler for toggling auto mode
   const handleAutoToggle = (checked: boolean) => {
-    console.log(`[DEBUG-UI] ${path} auto toggle clicked:`, checked);
-
     // Update local state immediately
     setIsAuto(checked);
 
     // Update form state
     setValue(`traitsConfig.${path}.auto`, checked);
 
-    // If turning auto on, propagate to all children
+    // If turning auto on, clear any custom values
     if (checked) {
       fields.forEach((field) => {
-        console.log(`[DEBUG-UI] Setting ${path}.${field.name}.auto to true`);
         setValue(`traitsConfig.${path}.${field.name}.auto`, true);
         setValue(`traitsConfig.${path}.${field.name}.value`, undefined);
       });
     }
   };
+
+  // Prevent rendering until hydrated to avoid mismatches
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
     <div className='space-y-4'>
@@ -629,16 +633,24 @@ function TraitGroup({
 }: TraitGroupProps) {
   // Local state to track auto toggle to ensure immediate UI updates
   const [isAuto, setIsAuto] = useState(true);
+  // Ref to track if initialization has happened to prevent overriding
+  const hasInitialized = useRef(false);
+  const isHydrated = useHydration();
 
   // Watch the form value to stay in sync with external changes
   const autoValue = watch(`traitsConfig.${path}.auto`);
 
   // Initialize auto value and sync with form state
   useEffect(() => {
-    if (autoValue === undefined) {
+    // Only initialize if we haven't already and there's no explicit value
+    if (autoValue === undefined && !hasInitialized.current) {
       setValue(`traitsConfig.${path}.auto`, true);
-    } else {
+      hasInitialized.current = true;
+    }
+    // If we already have a value, sync our local state with it
+    else if (autoValue !== undefined) {
       setIsAuto(!!autoValue);
+      hasInitialized.current = true;
     }
   }, [autoValue, path, setValue]);
 
@@ -650,13 +662,19 @@ function TraitGroup({
     // Update form state
     setValue(`traitsConfig.${path}.auto`, checked);
 
-    // If turning auto on, clear any custom values
+    // If turning auto on, propagate to all children
     if (checked) {
       groupField.fields.forEach((field) => {
-        setValue(`traitsConfig.${path}.${field.name}`, undefined);
+        setValue(`traitsConfig.${path}.${field.name}.auto`, true);
+        setValue(`traitsConfig.${path}.${field.name}.value`, undefined);
       });
     }
   };
+
+  // Prevent rendering until hydrated to avoid mismatches
+  if (!isHydrated) {
+    return null;
+  }
 
   return (
     <div className='mb-4 p-2 rounded-md bg-muted/20'>
@@ -720,11 +738,10 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
   const [isAuto, setIsAuto] = useState(true);
   // Ref to track if initialization has happened to prevent overriding
   const hasInitialized = useRef(false);
+  const isHydrated = useHydration();
 
   // Watch the form value to stay in sync with external changes
   const autoValue = watch(`traitsConfig.${path}.auto`);
-
-  console.log(`[DEBUG-UI] Field ${path} auto value from form:`, autoValue);
 
   // Helper type for defaultValue
   type RangeValue = { min: number; max: number };
@@ -733,15 +750,11 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
   useEffect(() => {
     // Only initialize if we haven't already and there's no explicit value
     if (autoValue === undefined && !hasInitialized.current) {
-      console.log(`[DEBUG-UI] First-time initializing field ${path} auto to true`);
       setValue(`traitsConfig.${path}.auto`, true);
       hasInitialized.current = true;
     }
     // If we already have a value, sync our local state with it
     else if (autoValue !== undefined) {
-      console.log(
-        `[DEBUG-UI] Setting field local state for ${path} to ${!!autoValue} (value exists)`
-      );
       setIsAuto(!!autoValue);
       hasInitialized.current = true;
     }
@@ -749,8 +762,6 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
 
   // Handler for toggling auto mode
   const handleAutoToggle = (checked: boolean) => {
-    console.log(`[DEBUG-UI] Field ${path} auto toggle clicked:`, checked);
-
     // Update local state immediately
     setIsAuto(checked);
 
@@ -759,20 +770,14 @@ function TraitField({ field, path, control, watch, setValue, defaultValue }: Tra
 
     // If turning auto on, clear any custom values
     if (checked) {
-      console.log(`[DEBUG-UI] Clearing field ${path} value`);
       setValue(`traitsConfig.${path}.value`, undefined);
     }
-
-    // Get parent path to update parent's auto state
-    const pathParts = path.split('.');
-    if (pathParts.length > 1) {
-      pathParts.pop(); // Remove the field name
-      const parentPath = pathParts.join('.');
-      console.log(
-        `[DEBUG-UI] Need to update parent ${parentPath} auto state based on field change`
-      );
-    }
   };
+
+  // Prevent rendering until hydrated
+  if (!isHydrated) {
+    return null;
+  }
 
   // Render the appropriate input based on field type
   const renderFieldInput = () => {

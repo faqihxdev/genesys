@@ -1,6 +1,16 @@
 'use client';
 
 import { PageTitle } from '@/components/custom/page-title';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
@@ -208,19 +218,28 @@ function PersonaConfigItem({
   onDelete: () => void;
   onEdit: () => void;
 }) {
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDeleteConfirmOpen(true);
+    // Close both dropdown menus when opening delete confirmation
+    setMobileMenuOpen(false);
+    setDesktopMenuOpen(false);
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onDelete();
-    setIsDeleteConfirmOpen(false);
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await onDelete();
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   return (
@@ -270,7 +289,7 @@ function PersonaConfigItem({
         </Button>
 
         {/* Mobile actions */}
-        <DropdownMenu>
+        <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant='ghost' size='icon' className='md:hidden'>
               <MoreHorizontal className='h-4 w-4' />
@@ -294,7 +313,7 @@ function PersonaConfigItem({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DropdownMenu>
+        <DropdownMenu open={desktopMenuOpen} onOpenChange={setDesktopMenuOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant='ghost' size='icon' className='hidden md:flex'>
               <MoreHorizontal className='h-4 w-4' />
@@ -315,33 +334,35 @@ function PersonaConfigItem({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Delete confirmation dialog */}
-        {isDeleteConfirmOpen && (
-          <div className='fixed inset-0 bg-black/50 z-50 flex items-center justify-center'>
-            <div className='bg-card p-6 rounded-lg max-w-md w-full'>
-              <h3 className='text-lg font-medium mb-4'>Delete Persona Configuration</h3>
-              <p className='mb-6'>
+        {/* Delete confirmation dialog using AlertDialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Persona Configuration</AlertDialogTitle>
+              <AlertDialogDescription>
                 Are you sure you want to delete &ldquo;{config.name}&rdquo;? This will also delete
                 all associated personas. This action cannot be undone.
-              </p>
-              <div className='flex justify-end space-x-2'>
-                <Button
-                  variant='outline'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsDeleteConfirmOpen(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button variant='destructive' onClick={handleConfirmDelete}>
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                {isDeleting ? (
+                  <>
+                    <div className='animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full' />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
