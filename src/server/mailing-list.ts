@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { mailingList } from '@/db/schema/mailing-list';
+import { mailingList } from '@/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';

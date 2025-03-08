@@ -15,13 +15,16 @@ function getColoredTiming(ms: number): string {
   const red = '\x1b[31m';
   const reset = '\x1b[0m';
 
+  // Pad the number to 4 characters
+  const paddedMs = ms.toString().padStart(4, ' ');
+
   // Thresholds for different colors
   if (ms < 100) {
-    return `${green}${ms}${reset}`;
+    return `${green}${paddedMs}${reset}`;
   } else if (ms < 500) {
-    return `${yellow}${ms}${reset}`;
+    return `${yellow}${paddedMs}${reset}`;
   } else {
-    return `${red}${ms}${reset}`;
+    return `${red}${paddedMs}${reset}`;
   }
 }
 
@@ -204,7 +207,9 @@ export function createAction<TInput, TOutput>(config: {
       const duration = Math.round(endTime - startTime);
       // Only log in development
       if (env.NODE_ENV !== 'production') {
-        console.log(` >>> ${config.name ? `${config.name}` : ''} ${getColoredTiming(duration)} ms`);
+        console.log(
+          ` >>> ${getColoredTiming(duration)} ms | ${config.name ? `${config.name}` : ''} `
+        );
       }
     }
   };

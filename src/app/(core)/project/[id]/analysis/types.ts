@@ -1,6 +1,11 @@
-import { Funnel, StageItem } from '@/db/schema/funnel';
-import { Simulation } from '@/db/schema/simulation';
-import { Summary, SummaryStage, SummaryStageItem } from '@/db/schema/summary';
+import {
+  Funnel,
+  Simulation,
+  StageItem,
+  Summary,
+  SummaryStage,
+  SummaryStageItem,
+} from '@/db/schema';
 
 /**
  * @description Type definitions for funnel analysis with dependency tree
@@ -9,14 +14,14 @@ import { Summary, SummaryStage, SummaryStageItem } from '@/db/schema/summary';
  *
  * ComparisonAnalysis
  * └── FunnelAnalysis
- *     ├── Funnel (from @/db/schema/funnel)
- *     ├── Simulation (from @/db/schema/simulation)
- *     ├── Summary (from @/db/schema/summary)
+ *     ├── Funnel (from funnel table)
+ *     ├── Simulation (from simulation table)
+ *     ├── Summary (from summary table)
  *     ├── StageAnalysis
- *     │   ├── SummaryStage (from @/db/schema/summary)
- *     │   ├── Stage (from @/db/schema/funnel)
- *     │   ├── SummaryStageItem (from @/db/schema/summary)
- *     │   ├── StageItem (from @/db/schema/funnel)
+ *     │   ├── SummaryStage (from summary_stages table)
+ *     │   ├── Stage (from stages table)
+ *     │   ├── SummaryStageItem (from summary_stages table)
+ *     │   ├── StageItem (from stage_items table)
  *     │   └── KeyMetric
  *     ├── KeyMetric
  *     └── SankeyData

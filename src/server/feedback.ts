@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { feedback } from '@/db/schema/feedback';
+import { feedback } from '@/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';

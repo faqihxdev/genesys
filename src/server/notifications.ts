@@ -1,12 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import type {
-  NotificationCategory,
-  NotificationMetadata,
-  NotificationType,
-} from '@/db/schema/notification';
-import { notifications } from '@/db/schema/notification';
+import type { NotificationCategory, NotificationMetadata, NotificationType } from '@/db/schema';
+import { notifications } from '@/db/schema';
 import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction } from './_utils';

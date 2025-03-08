@@ -17,7 +17,7 @@ import {
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { User } from '@/types';
+import { User } from '@/db/schema';
 
 interface UserDropdownProps {
   user: User;

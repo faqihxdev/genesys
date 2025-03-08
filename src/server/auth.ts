@@ -1,8 +1,8 @@
 'use server';
 
+import type { User } from '@/db/schema';
 import env from '@/env';
 import { createClient } from '@/lib/supabase/server';
-import type { User } from '@/types';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
 

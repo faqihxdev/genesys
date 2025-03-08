@@ -1,8 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { projectInvites } from '@/db/schema/invite';
-import { projectUsers } from '@/db/schema/project';
+import { projectInvites, projectUsers } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';

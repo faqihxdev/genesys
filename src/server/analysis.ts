@@ -3,8 +3,11 @@
 import { FunnelAnalysis, StageAnalysis } from '@/app/(core)/project/[id]/analysis/types';
 import { db } from '@/db';
 import {
+  ResponseWithDetails,
   funnels,
+  personas,
   projects,
+  responses,
   simulationStages,
   simulations,
   stageItems,
@@ -14,8 +17,6 @@ import {
   summaryStageItems,
   summaryStages,
 } from '@/db/schema';
-import { personas } from '@/db/schema/persona';
-import { ResponseWithDetails, responses } from '@/db/schema/response';
 import env from '@/env';
 import { desc, eq, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
