@@ -2,7 +2,6 @@
 
 import { Spinner } from '@/components/custom/spinner';
 import { Button } from '@/components/ui/button';
-import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,7 +71,7 @@ function FormSkeleton() {
       </div>
 
       {/* Footer buttons skeleton */}
-      <div className='pt-4 mt-6 border-t flex justify-end gap-2'>
+      <div className='pt-4 mt-6 flex justify-end gap-2'>
         <Skeleton className='h-10 w-20' />
         <Skeleton className='h-10 w-40' />
       </div>
@@ -605,21 +604,10 @@ export default function PersonaConfigForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col max-h-[85vh]'>
-      <DialogHeader className='pb-4'>
-        <DialogTitle>
-          {isEditMode ? 'Edit Persona Configuration' : 'Create New Persona Configuration'}
-        </DialogTitle>
-        <DialogDescription>
-          {isEditMode
-            ? 'Edit the existing persona configuration settings.'
-            : 'Define a new set of persona traits to generate synthetic customer personas.'}
-        </DialogDescription>
-      </DialogHeader>
-
-      {/* Use custom scrollbar styling for a more elegant appearance */}
-      <div className='b-2 px-1 -mx-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width]:none'>
-        <div className='space-y-6'>
+    <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col max-h-[75vh]'>
+      {/* Scrollable content area with visible scrollbars */}
+      <div className='flex-1 overflow-y-auto custom-scrollbar -mx-1'>
+        <div className='space-y-6 px-1'>
           {/* Basic Information */}
           <div className='space-y-4'>
             {/* Put configuration name and number of personas in the same row */}
@@ -726,23 +714,26 @@ export default function PersonaConfigForm({
         </div>
       </div>
 
-      <DialogFooter className='mt-6 pt-4 border-t'>
-        <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button type='submit' disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Spinner size='sm' />
-              <span className='ml-2'>{isEditMode ? 'Saving...' : 'Creating...'}</span>
-            </>
-          ) : isEditMode ? (
-            'Save Changes'
-          ) : (
-            'Create Persona Config'
-          )}
-        </Button>
-      </DialogFooter>
+      {/* Fixed footer that stays at the bottom */}
+      <div className='flex-shrink-0 mt-auto pt-4 bg-background z-10'>
+        <div className='flex justify-end gap-2'>
+          <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type='submit' disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Spinner size='sm' />
+                <span className='ml-2'>{isEditMode ? 'Saving...' : 'Creating...'}</span>
+              </>
+            ) : isEditMode ? (
+              'Save Changes'
+            ) : (
+              'Create Persona Config'
+            )}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

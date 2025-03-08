@@ -94,7 +94,7 @@ export function TraitsConfigurationSection({
       <TabsContent value='demographics' forceMount hidden={activeTab !== 'demographics'}>
         <TraitCategory
           title='Demographics'
-          description='Configure demographic traits such as age, gender, location, income, etc.'
+          description='Configure demographic traits such as age, gender, income, and more.'
           path='demographics'
           control={control}
           watch={watch}
@@ -145,7 +145,7 @@ export function TraitsConfigurationSection({
       <TabsContent value='psychographics' forceMount hidden={activeTab !== 'psychographics'}>
         <TraitCategory
           title='Psychographics'
-          description='Configure psychographic traits such as values, interests, lifestyle, etc.'
+          description='Configure psychographic traits such as values, lifestyle, and more.'
           path='psychographics'
           control={control}
           watch={watch}
@@ -177,7 +177,7 @@ export function TraitsConfigurationSection({
       <TabsContent value='behavior' forceMount hidden={activeTab !== 'behavior'}>
         <TraitCategory
           title='Behavior'
-          description='Configure behavioral traits such as budget, brand affinity, responsiveness, etc.'
+          description='Configure behavioral traits such as budget, brand affinity, and more.'
           path='behavior'
           control={control}
           watch={watch}
@@ -216,7 +216,7 @@ export function TraitsConfigurationSection({
       <TabsContent value='personality' forceMount hidden={activeTab !== 'personality'}>
         <TraitCategory
           title='Personality Frameworks'
-          description='Configure framework traits such as Big Five, consumer decision making, etc.'
+          description='Configure framework traits such as Big Five, COM-B, and more.'
           path='personalityFrameworks'
           control={control}
           watch={watch}

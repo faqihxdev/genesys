@@ -14,7 +14,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PersonaConfigWithCount, TraitsConfig } from '@/db/schema/persona';
 import { useToast } from '@/hooks/use-toast';
@@ -123,6 +129,7 @@ export default function PersonaPage() {
 
       toast({
         title: 'Success',
+        variant: 'success',
         description: 'Personas generated successfully.',
       });
     } catch (error) {
@@ -193,14 +200,20 @@ export default function PersonaPage() {
               <span>New Persona Config</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className='max-w-2xl max-h-[90vh] overflow-hidden'>
-            {createDialogOpen && (
-              <PersonaConfigForm
-                projectId={projectId}
-                onSuccess={handleFormSuccess}
-                onCancel={handleCancel}
-              />
-            )}
+          <DialogContent className='max-w-2xl max-h-[90vh] p-6 flex flex-col gap-2'>
+            <DialogTitle>Create New Persona Configuration</DialogTitle>
+            <DialogDescription>
+              Define a new set of persona traits to generate synthetic customer personas.
+            </DialogDescription>
+            <div className='flex-1 min-h-0'>
+              {createDialogOpen && (
+                <PersonaConfigForm
+                  projectId={projectId}
+                  onSuccess={handleFormSuccess}
+                  onCancel={handleCancel}
+                />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -211,13 +224,19 @@ export default function PersonaPage() {
           open={Boolean(editConfigId)}
           onOpenChange={(open) => !open && setEditConfigId(null)}
         >
-          <DialogContent className='max-w-2xl max-h-[90vh] overflow-hidden'>
-            <PersonaConfigForm
-              projectId={projectId}
-              configId={editConfigId}
-              onSuccess={handleFormSuccess}
-              onCancel={handleCancel}
-            />
+          <DialogContent className='max-w-2xl max-h-[90vh] p-6 flex flex-col gap-2'>
+            <DialogTitle>Edit Persona Configuration</DialogTitle>
+            <DialogDescription>
+              Modify the settings for this persona configuration.
+            </DialogDescription>
+            <div className='flex-1 min-h-0'>
+              <PersonaConfigForm
+                projectId={projectId}
+                configId={editConfigId}
+                onSuccess={handleFormSuccess}
+                onCancel={handleCancel}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -357,12 +376,8 @@ function PersonaConfigItem({
           </div>
           <div className='flex-1'>
             <h4 className='text-sm font-medium text-primary-800 dark:text-primary-300'>
-              Creating synthetic personas
+              Creating synthetic {config.size} personas
             </h4>
-            <p className='text-xs text-primary-700/70 dark:text-primary-400/70'>
-              Generating {config.size} unique personas with diverse traits based on your
-              configuration
-            </p>
           </div>
         </div>
 
