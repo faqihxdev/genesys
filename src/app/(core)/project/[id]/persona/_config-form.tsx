@@ -1,9 +1,11 @@
 'use client';
 
+import { Spinner } from '@/components/custom/spinner';
 import { Button } from '@/components/ui/button';
 import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { createDefaultTraitsConfigTemplate, TraitsConfig } from '@/db/schema/persona';
 import useHydration from '@/hooks/use-hydration';
@@ -22,6 +24,55 @@ interface PersonaConfigFormProps {
   configId?: string; // Optional - if provided, we're editing an existing config
   onSuccess: () => void;
   onCancel: () => void;
+}
+
+// Form skeleton loader component
+function FormSkeleton() {
+  return (
+    <div className='space-y-6'>
+      {/* Basic form fields skeleton */}
+      <div className='space-y-4'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          <div className='md:col-span-2'>
+            <Skeleton className='h-5 w-32 mb-1' />
+            <Skeleton className='h-10 w-full' />
+          </div>
+          <div>
+            <Skeleton className='h-5 w-24 mb-1' />
+            <Skeleton className='h-10 w-full' />
+          </div>
+        </div>
+
+        <div>
+          <Skeleton className='h-5 w-28 mb-1' />
+          <Skeleton className='h-24 w-full' />
+        </div>
+
+        <div>
+          <Skeleton className='h-5 w-36 mb-1' />
+          <Skeleton className='h-24 w-full' />
+        </div>
+      </div>
+
+      {/* Traits section skeleton */}
+      <div>
+        <Skeleton className='h-6 w-40 mb-4' />
+        <div className='space-y-2'>
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-full' />
+        </div>
+      </div>
+
+      {/* Footer buttons skeleton */}
+      <div className='pt-4 mt-6 border-t flex justify-end gap-2'>
+        <Skeleton className='h-10 w-20' />
+        <Skeleton className='h-10 w-40' />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -50,6 +101,7 @@ export default function PersonaConfigForm({
 
   const [defaultTraitsConfig, setDefaultTraitsConfig] = useState<TraitsConfig | null>(null);
   const [formProcessed, setFormProcessed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditMode = Boolean(configId);
 
   // Fetch existing config if in edit mode using Tanstack Query
@@ -290,17 +342,18 @@ export default function PersonaConfigForm({
     // Generate final traits config based on auto/custom settings
     const finalTraitsConfig = generateFinalTraitsConfig(data.traitsConfig, defaultTraitsConfig);
 
-    // Prepare the data for submission
+    // Prepare the data for submission, ensuring size is a number
     const configData = {
       name: data.name,
       description: data.description,
-      size: data.size,
+      size: Number(data.size), // Convert to number
       constraints: data.constraints,
       traitsConfig: finalTraitsConfig,
     };
 
     // Submit to the server using the appropriate server action
     const saveConfig = async () => {
+      setIsSubmitting(true);
       try {
         let result;
         let isCreate = false;
@@ -357,6 +410,8 @@ export default function PersonaConfigForm({
           title: 'Error',
           description: 'Failed to save persona configuration',
         });
+      } finally {
+        setIsSubmitting(false);
       }
     };
 
@@ -476,8 +531,8 @@ export default function PersonaConfigForm({
   // Show a loading indicator or nothing during server rendering
   if (!showContent) {
     return (
-      <div className='flex justify-center items-center h-64'>
-        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary'></div>
+      <div className='flex flex-col h-full'>
+        <FormSkeleton />
       </div>
     );
   }
@@ -553,7 +608,8 @@ export default function PersonaConfigForm({
                         min={1}
                         max={100}
                         className='mt-1'
-                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value}
                       />
                       {fieldState.error && (
                         <p className='text-sm text-red-500 mt-1'>{fieldState.error.message}</p>
@@ -615,10 +671,21 @@ export default function PersonaConfigForm({
       </div>
 
       <DialogFooter className='mt-6 pt-4 border-t'>
-        <Button type='button' variant='outline' onClick={onCancel}>
+        <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type='submit'>{isEditMode ? 'Save Changes' : 'Create Persona Config'}</Button>
+        <Button type='submit' disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Spinner size='sm' />
+              <span className='ml-2'>{isEditMode ? 'Saving...' : 'Creating...'}</span>
+            </>
+          ) : isEditMode ? (
+            'Save Changes'
+          ) : (
+            'Create Persona Config'
+          )}
+        </Button>
       </DialogFooter>
     </form>
   );

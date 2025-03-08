@@ -1,6 +1,7 @@
 'use client';
 
 import { PageTitle } from '@/components/custom/page-title';
+import { Spinner } from '@/components/custom/spinner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,32 +14,21 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PersonaConfig } from '@/db/schema/persona';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { deletePersonaConfig, getPersonaConfigsByProject } from '@/server/persona';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  ArrowRight,
-  Calendar,
-  Edit,
-  MoreHorizontal,
-  Plus,
-  Settings,
-  Trash2,
-  User,
-  Users,
-} from 'lucide-react';
+import { Calendar, Edit, Plus, Trash2, Users } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import PersonaConfigForm from './_config-form';
@@ -68,6 +58,7 @@ export default function PersonaPage() {
       if (result) {
         toast({
           title: 'Success',
+          variant: 'success',
           description: 'Persona configuration deleted successfully',
         });
 
@@ -114,6 +105,7 @@ export default function PersonaPage() {
 
     toast({
       title: 'Success',
+      variant: 'success',
       description: 'Persona configuration saved successfully',
     });
   };
@@ -129,8 +121,37 @@ export default function PersonaPage() {
     setEditingConfigId(configId);
   };
 
+  // Create a skeleton loader for persona config items
+  function PersonaConfigSkeleton() {
+    return (
+      <div className='flex flex-col md:flex-row md:items-center gap-4 md:gap-6 p-4 rounded-xl border bg-card'>
+        {/* Icon Skeleton */}
+        <Skeleton className='w-12 h-12 rounded-full' />
+
+        {/* Content Skeleton */}
+        <div className='flex-1 space-y-2'>
+          <div className='flex items-start gap-2'>
+            <Skeleton className='h-6 w-48' />
+            <Skeleton className='h-5 w-16' />
+          </div>
+          <Skeleton className='h-4 w-full max-w-md' />
+          <div className='flex flex-wrap gap-x-4 gap-y-1 mt-2'>
+            <Skeleton className='h-4 w-24' />
+            <Skeleton className='h-4 w-32' />
+          </div>
+        </div>
+
+        {/* Actions Skeleton */}
+        <div className='flex items-center space-x-2 self-end md:self-center'>
+          <Skeleton className='h-9 w-20' />
+          <Skeleton className='h-9 w-20' />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className='container py-6 space-y-6'>
+    <div className='w-full max-w-4xl mx-auto space-y-6'>
       <div className='flex items-center justify-between'>
         <PageTitle
           title='Persona Configurations'
@@ -139,10 +160,14 @@ export default function PersonaPage() {
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className='mr-2 h-4 w-4' /> Add Persona Config
+              <Plus className='h-4 w-4' /> Add Persona Config
             </Button>
           </DialogTrigger>
           <DialogContent className='max-w-3xl max-h-[90vh]'>
+            <DialogTitle className='sr-only'>Create New Persona Configuration</DialogTitle>
+            <DialogDescription className='sr-only'>
+              Define a new set of persona traits to generate synthetic customer personas.
+            </DialogDescription>
             <PersonaConfigForm
               projectId={projectId}
               onSuccess={handleFormSuccess}
@@ -158,6 +183,10 @@ export default function PersonaPage() {
         onOpenChange={(open) => !open && setEditingConfigId(null)}
       >
         <DialogContent className='max-w-3xl max-h-[90vh]'>
+          <DialogTitle className='sr-only'>Edit Persona Configuration</DialogTitle>
+          <DialogDescription className='sr-only'>
+            Edit the existing persona configuration settings.
+          </DialogDescription>
           {editingConfigId && (
             <PersonaConfigForm
               projectId={projectId}
@@ -170,8 +199,11 @@ export default function PersonaPage() {
       </Dialog>
 
       {isLoading ? (
-        <div className='flex justify-center py-12'>
-          <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary'></div>
+        <div className='space-y-4'>
+          {/* Show 3 skeleton items while loading */}
+          <PersonaConfigSkeleton />
+          <PersonaConfigSkeleton />
+          <PersonaConfigSkeleton />
         </div>
       ) : configs.length === 0 ? (
         <div className='bg-muted/20 rounded-xl p-8 text-center'>
@@ -219,16 +251,11 @@ function PersonaConfigItem({
   onEdit: () => void;
 }) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Close both dropdown menus when opening delete confirmation
-    setMobileMenuOpen(false);
-    setDesktopMenuOpen(false);
     setIsDeleteDialogOpen(true);
   };
 
@@ -246,18 +273,18 @@ function PersonaConfigItem({
     <div className='group flex flex-col md:flex-row md:items-center gap-4 md:gap-6 p-4 rounded-xl border bg-card hover:bg-accent/5 transition-colors'>
       {/* Icon Section - Different icon based on type */}
       <div
-        className={`flex items-center justify-center w-12 h-12 rounded-full ${
+        className={`flex items-center justify-center w-12 h-12 ml-2 rounded-full ${
           config.type === 'preset'
-            ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
-            : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
+            ? 'bg-primary-100 text-primary-600 dark:bg-primary-950 dark:text-primary-400'
+            : 'bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400'
         }`}
       >
-        {config.type === 'preset' ? <Users className='h-6 w-6' /> : <User className='h-6 w-6' />}
+        <Users className='h-6 w-6' />
       </div>
 
       {/* Content Section */}
       <div className='flex-1'>
-        <div className='flex items-start gap-2'>
+        <div className='flex items-center gap-2'>
           <h3 className='text-lg font-semibold'>{config.name}</h3>
           <Badge variant={config.type === 'preset' ? 'secondary' : 'outline'} className='text-xs'>
             {config.type === 'preset' ? 'Preset' : 'Custom'}
@@ -276,63 +303,24 @@ function PersonaConfigItem({
         </div>
       </div>
 
-      {/* Actions Section */}
+      {/* Actions Section - Simplified */}
       <div className='flex items-center space-x-2 self-end md:self-center'>
-        <Button variant='outline' size='sm' className='hidden md:flex' onClick={onEdit}>
+        {/* Edit Button */}
+        <Button variant='outline' size='sm' onClick={onEdit}>
           <Edit className='h-4 w-4 mr-1.5' />
           <span>Edit</span>
         </Button>
 
-        <Button variant='default' size='sm' className='hidden md:flex'>
-          <ArrowRight className='h-4 w-4 mr-1.5' />
-          <span>View</span>
+        {/* Delete Button */}
+        <Button
+          variant='outline'
+          size='sm'
+          className='text-destructive hover:bg-destructive hover:text-white'
+          onClick={handleDeleteClick}
+        >
+          <Trash2 className='h-4 w-4 mr-1.5' />
+          <span>Delete</span>
         </Button>
-
-        {/* Mobile actions */}
-        <DropdownMenu open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='icon' className='md:hidden'>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onEdit}>
-              <Edit className='h-4 w-4 mr-1.5' />
-              Edit Configuration
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <ArrowRight className='h-4 w-4 mr-1.5' />
-              View Personas
-            </DropdownMenuItem>
-            <DropdownMenuItem className='text-destructive' onClick={handleDeleteClick}>
-              <Trash2 className='h-4 w-4 mr-1.5' />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu open={desktopMenuOpen} onOpenChange={setDesktopMenuOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='icon' className='hidden md:flex'>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuLabel>More Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Settings className='h-4 w-4 mr-1.5' />
-              Configure Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className='text-destructive' onClick={handleDeleteClick}>
-              <Trash2 className='h-4 w-4 mr-1.5' />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         {/* Delete confirmation dialog using AlertDialog */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -353,8 +341,8 @@ function PersonaConfigItem({
               >
                 {isDeleting ? (
                   <>
-                    <div className='animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full' />
-                    <span>Deleting...</span>
+                    <Spinner size='sm' />
+                    <span className='ml-2'>Deleting...</span>
                   </>
                 ) : (
                   'Delete'
