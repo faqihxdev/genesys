@@ -10,7 +10,7 @@ interface SpinnerProps extends HTMLAttributes<HTMLDivElement> {
    * The size of the spinner
    * @default 'default'
    */
-  size?: 'sm' | 'default' | 'lg';
+  size?: 'xs' | 'sm' | 'default' | 'lg';
 
   /**
    * Whether to show the loading text
@@ -43,6 +43,7 @@ export function Spinner({
   ...props
 }: SpinnerProps) {
   const sizeClasses = {
+    xs: 'h-2 w-2',
     sm: 'h-3 w-3',
     default: 'h-4 w-4',
     lg: 'h-6 w-6',

@@ -12,7 +12,12 @@ import useHydration from '@/hooks/use-hydration';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
-import { createPersonaConfig, getPersonaConfigById, updatePersonaConfig } from '@/server/persona';
+import {
+  createPersonaConfig,
+  getPersonaConfigById,
+  shouldRegeneratePersonas,
+  updatePersonaConfig,
+} from '@/server/persona';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -22,7 +27,7 @@ import { FormData, TraitsConfigurationSection } from './_traits-config';
 interface PersonaConfigFormProps {
   projectId: string;
   configId?: string; // Optional - if provided, we're editing an existing config
-  onSuccess: () => void;
+  onSuccess: (configId: string, needsRegeneration: boolean) => void;
   onCancel: () => void;
 }
 
@@ -339,31 +344,68 @@ export default function PersonaConfigForm({
       return;
     }
 
-    // Generate final traits config based on auto/custom settings
-    const finalTraitsConfig = generateFinalTraitsConfig(data.traitsConfig, defaultTraitsConfig);
+    setIsSubmitting(true);
 
-    // Prepare the data for submission, ensuring size is a number
+    // Convert form data to proper database structure
     const configData = {
       name: data.name,
-      description: data.description,
-      size: Number(data.size), // Convert to number
-      constraints: data.constraints,
-      traitsConfig: finalTraitsConfig,
+      description: data.description || '',
+      size: data.size,
+      constraints: data.constraints || '',
+      traitsConfig: generateFinalTraitsConfig(data.traitsConfig),
     };
 
-    // Submit to the server using the appropriate server action
     const saveConfig = async () => {
-      setIsSubmitting(true);
       try {
-        let result;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let result: any; // Use any for now to avoid complex typing issues
         let isCreate = false;
+        let needsRegeneration = false;
 
         if (isEditMode && configId) {
-          // Update existing config
+          // Check if we need to regenerate personas based on changes for an existing config
+          if (existingConfig) {
+            // Only check if regeneration is needed when updating
+            try {
+              const shouldRegenResult = await shouldRegeneratePersonas({
+                oldConfigId: configId,
+                newConfig: {
+                  id: configId,
+                  size: configData.size,
+                  constraints: configData.constraints,
+                  traitsConfig: configData.traitsConfig,
+                },
+              });
+
+              // Make sure we're getting a proper boolean result
+              if (typeof shouldRegenResult === 'object' && 'error' in shouldRegenResult) {
+                console.error(
+                  '[PersonaConfigForm]: Error from shouldRegeneratePersonas:',
+                  shouldRegenResult.error
+                );
+                needsRegeneration = true; // Default to regenerating on error
+              } else {
+                needsRegeneration = Boolean(shouldRegenResult);
+                console.log('[PersonaConfigForm]: Regeneration needed:', needsRegeneration);
+              }
+            } catch (error) {
+              console.error('[PersonaConfigForm]: Error checking regeneration status:', error);
+              // If there's an error, default to regenerating
+              needsRegeneration = true;
+            }
+          }
+
+          // Update existing config - make sure to pass ALL properties
           result = await updatePersonaConfig({
             id: configId,
-            ...configData,
+            name: configData.name,
+            description: configData.description,
+            size: configData.size,
+            constraints: configData.constraints,
+            traitsConfig: configData.traitsConfig,
           });
+
+          console.log('[PersonaConfigForm]: Update result:', result);
         } else {
           // Create new config
           isCreate = true;
@@ -372,6 +414,9 @@ export default function PersonaConfigForm({
             type: 'custom' as const,
             ...configData,
           });
+
+          // New configs always need persona generation
+          needsRegeneration = true;
         }
 
         if ('error' in result && result.error) {
@@ -397,12 +442,23 @@ export default function PersonaConfigForm({
           queryKey: queryKey.persona.getPersonaConfigsByProject({ projectId }),
         });
 
-        // If we created a new config, we may need its ID for further operations
-        if (isCreate && 'id' in result) {
-          // New config created successfully, but we don't need the ID right now
-        }
+        toast({
+          title: isCreate ? 'Created' : 'Updated',
+          description: isCreate
+            ? 'Persona configuration created successfully.'
+            : 'Persona configuration updated successfully.',
+        });
 
-        onSuccess();
+        // Get the config ID to pass back to the parent
+        const configIdToUse = isCreate && result.id ? result.id : configId;
+
+        console.log(
+          '[PersonaConfigForm]: Success - calling onSuccess with:',
+          configIdToUse,
+          needsRegeneration
+        );
+        // Let the parent component know if persona generation is needed
+        onSuccess(configIdToUse || '', needsRegeneration);
       } catch (error) {
         console.error('[PersonaConfigForm]: Failed to save persona configuration:', error);
         toast({
@@ -421,15 +477,15 @@ export default function PersonaConfigForm({
   /**
    * @description Generates the final traits configuration based on auto/custom settings
    * @param formTraitsConfig - The form traits configuration with auto flags
-   * @param defaultConfig - The default traits configuration
    * @returns The final traits configuration
    */
-  const generateFinalTraitsConfig = (
-    formTraitsConfig: Record<string, unknown>,
-    defaultConfig: TraitsConfig
-  ): TraitsConfig => {
+  const generateFinalTraitsConfig = (formTraitsConfig: Record<string, unknown>): TraitsConfig => {
+    if (!defaultTraitsConfig) {
+      throw new Error('Default traits configuration is not loaded');
+    }
+
     // Create a deep copy of the default config to avoid mutations
-    const finalConfig = JSON.parse(JSON.stringify(defaultConfig)) as TraitsConfig;
+    const finalConfig = JSON.parse(JSON.stringify(defaultTraitsConfig)) as TraitsConfig;
 
     // Helper function to process each section of the configuration
     const processSection = (
@@ -514,7 +570,7 @@ export default function PersonaConfigForm({
         if (formSection.auto === false) {
           processSection(
             formSection,
-            defaultConfig[section as keyof TraitsConfig] as Record<string, unknown>,
+            defaultTraitsConfig[section as keyof TraitsConfig] as Record<string, unknown>,
             finalConfig[section as keyof TraitsConfig] as Record<string, unknown>
           );
         }
