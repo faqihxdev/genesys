@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
         .from('queue_tasks')
         .select('*')
         .eq('queue_name', 'simulation_tasks')
-        .eq('status', 'pending')
+        .eq('queue_task_status', 'pending')
         .lt('visible_after', new Date().toISOString())
         .limit(1);
 
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
       const { error: updateError } = await supabase
         .from('queue_tasks')
         .update({
-          status: 'processing',
+          queue_task_status: 'processing',
           processing_started_at: new Date().toISOString(),
           visible_after: visibleAfter.toISOString(),
         })
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       const { error: completeError } = await supabase
         .from('queue_tasks')
         .update({
-          status: 'completed',
+          queue_task_status: 'completed',
           processing_completed_at: new Date().toISOString(),
         })
         .eq('id', taskId);
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
           const { error: failError } = await supabase
             .from('queue_tasks')
             .update({
-              status: 'failed',
+              queue_task_status: 'failed',
               error_message: errorMessage,
               error_details: {
                 message: errorMessage,
@@ -226,7 +226,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Update the simulation status to indicate progress
     const { error: updateError } = await supabase
       .from('simulations')
-      .update({ status: 'processing' })
+      .update({ simulation_status: 'processing' })
       .eq('id', chunk.simulationId);
 
     if (updateError) {
@@ -236,7 +236,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Step 1: Get the simulation data and parameters
     const { data: simulationData, error: simulationError } = await supabase
       .from('simulations')
-      .select('*, funnel:funnelId(*), personaConfig:personaConfigId(*)')
+      .select('*, funnel:funnel_id(*), personaConfig:persona_config_id(*)')
       .eq('id', chunk.simulationId)
       .single();
 
@@ -247,8 +247,8 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     }
 
     // Parse simulation parameters if they exist
-    const parameters = simulationData.parametersJson
-      ? JSON.parse(simulationData.parametersJson)
+    const parameters = simulationData.parameters_json
+      ? JSON.parse(simulationData.parameters_json)
       : undefined;
 
     // Step 2: Get the persona data
@@ -275,9 +275,9 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
 
     const { data: simulationStageData, error: simulationStageError } = await supabase
       .from('simulation_stages')
-      .select('*')
-      .eq('simulationId', chunk.simulationId)
-      .eq('stageId', chunk.stageId)
+      .select('*, complete_count')
+      .eq('simulation_id', chunk.simulationId)
+      .eq('stage_id', chunk.stageId)
       .single();
 
     if (simulationStageError || !simulationStageData) {
@@ -289,9 +289,9 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Update the stage status to processing
     const { error: updateStageError } = await supabase
       .from('simulation_stages')
-      .update({ status: 'processing' })
-      .eq('simulationId', chunk.simulationId)
-      .eq('stageId', chunk.stageId);
+      .update({ simulation_stage_status: 'processing' })
+      .eq('simulation_id', chunk.simulationId)
+      .eq('stage_id', chunk.stageId);
 
     if (updateStageError) {
       throw new Error(`Failed to update stage status: ${updateStageError.message}`);
@@ -301,8 +301,8 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     const { data: stageItems, error: stageItemsError } = await supabase
       .from('stage_items')
       .select('*')
-      .eq('stageId', chunk.stageId)
-      .order('createdAt', { ascending: true });
+      .eq('stage_id', chunk.stageId)
+      .order('created_at', { ascending: true });
 
     if (stageItemsError || !stageItems || stageItems.length === 0) {
       throw new Error(
@@ -322,15 +322,15 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // First, store the stage-level response (proceed decision)
     const { error: responseStageError } = await supabase.from('response_stages').insert({
       id: generateId({ length: 13, prefix: 'rst-' }), // Use generateId with length 13 and 'rst-' prefix
-      simulationId: chunk.simulationId,
-      personaId: chunk.personaId,
-      stageId: chunk.stageId,
+      simulation_id: chunk.simulationId,
+      persona_id: chunk.personaId,
+      stage_id: chunk.stageId,
       proceed: simulationResponse.proceedDecision.proceed,
-      proceedReason: simulationResponse.proceedDecision.reason,
+      proceed_reason: simulationResponse.proceedDecision.reason,
       // If proceed is true, find the next stage ID from stage links
-      // If proceed is false, leave nextStageId as null
-      nextStageId: simulationResponse.proceedDecision.proceed
-        ? await findNextStageId(chunk.simulationId, chunk.stageId)
+      // If proceed is false, leave next_stage_id as null
+      next_stage_id: simulationResponse.proceedDecision.proceed
+        ? await findNextStageId(chunk.simulationId, chunk.stageId, chunk.personaId)
         : null,
     });
 
@@ -345,10 +345,10 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
 
       const { error: responseError } = await supabase.from('responses').insert({
         id: generateId({ length: 13, prefix: 'res-' }), // Use generateId with length 13 and 'res-' prefix
-        simulationId: chunk.simulationId,
-        personaId: chunk.personaId,
-        stageId: chunk.stageId,
-        stageItemId: itemResponse.itemId, // Note: the column is called stageItemId in the schema
+        simulation_id: chunk.simulationId,
+        persona_id: chunk.personaId,
+        stage_id: chunk.stageId,
+        stage_item_id: itemResponse.itemId, // Note: the column is called stage_item_id in the schema
         response: itemResponse.response,
         sentiment: sentimentValue,
       });
@@ -361,9 +361,13 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Step 7: Update simulation stage status to complete
     const { error: completeStageError } = await supabase
       .from('simulation_stages')
-      .update({ status: 'complete' })
-      .eq('simulationId', chunk.simulationId)
-      .eq('stageId', chunk.stageId);
+      .update({
+        simulation_stage_status: 'complete',
+        // Increment the complete_count by 1 for this stage
+        complete_count: simulationStageData.complete_count + 1,
+      })
+      .eq('simulation_id', chunk.simulationId)
+      .eq('stage_id', chunk.stageId);
 
     if (completeStageError) {
       throw new Error(`Failed to update stage status to complete: ${completeStageError.message}`);
@@ -371,7 +375,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
 
     // Step 8: If persona proceeds, queue the next stage
     if (simulationResponse.proceedDecision.proceed) {
-      const nextStageId = await findNextStageId(chunk.simulationId, chunk.stageId);
+      const nextStageId = await findNextStageId(chunk.simulationId, chunk.stageId, chunk.personaId);
 
       if (nextStageId) {
         // Queue the next stage for processing
@@ -384,7 +388,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
             stageId: nextStageId,
             chunkId: `${chunk.simulationId}-${chunk.personaId}-${nextStageId}`,
           }),
-          status: 'pending',
+          queue_task_status: 'pending',
           visible_after: new Date().toISOString(),
         });
 
@@ -412,9 +416,9 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Update the stage status to error
     await supabase
       .from('simulation_stages')
-      .update({ status: 'error' })
-      .eq('simulationId', chunk.simulationId)
-      .eq('stageId', chunk.stageId);
+      .update({ simulation_stage_status: 'error' })
+      .eq('simulation_id', chunk.simulationId)
+      .eq('stage_id', chunk.stageId);
 
     // Save error details to dead letter queue
     await supabase.from('queue_tasks').insert({
@@ -428,7 +432,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
           time: new Date().toISOString(),
         },
       }),
-      status: 'pending',
+      queue_task_status: 'pending',
       visible_after: new Date().toISOString(),
     });
 
@@ -743,13 +747,14 @@ You must respond using the tools provided, with no additional commentary.`;
  */
 async function findNextStageId(
   simulationId: string,
-  currentStageId: string
+  currentStageId: string,
+  personaId?: string
 ): Promise<string | null> {
   try {
     // Get the funnel ID first to scope our search
     const { data: simulationData, error: simulationError } = await supabase
       .from('simulations')
-      .select('funnelId')
+      .select('funnel_id')
       .eq('id', simulationId)
       .single();
 
@@ -761,20 +766,225 @@ async function findNextStageId(
     // Get stage links for this funnel with the current stage as the source
     const { data: stageLinks, error: stageLinksError } = await supabase
       .from('stage_links')
-      .select('toStageId')
-      .eq('funnelId', simulationData.funnelId)
-      .eq('fromStageId', currentStageId);
+      .select('to_stage_id')
+      .eq('funnel_id', simulationData.funnel_id)
+      .eq('from_stage_id', currentStageId);
 
     if (stageLinksError || !stageLinks || stageLinks.length === 0) {
       return null;
     }
 
-    // If there are multiple possible next stages, choose one
-    // In a more advanced implementation, we could use OpenAI to decide which path to take
-    // For now, just take the first one
-    return stageLinks[0].toStageId;
+    // If there's only one next stage, return it
+    if (stageLinks.length === 1) {
+      return stageLinks[0].to_stage_id;
+    }
+
+    // If there are multiple possible next stages and we have a personaId, ask the persona to choose
+    if (stageLinks.length > 1 && personaId) {
+      return await askPersonaForNextStage(
+        simulationId,
+        personaId,
+        currentStageId,
+        stageLinks.map((link: { to_stage_id: string }) => link.to_stage_id)
+      );
+    }
+
+    // Fallback: If we don't have a personaId or can't get a response, just take the first one
+    return stageLinks[0].to_stage_id;
   } catch (error) {
     console.error('Error finding next stage:', error);
+    return null;
+  }
+}
+
+/**
+ * Ask the persona to choose which next stage they would prefer to proceed to
+ * @param simulationId - The ID of the simulation
+ * @param personaId - The ID of the persona making the choice
+ * @param currentStageId - The ID of the current stage
+ * @param nextStageIds - Array of possible next stage IDs
+ * @returns The chosen next stage ID or null if the choice couldn't be made
+ */
+async function askPersonaForNextStage(
+  simulationId: string,
+  personaId: string,
+  currentStageId: string,
+  nextStageIds: string[]
+): Promise<string | null> {
+  try {
+    console.log(`Asking persona ${personaId} to choose next stage from options:`, nextStageIds);
+
+    // Get the persona data
+    const { data: persona, error: personaError } = await supabase
+      .from('personas')
+      .select('*')
+      .eq('id', personaId)
+      .single();
+
+    if (personaError || !persona) {
+      console.error('Error getting persona:', personaError);
+      return null;
+    }
+
+    // Get the current stage data
+    const { data: currentStage, error: currentStageError } = await supabase
+      .from('stages')
+      .select('*')
+      .eq('id', currentStageId)
+      .single();
+
+    if (currentStageError || !currentStage) {
+      console.error('Error getting current stage:', currentStageError);
+      return null;
+    }
+
+    // Get data for all potential next stages
+    const { data: nextStages, error: nextStagesError } = await supabase
+      .from('stages')
+      .select('*')
+      .in('id', nextStageIds);
+
+    if (nextStagesError || !nextStages || nextStages.length === 0) {
+      console.error('Error getting next stages:', nextStagesError);
+      return null;
+    }
+
+    // Format the persona for prompt
+    const personaPrompt = formatPersonaForPrompt(persona);
+
+    // Format the next stage options
+    const nextStagesPrompt = nextStages
+      .map(
+        (stage: { id: string; name: string; description?: string }) =>
+          `STAGE OPTION:
+ID: ${stage.id}
+Name: ${stage.name}
+Description: ${stage.description || 'No description provided'}
+`
+      )
+      .join('\n\n');
+
+    // Create the user prompt
+    const userPrompt = `Based on your characteristics and preferences, please choose which of the following stages you would prefer to proceed to next:
+    
+${personaPrompt}
+
+You have just completed this stage:
+Name: ${currentStage.name}
+Description: ${currentStage.description || 'No description provided'}
+
+Please choose from these options:
+${nextStagesPrompt}
+
+Select the stage that best matches your preferences and explain your choice.`;
+
+    // Setup retries for reliability
+    let attempt = 0;
+    const maxAttempts = 3;
+    let chosenStageId: string | null = null;
+
+    while (attempt < maxAttempts && !chosenStageId) {
+      try {
+        attempt++;
+
+        if (attempt > 1) {
+          // Add exponential backoff for retries
+          await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+          console.log(`Retry attempt ${attempt} for persona choice ${personaId}`);
+        }
+
+        // Call OpenAI API with tool calls for structured output
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini', // Using same model as main persona responses
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are simulating the decision-making process of a specific persona navigating through a marketing funnel. Your task is to choose which next stage the persona would prefer to proceed to based on their characteristics and preferences.',
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+          tools: [
+            {
+              type: 'function',
+              function: {
+                name: 'choose_next_stage',
+                description: 'Choose which stage the persona would prefer to proceed to next',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    chosenStageId: {
+                      type: 'string',
+                      description: 'ID of the chosen next stage',
+                    },
+                    reason: {
+                      type: 'string',
+                      description: 'The reason for choosing this stage',
+                    },
+                  },
+                  required: ['chosenStageId', 'reason'],
+                },
+              },
+            },
+          ],
+          tool_choice: { type: 'function', function: { name: 'choose_next_stage' } },
+          temperature: 0.7,
+          max_tokens: 1024,
+        });
+
+        // Increment OpenAI call count
+        openaiCallCount++;
+
+        // Extract the tool call from the response
+        const toolCall = completion.choices[0].message.tool_calls?.[0];
+
+        if (!toolCall) {
+          throw new Error('No tool call in response');
+        }
+
+        // Parse the tool call arguments
+        const args = JSON.parse(toolCall.function.arguments);
+
+        // Validate that the chosen stage ID is one of the options
+        if (!nextStageIds.includes(args.chosenStageId)) {
+          console.error('Chosen stage ID is not in the provided options', {
+            chosenStageId: args.chosenStageId,
+            options: nextStageIds,
+          });
+
+          // Try to find a close match (in case of formatting issues)
+          const closestMatch = nextStageIds.find(
+            (id) => args.chosenStageId.includes(id) || id.includes(args.chosenStageId)
+          );
+
+          if (closestMatch) {
+            chosenStageId = closestMatch;
+            console.log(`Fixed stage ID to closest match: ${closestMatch}`);
+          } else {
+            throw new Error('Invalid stage ID choice');
+          }
+        } else {
+          chosenStageId = args.chosenStageId;
+        }
+
+        // Log the choice and reason
+        console.log(`Persona ${personaId} chose stage ${chosenStageId}: ${args.reason}`);
+      } catch (apiError) {
+        console.error('API Error:', apiError);
+
+        // Only throw if this was the last attempt
+        if (attempt >= maxAttempts) {
+          throw apiError;
+        }
+      }
+    }
+
+    return chosenStageId;
+  } catch (error) {
+    console.error('Error asking persona for next stage choice:', error);
     return null;
   }
 }
@@ -785,11 +995,13 @@ async function findNextStageId(
  */
 async function updateSimulationProgress(simulationId: string): Promise<void> {
   try {
-    // Count total completed responses
+    // Count personas that have completed their journey (either dropped off or reached the end)
+    // This means counting response_stages where next_stage_id is NULL
     const { count: completeCount, error: countError } = await supabase
       .from('response_stages')
       .select('*', { count: 'exact', head: true })
-      .eq('simulationId', simulationId);
+      .eq('simulation_id', simulationId)
+      .is('next_stage_id', null); // Only count responses where next_stage_id is NULL (persona journey is complete)
 
     if (countError) {
       throw new Error(`Failed to count completed responses: ${countError.message}`);
@@ -798,7 +1010,7 @@ async function updateSimulationProgress(simulationId: string): Promise<void> {
     // Get the simulation data with the correct fields
     const { data: simulationData, error: simulationError } = await supabase
       .from('simulations')
-      .select('totalCount, status')
+      .select('total_count, simulation_status')
       .eq('id', simulationId)
       .single();
 
@@ -806,20 +1018,23 @@ async function updateSimulationProgress(simulationId: string): Promise<void> {
       throw new Error(`Failed to get simulation data: ${simulationError?.message || 'No data'}`);
     }
 
-    // Update the completeCount field
+    // Update the complete_count field
     await supabase
       .from('simulations')
-      .update({ completeCount: completeCount || 0 })
+      .update({ complete_count: completeCount || 0 })
       .eq('id', simulationId);
 
     // Check if simulation is complete
     if (
-      completeCount === simulationData.totalCount &&
-      simulationData.status !== 'complete' &&
-      simulationData.status !== 'error'
+      completeCount === simulationData.total_count &&
+      simulationData.simulation_status !== 'complete' &&
+      simulationData.simulation_status !== 'error'
     ) {
       // All responses are done, mark simulation as complete
-      await supabase.from('simulations').update({ status: 'complete' }).eq('id', simulationId);
+      await supabase
+        .from('simulations')
+        .update({ simulation_status: 'complete' })
+        .eq('id', simulationId);
 
       console.log(`Simulation ${simulationId} completed successfully!`);
     }

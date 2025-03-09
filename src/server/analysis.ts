@@ -19,7 +19,7 @@ import {
   summaryStages,
 } from '@/db/schema';
 import env from '@/env';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -355,7 +355,12 @@ export const generateSimulationSummary = createAction({
         async ([stageId, responses]) => {
           const stageSentiment =
             responses.reduce((acc, r) => acc + Number(r.sentiment), 0) / responses.length;
-          const stageConversionRate = responses.filter((r) => r.proceed).length / responses.length;
+
+          // Calculate stage conversion rate based on proceed=true in response_stages
+          // This represents the percentage of personas who decided to proceed from this stage
+          const stageConversionRate =
+            responses.filter((r: ResponseWithDetails) => r.proceed === true).length /
+            responses.length;
 
           // Get all item summaries for this stage
           const stageItemSummaries = itemSummaries
@@ -404,7 +409,41 @@ export const generateSimulationSummary = createAction({
       const overallSentiment =
         simulationResponses.reduce((acc, r) => acc + Number(r.sentiment), 0) /
         simulationResponses.length;
-      const conversionRate = simulation.completeCount / simulationResponses.length;
+
+      // Get all stage links to identify the last stages (those with no outgoing links)
+      const allStageLinks = await tx
+        .select({
+          fromStageId: stageLinks.fromStageId,
+          toStageId: stageLinks.toStageId,
+        })
+        .from(stageLinks)
+        .where(eq(stageLinks.funnelId, simulation.funnelId));
+
+      // Identify the last stages (those that don't appear as fromStageId in any link)
+      const allFromStageIds = new Set(allStageLinks.map((link) => link.fromStageId));
+      const allStageIds = new Set([
+        ...allStageLinks.map((link) => link.fromStageId),
+        ...allStageLinks.map((link) => link.toStageId),
+      ]);
+      const lastStageIds = Array.from(allStageIds).filter(
+        (stageId) => !allFromStageIds.has(stageId)
+      );
+
+      // Count personas who reached the last stage(s) and proceeded (true conversion)
+      const successfulCompletions = await tx
+        .select({ count: sql<number>`count(DISTINCT ${responseStages.personaId})` })
+        .from(responseStages)
+        .where(
+          and(
+            eq(responseStages.simulationId, input.simulationId),
+            inArray(responseStages.stageId, lastStageIds),
+            eq(responseStages.proceed, true)
+          )
+        )
+        .then((result) => result[0]?.count || 0);
+
+      // Calculate the true end-to-end conversion rate
+      const conversionRate = successfulCompletions / simulation.totalCount;
 
       const overallAnalysis = await generateOpenAISummary({
         responses: simulationResponses,
@@ -690,7 +729,7 @@ export const getSimulationAnalysis = createAction({
       },
     ];
 
-    // Generate Sankey nodes: use simulation_stages.completedCount as incoming value for each stage
+    // Generate Sankey nodes: use simulation_stages.complete_count as incoming value for each stage
     const nodes = analysisStages.map((stage) => ({
       id: stage.stage.id,
       name: stage.stage.name,
@@ -722,6 +761,7 @@ export const getSimulationAnalysis = createAction({
 
       if (childStages.length > 0) {
         // For stages with children, use the stage's completion count * conversion rate
+        // This represents personas who proceeded to the next stage
         const proceedingValue = stageCompletionCount * conversionRate;
 
         // Distribute the proceeding value among child stages proportionally

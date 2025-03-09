@@ -248,6 +248,12 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
     [toast]
   );
 
+  // Copy entire data object
+  const handleCopyEntireData = useCallback(() => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    toast({ title: 'Copied entire object', duration: 1500 });
+  }, [data, toast]);
+
   return (
     <div className='fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2'>
       <Button
@@ -272,7 +278,22 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className='h-6 text-xs placeholder:text-xs border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20'
             />
-            <Button variant='ghost' size='icon' className='h-6 w-6' onClick={handleDownload}>
+            <Button 
+              variant='ghost' 
+              size='icon' 
+              className='h-6 w-6' 
+              onClick={handleCopyEntireData}
+              title='Copy entire object'
+            >
+              <Copy className='h-3 w-3' />
+            </Button>
+            <Button 
+              variant='ghost' 
+              size='icon' 
+              className='h-6 w-6' 
+              onClick={handleDownload}
+              title='Download JSON'
+            >
               <Download className='h-3 w-3' />
             </Button>
           </div>
@@ -394,6 +415,43 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
                                 handleCopy(value);
                               }}
                               title='Copy value'
+                            >
+                              <Copy className='h-2.5 w-2.5' />
+                            </Button>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyPath(item.path);
+                              }}
+                              title='Copy path'
+                            >
+                              <Clipboard className='h-2.5 w-2.5' />
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {isObject && (
+                          <div
+                            className='flex items-center pr-2 min-w-0 gap-1'
+                            style={{
+                              ...(isRootProp && { paddingTop: '8px', paddingBottom: '8px' }),
+                            }}
+                          >
+                            <span className='text-[10px] px-1 rounded bg-muted/50 text-muted-foreground font-medium'>
+                              {getValueType(value)}
+                            </span>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-4 w-4 opacity-0 group-hover:opacity-100 flex-shrink-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(value);
+                              }}
+                              title='Copy object'
                             >
                               <Copy className='h-2.5 w-2.5' />
                             </Button>
