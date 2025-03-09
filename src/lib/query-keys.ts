@@ -53,4 +53,8 @@ export const queryKey = {
       ['persona', 'configs', projectId] as const,
     getPersonaConfigById: ({ id }: { id: string }) => ['persona', 'config', id] as const,
   },
+  funnel: {
+    all: (projectId: string) => ['funnels', projectId] as const,
+    detail: (funnelId: string) => ['funnel', funnelId] as const,
+  },
 } as const;

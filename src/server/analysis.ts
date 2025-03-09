@@ -7,6 +7,7 @@ import {
   funnels,
   personas,
   projects,
+  responseStages,
   responses,
   simulationStages,
   simulations,
@@ -18,7 +19,7 @@ import {
   summaryStages,
 } from '@/db/schema';
 import env from '@/env';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -216,8 +217,8 @@ export const generateSimulationSummary = createAction({
           stageItemId: responses.stageItemId,
           response: responses.response,
           sentiment: responses.sentiment,
-          proceed: responses.proceed,
-          proceedReason: responses.proceedReason,
+          proceed: responseStages.proceed,
+          proceedReason: responseStages.proceedReason,
           createdAt: responses.createdAt,
           updatedAt: responses.updatedAt,
           deletedAt: responses.deletedAt,
@@ -245,6 +246,14 @@ export const generateSimulationSummary = createAction({
         .innerJoin(stageItems, eq(responses.stageItemId, stageItems.id))
         .innerJoin(personas, eq(responses.personaId, personas.id))
         .innerJoin(simulations, eq(responses.simulationId, simulations.id))
+        .leftJoin(
+          responseStages,
+          and(
+            eq(responseStages.simulationId, responses.simulationId),
+            eq(responseStages.personaId, responses.personaId),
+            eq(responseStages.stageId, responses.stageId)
+          )
+        )
         .where(eq(responses.simulationId, input.simulationId))) as unknown as ResponseWithDetails[];
 
       if (simulationResponses.length === 0) {
@@ -260,9 +269,12 @@ export const generateSimulationSummary = createAction({
         .select({
           id: simulations.id,
           funnelId: simulations.funnelId,
-          personaConfigId: simulations.personaConfigId,
           status: simulations.status,
           completeCount: simulations.completeCount,
+          totalCount: simulations.totalCount,
+          parametersJson: simulations.parametersJson,
+          error: simulations.error,
+          createdAt: simulations.createdAt,
           funnel: {
             id: funnels.id,
             name: funnels.name,
@@ -431,8 +443,11 @@ export const generateSimulationSummary = createAction({
 interface SimulationQueryResult {
   id: string;
   funnelId: string;
-  status: 'idle' | 'processing' | 'complete' | 'error';
+  status: 'idle' | 'processing' | 'complete' | 'error' | 'cancelled';
   completeCount: number;
+  totalCount: number;
+  parametersJson: string | null;
+  error: string | null;
   createdAt: Date;
   funnel: {
     id: string;
@@ -501,6 +516,9 @@ export const getSimulationAnalysis = createAction({
         funnelId: simulations.funnelId,
         status: simulations.status,
         completeCount: simulations.completeCount,
+        totalCount: simulations.totalCount,
+        parametersJson: simulations.parametersJson,
+        error: simulations.error,
         createdAt: simulations.createdAt,
         funnel: {
           id: funnels.id,
@@ -781,14 +799,17 @@ export const getSimulationAnalysis = createAction({
 
     // Create the complete simulation object with all required properties
     const completeSimulation = {
-      id: simulationWithStages.id,
-      funnelId: simulationWithStages.funnelId,
-      status: simulationWithStages.status,
-      completeCount: simulationWithStages.completeCount,
-      createdAt: simulationWithStages.createdAt,
-      updatedAt: new Date(), // Set to current date as it's not in the query
-      deletedAt: null, // Set to null as it's not in the query
-      personaConfigId: 'default', // Set to default as it's not in the query
+      id: simulation.id,
+      funnelId: simulation.funnelId,
+      status: simulation.status,
+      completeCount: simulation.completeCount,
+      totalCount: simulation.totalCount,
+      parametersJson: simulation.parametersJson,
+      error: simulation.error,
+      createdAt: simulation.createdAt,
+      updatedAt: new Date(),
+      deletedAt: null,
+      personaConfigId: '',
     };
 
     // Create the complete funnel object with all required properties
@@ -796,10 +817,10 @@ export const getSimulationAnalysis = createAction({
       id: simulationWithStages.funnel.id,
       name: simulationWithStages.funnel.name,
       description: null,
-      projectId: 'default', // Set to default as it's not in the query
-      createdAt: new Date(), // Set to current date as it's not in the query
-      updatedAt: new Date(), // Set to current date as it's not in the query
-      deletedAt: null, // Set to null as it's not in the query
+      projectId: 'default',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      deletedAt: null,
     };
 
     const analysis: FunnelAnalysis = {
