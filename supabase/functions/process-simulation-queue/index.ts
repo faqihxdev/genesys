@@ -92,9 +92,32 @@ Deno.serve(async (req) => {
 
       const task = tasks[0];
       taskId = task.id; // Assign to the variable in the outer scope
-      const message = task.payload as SimulationChunkMessage;
 
-      console.log(`Processing task ${taskId} for simulation ${message.simulationId}`);
+      // Parse the payload - it's stored as a JSON string in the database
+      let message: SimulationChunkMessage;
+      try {
+        // If the payload is already a string, parse it
+        if (typeof task.payload === 'string') {
+          message = JSON.parse(task.payload);
+          console.log(`Parsed string payload for task ${taskId}`);
+        }
+        // If the payload is already an object (due to automatic parsing)
+        else {
+          message = task.payload as SimulationChunkMessage;
+          console.log(`Using object payload for task ${taskId}`);
+        }
+
+        // Validate the message has required fields
+        if (!message.simulationId || !message.personaId || !message.stageId) {
+          console.error(`Invalid payload structure for task ${taskId}:`, message);
+          throw new Error(`Invalid payload structure: missing required fields`);
+        }
+      } catch (parseError) {
+        console.error(`Failed to parse payload for task ${taskId}:`, task.payload);
+        throw new Error(
+          `Failed to parse task payload: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+        );
+      }
 
       // Mark task as processing to prevent other workers from picking it up
       // Set visibility timeout to 5 minutes
@@ -129,12 +152,6 @@ Deno.serve(async (req) => {
       if (completeError) {
         throw new Error(`Failed to mark task as completed: ${completeError.message}`);
       }
-
-      // Log the total processing time and OpenAI call count
-      const totalProcessingTime = Date.now() - processingStartTime;
-      console.log(
-        `Completed processing task in ${totalProcessingTime}ms with ${openaiCallCount} OpenAI API calls`
-      );
 
       // Reset counter for next run
       openaiCallCount = 0;
@@ -359,6 +376,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
       if (nextStageId) {
         // Queue the next stage for processing
         const { error: queueError } = await supabase.from('queue_tasks').insert({
+          id: generateId({ length: 13, prefix: 'task-' }), // Add ID field with task- prefix
           queue_name: 'simulation_tasks',
           payload: JSON.stringify({
             simulationId: chunk.simulationId,
@@ -383,6 +401,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Step 9: Update simulation counts and check if simulation is complete
     await updateSimulationProgress(chunk.simulationId);
 
+    // Keep the success log
     console.log(
       `Successfully processed chunk ${chunk.chunkId} for simulation ${chunk.simulationId}`
     );
@@ -399,6 +418,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
 
     // Save error details to dead letter queue
     await supabase.from('queue_tasks').insert({
+      id: generateId({ length: 13, prefix: 'task-' }), // Add ID field with task- prefix
       queue_name: 'simulation_failed_tasks',
       payload: JSON.stringify({
         chunk,
@@ -441,12 +461,7 @@ async function generatePersonaResponse(
     // Create system instructions based on parameters
     const systemInstructions = getSystemInstructions(parameters);
 
-    // Log the entire system prompt for debugging
-    console.log('=== SYSTEM PROMPT START ===');
-    console.log(systemInstructions);
-    console.log('=== SYSTEM PROMPT END ===');
-
-    // Log the user prompt
+    // Create the user prompt but don't log it
     const userPrompt = `Please simulate how this persona would interact with the following marketing funnel stage:
     
     ${personaPrompt}
@@ -454,10 +469,6 @@ async function generatePersonaResponse(
     ${stagePrompt}
     
     Respond with detailed item responses and a proceed decision.`;
-
-    console.log('=== USER PROMPT START ===');
-    console.log(userPrompt);
-    console.log('=== USER PROMPT END ===');
 
     // Setup retries for reliability
     let attempt = 0;
@@ -476,9 +487,6 @@ async function generatePersonaResponse(
           await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
           console.log(`Retry attempt ${attempt} for persona ${persona.id}, stage ${stage.id}`);
         }
-
-        // Record start time for OpenAI call
-        const openaiStartTime = Date.now();
 
         // Call OpenAI API with tool calls for structured output
         const completion = await openai.chat.completions.create({
@@ -555,19 +563,8 @@ async function generatePersonaResponse(
         // Increment OpenAI call count
         openaiCallCount++;
 
-        // Calculate and log OpenAI call time
-        const openaiCallTime = Date.now() - openaiStartTime;
-        console.log(
-          `OpenAI API call completed in ${openaiCallTime}ms for persona ${persona.id}, stage ${stage.id}`
-        );
-
         // Extract the tool call from the response
         const toolCall = completion.choices[0].message.tool_calls?.[0];
-
-        // Log the raw response for debugging
-        console.log('=== OPENAI RESPONSE START ===');
-        console.log(JSON.stringify(completion.choices[0].message, null, 2));
-        console.log('=== OPENAI RESPONSE END ===');
 
         if (!toolCall) {
           throw new Error('No tool call in response');
@@ -576,19 +573,9 @@ async function generatePersonaResponse(
         // Parse the tool call arguments
         const args = JSON.parse(toolCall.function.arguments);
 
-        // Log the parsed arguments
-        console.log('=== PARSED ARGUMENTS START ===');
-        console.log(JSON.stringify(args, null, 2));
-        console.log('=== PARSED ARGUMENTS END ===');
-
         // Validate that all items have responses
         const responseItemIds = args.itemResponses.map((r: any) => r.itemId);
         const stageItemIds = items.map((item) => item.id);
-
-        // Log item ID formats for comparison
-        console.log('=== ITEM ID FORMAT COMPARISON ===');
-        console.log('Stage item IDs:', stageItemIds);
-        console.log('Response item IDs:', responseItemIds);
 
         // Check if the response item IDs match the expected format
         const formatMismatch = responseItemIds.some((responseId: string) => {
@@ -607,8 +594,6 @@ async function generatePersonaResponse(
           );
 
           // Try to fix the item IDs by matching them to the closest stage item ID
-          console.log('Attempting to fix item ID format mismatches...');
-
           args.itemResponses.forEach((response: any) => {
             if (!stageItemIds.includes(response.itemId)) {
               // Find the closest matching stage item ID
@@ -617,15 +602,10 @@ async function generatePersonaResponse(
               );
 
               if (closestMatch) {
-                console.log(`Fixing item ID: "${response.itemId}" -> "${closestMatch}"`);
                 response.itemId = closestMatch;
               }
             }
           });
-
-          // Update the response item IDs after fixing
-          const fixedResponseItemIds = args.itemResponses.map((r: any) => r.itemId);
-          console.log('Fixed response item IDs:', fixedResponseItemIds);
         }
 
         // Re-check for missing items after potential fixes
@@ -713,17 +693,6 @@ Personality:
  * Format a stage for prompt
  */
 function formatStageForPrompt(stage: any, items: any[]): string {
-  // Log the items being included in the prompt
-  console.log(
-    `Formatting stage with ${items.length} items:`,
-    items.map((item) => item.id)
-  );
-
-  // Log the full item objects to see their structure
-  console.log('=== ITEMS STRUCTURE START ===');
-  console.log(JSON.stringify(items, null, 2));
-  console.log('=== ITEMS STRUCTURE END ===');
-
   const formattedItems = items
     .map(
       (item) => `Item ID: ${item.id}
@@ -797,7 +766,6 @@ async function findNextStageId(
       .eq('fromStageId', currentStageId);
 
     if (stageLinksError || !stageLinks || stageLinks.length === 0) {
-      console.log(`No next stage found for stage ${currentStageId}`);
       return null;
     }
 
