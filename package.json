@@ -92,6 +92,7 @@
     "eslint-plugin-react-compiler": "19.0.0-beta-714736e-20250131",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
+    "supabase": "^2.15.8",
     "typescript": "^5"
   }
 }

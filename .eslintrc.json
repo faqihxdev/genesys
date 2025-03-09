@@ -8,5 +8,5 @@
       }
     ]
   },
-  "ignorePatterns": ["prompt/**/*"]
+  "ignorePatterns": ["prompt/**/*", "supabase/functions/**/*"]
 }
