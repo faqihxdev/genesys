@@ -38,20 +38,20 @@ export interface SimulationParameters {
 export const simulations = pgTable(
   'simulations',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sim-' }))
       .primaryKey(),
-    funnelId: text() // FK: which funnel is this simulation for?
+    funnelId: text('funnel_id') // FK: which funnel is this simulation for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    personaConfigId: text() // FK: which persona config is this simulation for?
+    personaConfigId: text('persona_config_id') // FK: which persona config is this simulation for?
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
-    status: simulationStatusEnum().notNull().default('idle'), // status of the simulation
-    completeCount: integer().notNull().default(0), // Number of personas that completed the simulation
-    totalCount: integer().notNull().default(0), // Total number of personas in the simulation
-    parametersJson: text(), // JSON string of SimulationParameters
-    error: text(), // Error message if the simulation failed
+    status: simulationStatusEnum('simulation_status').notNull().default('idle'), // status of the simulation
+    completeCount: integer('complete_count').notNull().default(0), // Number of personas that completed the simulation
+    totalCount: integer('total_count').notNull().default(0), // Total number of personas in the simulation
+    parametersJson: text('parameters_json'), // JSON string of SimulationParameters
+    error: text('error'), // Error message if the simulation failed
     ...timestamps,
   },
   (table) => [
@@ -80,16 +80,15 @@ export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
 export const simulationStages = pgTable(
   'simulation_stages',
   {
-    simulationId: text()
+    simulationId: text('simulation_id')
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: text()
+    stageId: text('stage_id')
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    status: simulationStageStatusEnum().notNull().default('idle'),
-    completeCount: integer().notNull().default(0), // Number of personas that completed the stage
-    totalCount: integer().notNull().default(0), // Total number of personas expected to go through this stage
-    error: text(), // Error message if processing the stage failed
+    status: simulationStageStatusEnum('simulation_stage_status').notNull().default('idle'),
+    completeCount: integer('complete_count').notNull().default(0), // Number of personas that completed the stage
+    error: text('error'), // Error message if processing the stage failed
     ...timestamps,
   },
   (table) => [

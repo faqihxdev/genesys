@@ -7,11 +7,11 @@ import { ID_LENGTH, timestamps } from './_utils';
  * Stores email subscriptions with optional descriptions
  */
 export const mailingList = pgTable('mailing_list', {
-  id: text()
+  id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'mal-' }))
     .primaryKey(),
-  email: text().notNull().unique(), // Max email length according to RFC 5321
-  description: text(), // Optional description/notes about the subscriber
+  email: text('email').notNull().unique(), // Max email length according to RFC 5321
+  description: text('description'), // Optional description/notes about the subscriber
   ...timestamps,
 });
 

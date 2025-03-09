@@ -28,11 +28,11 @@ export const queueTaskStatusEnum = pgEnum('queue_task_status', [
 export const queueTasks = pgTable(
   'queue_tasks',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'task-' }))
       .primaryKey(),
     queueName: text('queue_name').notNull(), // Name of the queue (e.g., simulation_tasks)
-    status: queueTaskStatusEnum('status').notNull().default('pending'),
+    status: queueTaskStatusEnum('queue_task_status').notNull().default('pending'),
     payload: jsonb('payload').notNull(), // Task payload (depends on queue type)
     processingStartedAt: timestamp('processing_started_at'), // When task started processing
     processingCompletedAt: timestamp('processing_completed_at'), // When task finished processing

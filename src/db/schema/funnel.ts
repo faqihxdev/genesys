@@ -11,14 +11,14 @@ import { projects } from './project';
 export const funnels = pgTable(
   'funnels',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'fnl-' }))
       .primaryKey(),
-    projectId: text() // FK: which project is this funnel for?
+    projectId: text('project_id') // FK: which project is this funnel for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    name: text().notNull(), // user reference: name of the funnel
-    description: text(), // user reference: description of the funnel
+    name: text('name').notNull(), // user reference: name of the funnel
+    description: text('description'), // user reference: description of the funnel
     ...timestamps,
   },
   (table) => [
@@ -35,14 +35,14 @@ export const funnels = pgTable(
 export const stages = pgTable(
   'stages',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'stg-' }))
       .primaryKey(),
-    funnelId: text() // FK: which funnel is this stage for?
+    funnelId: text('funnel_id') // FK: which funnel is this stage for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    name: text().notNull(), // name of the stage
-    description: text(), // description of the stage
+    name: text('name').notNull(), // name of the stage
+    description: text('description'), // description of the stage
     ...timestamps,
   },
   (table) => [
@@ -59,16 +59,16 @@ export const stages = pgTable(
 export const stageLinks = pgTable(
   'stage_links',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sln-' }))
       .primaryKey(),
-    funnelId: text() // FK: which funnel is this relationship for?
+    funnelId: text('funnel_id') // FK: which funnel is this relationship for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    fromStageId: text() // FK: the parent (source) stage
+    fromStageId: text('from_stage_id') // FK: the parent (source) stage
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    toStageId: text() // FK: the child (target) stage
+    toStageId: text('to_stage_id') // FK: the child (target) stage
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
     ...timestamps,
@@ -93,16 +93,16 @@ export const stageItemTypeEnum = pgEnum('stage_item_type', ['text', 'image', 'vi
 export const stageItems = pgTable(
   'stage_items',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sti-' }))
       .primaryKey(),
-    stageId: text() // FK: which stage is this item for?
+    stageId: text('stage_id') // FK: which stage is this item for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    name: text().notNull(), // name of the item
-    description: text(), // description of the item
-    type: stageItemTypeEnum().notNull(), // type of the item (text, image, video)
-    content: text().notNull(), // text: string, image: URL, video: URL
+    name: text('name').notNull(), // name of the item
+    description: text('description'), // description of the item
+    type: stageItemTypeEnum('stage_item_type').notNull(), // type of the item (text, image, video)
+    content: text('content').notNull(), // text: string, image: URL, video: URL
     ...timestamps,
   },
   (table) => [

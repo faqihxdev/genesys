@@ -15,23 +15,23 @@ import { simulations } from './simulation';
 export const responses = pgTable(
   'responses',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'res-' }))
       .primaryKey(),
-    simulationId: text() // which simulation is this response for?
+    simulationId: text('simulation_id') // which simulation is this response for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    personaId: text() // which persona is this response for?
+    personaId: text('persona_id') // which persona is this response for?
       .references(() => personas.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: text() // which stage is this response for?
+    stageId: text('stage_id') // which stage is this response for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    stageItemId: text() // which stage item is this response for?
+    stageItemId: text('stage_item_id') // which stage item is this response for?
       .references(() => stageItems.id, { onDelete: 'cascade' })
       .notNull(),
-    response: text().notNull(), // general response to the stage item
-    sentiment: decimal({ precision: 3, scale: 2 }).notNull(), // sentiment score from -1 to 1
+    response: text('response').notNull(), // general response to the stage item
+    sentiment: decimal('sentiment', { precision: 3, scale: 2 }).notNull(), // sentiment score from -1 to 1
     // Removed proceed and proceedReason as they are now in responseStages
     ...timestamps,
   },
@@ -52,21 +52,21 @@ export const responses = pgTable(
 export const responseStages = pgTable(
   'response_stages',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'rst-' }))
       .primaryKey(),
-    simulationId: text() // which simulation is this response for?
+    simulationId: text('simulation_id') // which simulation is this response for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    personaId: text() // which persona is this response for?
+    personaId: text('persona_id') // which persona is this response for?
       .references(() => personas.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: text() // which stage is this response for?
+    stageId: text('stage_id') // which stage is this response for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    proceed: boolean().notNull().default(false), // proceed to next stage?
-    proceedReason: text().notNull(), // reason for proceeding or not proceeding
-    nextStageId: text() // which stage did the persona choose to proceed to (if there are multiple options)
+    proceed: boolean('proceed').notNull().default(false), // proceed to next stage?
+    proceedReason: text('proceed_reason').notNull(), // reason for proceeding or not proceeding
+    nextStageId: text('next_stage_id') // which stage did the persona choose to proceed to (if there are multiple options)
       .references(() => stages.id, { onDelete: 'cascade' }),
     ...timestamps,
   },

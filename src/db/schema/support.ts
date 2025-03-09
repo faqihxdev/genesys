@@ -34,17 +34,17 @@ export const ticketStatusEnum = pgEnum('ticket_status', [
  * Support tickets table schema
  */
 export const supportTickets = pgTable('support_tickets', {
-  id: text()
+  id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'tkt-' }))
     .primaryKey(),
-  userId: text().notNull(), // FK: which user created this ticket?
-  subject: text().notNull(),
+  userId: text('user_id').notNull(), // FK: which user created this ticket?
+  subject: text('subject').notNull(),
   category: ticketCategoryEnum('ticket_category').notNull(),
   priority: ticketPriorityEnum('ticket_priority').notNull(),
-  description: text().notNull(),
+  description: text('description').notNull(),
   status: ticketStatusEnum('ticket_status').notNull().default('open'),
-  lastResponseAt: timestamp({ mode: 'date' }), // Track last response time
-  resolvedAt: timestamp({ mode: 'date' }), // Track when ticket was resolved
+  lastResponseAt: timestamp('last_response_at', { mode: 'date' }), // Track last response time
+  resolvedAt: timestamp('resolved_at', { mode: 'date' }), // Track when ticket was resolved
   ...timestamps,
 });
 
@@ -53,15 +53,15 @@ export const supportTickets = pgTable('support_tickets', {
  * For tracking communication history
  */
 export const ticketResponses = pgTable('ticket_responses', {
-  id: text()
+  id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'trs-' }))
     .primaryKey(),
-  ticketId: text()
+  ticketId: text('ticket_id')
     .references(() => supportTickets.id, { onDelete: 'cascade' })
     .notNull(),
-  userId: text().notNull(), // FK: who made this response?
-  message: text().notNull(),
-  isFromSupport: boolean().notNull().default(false), // Whether this response is from support team
+  userId: text('user_id').notNull(), // FK: who made this response?
+  message: text('message').notNull(),
+  isFromSupport: boolean('is_from_support').notNull().default(false), // Whether this response is from support team
   ...timestamps,
 });
 

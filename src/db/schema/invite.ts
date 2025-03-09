@@ -16,14 +16,14 @@ export const inviteStatusEnum = pgEnum('invite_status', ['pending', 'accepted', 
 export const projectInvites = pgTable(
   'project_invites',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'inv-' }))
       .primaryKey(),
-    projectId: text() // FK: which project is this invite for?
+    projectId: text('project_id') // FK: which project is this invite for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    invitedUserId: text().notNull(), // FK: which user is invited? (Supabase auth.users)
-    inviterUserId: text().notNull(), // FK: which user is inviting? (Supabase auth.users)
+    invitedUserId: text('invited_user_id').notNull(), // FK: which user is invited? (Supabase auth.users)
+    inviterUserId: text('inviter_user_id').notNull(), // FK: which user is inviting? (Supabase auth.users)
     status: inviteStatusEnum('invite_status').notNull().default('pending'), // status of the invite (pending, accepted, rejected)
     ...timestamps,
   },

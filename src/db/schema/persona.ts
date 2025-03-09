@@ -356,18 +356,18 @@ export const personaConfigTypeEnum = pgEnum('persona_config_type', ['preset', 'c
 export const personaConfigs = pgTable(
   'persona_configs',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'pcg-' }))
       .primaryKey(),
-    projectId: text() // FK: which project is this persona config for?
+    projectId: text('project_id') // FK: which project is this persona config for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    name: text().notNull(), // user reference: name of the persona config
-    description: text(), // user reference: description of the persona config
-    type: personaConfigTypeEnum().notNull().default('custom'), // config is preset or custom
-    size: integer().notNull(), // number of personas to generate
-    constraints: text().notNull(), // custom constraints to generate the persona
-    traitsConfig: jsonb().notNull(), // configuration for traits with ranges/options
+    name: text('name').notNull(), // user reference: name of the persona config
+    description: text('description'), // user reference: description of the persona config
+    type: personaConfigTypeEnum('persona_config_type').notNull().default('custom'), // config is preset or custom
+    size: integer('size').notNull(), // number of personas to generate
+    constraints: text('constraints').notNull(), // custom constraints to generate the persona
+    traitsConfig: jsonb('traits_config').notNull(), // configuration for traits with ranges/options
     ...timestamps,
   },
   (table) => [
@@ -384,15 +384,15 @@ export const personaConfigs = pgTable(
 export const personas = pgTable(
   'personas',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'prs-' }))
       .primaryKey(),
-    personaConfigId: text() // FK: which persona config is this persona for?
+    personaConfigId: text('persona_config_id') // FK: which persona config is this persona for?
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
-    name: text().notNull(), // user reference: name of the persona
-    description: text(), // user reference: description of the persona
-    traits: jsonb().notNull(), // traits of the persona (specific values from config)
+    name: text('name').notNull(), // user reference: name of the persona
+    description: text('description'), // user reference: description of the persona
+    traits: jsonb('traits').notNull(), // traits of the persona (specific values from config)
     ...timestamps,
   },
   (table) => [

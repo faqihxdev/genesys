@@ -34,16 +34,16 @@ export const feedbackStatusEnum = pgEnum('feedback_status', [
  * Feedback table schema
  */
 export const feedback = pgTable('feedback', {
-  id: text()
+  id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'fdb-' }))
     .primaryKey(),
-  userId: text().notNull(), // FK: which user submitted this feedback? (Supabase auth user id)
-  title: text().notNull(),
+  userId: text('user_id').notNull(), // FK: which user submitted this feedback? (Supabase auth user id)
+  title: text('title').notNull(),
   type: feedbackTypeEnum('feedback_type').notNull(),
-  description: text().notNull(),
+  description: text('description').notNull(),
   satisfaction: feedbackSatisfactionEnum('feedback_satisfaction').notNull(),
   status: feedbackStatusEnum('feedback_status').notNull().default('pending'),
-  adminResponse: text(), // Optional response from admin
+  adminResponse: text('admin_response'), // Optional response from admin
   ...timestamps,
 });
 
