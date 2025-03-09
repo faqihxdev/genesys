@@ -4,6 +4,7 @@ import { index, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/p
 import { ID_LENGTH, timestamps } from './_utils';
 import { funnels, stages } from './funnel';
 import { personaConfigs } from './persona';
+import { responseStages } from './response';
 
 /**
  * Simulation status enum
@@ -14,7 +15,20 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
   'processing', // Currently running
   'complete', // Successfully completed
   'error', // Failed with error
+  'cancelled', // Cancelled by user
 ]);
+
+/**
+ * Simulation parameter interface
+ * Defines configuration options for a simulation
+ */
+export interface SimulationParameters {
+  maxPathsPerPersona?: number; // Maximum number of paths a persona can explore (for branching funnels)
+  detailedResponses?: boolean; // Whether to generate detailed responses or just proceed decisions
+  temperatureOverride?: number; // Optional override for OpenAI temperature setting
+  includeReasons?: boolean; // Whether to include detailed reasoning in responses
+  customPromptAdditions?: string; // Custom instructions to add to the prompt
+}
 
 /**
  * Simulations table schema
@@ -35,6 +49,9 @@ export const simulations = pgTable(
       .notNull(),
     status: simulationStatusEnum().notNull().default('idle'), // status of the simulation
     completeCount: integer().notNull().default(0), // Number of personas that completed the simulation
+    totalCount: integer().notNull().default(0), // Total number of personas in the simulation
+    parametersJson: text(), // JSON string of SimulationParameters
+    error: text(), // Error message if the simulation failed
     ...timestamps,
   },
   (table) => [
@@ -51,7 +68,9 @@ export const simulations = pgTable(
 export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
   'idle', // Initial state
   'processing', // Currently processing
+  'complete', // Successfully completed
   'error', // Failed with error
+  'skipped', // Stage was skipped (persona didn't proceed to this stage)
 ]);
 
 /**
@@ -69,6 +88,8 @@ export const simulationStages = pgTable(
       .notNull(),
     status: simulationStageStatusEnum().notNull().default('idle'),
     completeCount: integer().notNull().default(0), // Number of personas that completed the stage
+    totalCount: integer().notNull().default(0), // Total number of personas expected to go through this stage
+    error: text(), // Error message if processing the stage failed
     ...timestamps,
   },
   (table) => [
@@ -92,6 +113,7 @@ export const simulationsRelations = relations(simulations, ({ one, many }) => ({
     references: [personaConfigs.id],
   }),
   stages: many(simulationStages),
+  responseStages: many(responseStages),
 }));
 
 /**

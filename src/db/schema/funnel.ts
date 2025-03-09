@@ -172,10 +172,13 @@ export type NewStage = typeof stages.$inferInsert;
 export type StageItem = typeof stageItems.$inferSelect;
 export type NewStageItem = typeof stageItems.$inferInsert;
 export type StageItemType = (typeof stageItemTypeEnum.enumValues)[number];
+export type StageLink = typeof stageLinks.$inferSelect;
+export type NewStageLink = typeof stageLinks.$inferInsert;
 
 // Extended types
 export interface FunnelWithStages extends Funnel {
-  stages: Stage[];
+  stages: StageWithItems[];
+  stageLinks: StageLink[];
 }
 
 export interface StageWithItems extends Stage {
