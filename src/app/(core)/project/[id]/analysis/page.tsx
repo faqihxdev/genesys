@@ -1,6 +1,5 @@
 'use client';
 
-import { FloatingDebugPanel } from '@/components/custom/debug';
 import { PageTitle } from '@/components/custom/page-title';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/query-client';
 import { withQuery } from '@/lib/utils';
 import {
   generateSimulationSummary,
@@ -26,11 +26,11 @@ import {
   Info,
   Lightbulb,
   LineChart,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { AnalysisProgress } from './_components/analysis-progress';
 import { AnalysisSelectors } from './_components/analysis-selectors';
 import { AnalysisSkeleton } from './_components/analysis-skeleton';
 import { FunnelSankey } from './_components/funnel-sankey';
@@ -109,7 +109,11 @@ export default function AnalysisPage() {
   });
 
   // Query for fetching comparison analysis
-  const { data: comparisonAnalysisData }: UseQueryResult<FunnelAnalysis, ApiError> = useQuery({
+  const {
+    data: comparisonAnalysisData,
+    isLoading: isComparisonAnalysisLoading,
+    error: comparisonAnalysisError,
+  }: UseQueryResult<FunnelAnalysis, ApiError> = useQuery({
     queryKey: ['analysis', compareSimulationId],
     queryFn: () => withQuery(getSimulationAnalysis)({ simulationId: compareSimulationId! }),
     enabled: !!compareSimulationId && isComparisonMode,
@@ -127,21 +131,93 @@ export default function AnalysisPage() {
 
   // Mutation for generating simulation summary
   const generateSummaryMutation = useMutation({
-    mutationFn: withQuery(generateSimulationSummary),
+    mutationFn: (params: { simulationId: string }) => withQuery(generateSimulationSummary)(params),
     onSuccess: () => {
       toast({
         title: 'Analysis Complete',
         description: 'The simulation analysis has been generated successfully.',
+        variant: 'success',
       });
+      // Refetch the simulations to update the hasSummary flag
+      if (selectedFunnelId) {
+        const simulationsQueryKey = ['simulations', selectedFunnelId];
+        const analysisQueryKey = ['analysis', selectedSimulationId];
+        queryClient.invalidateQueries({ queryKey: simulationsQueryKey });
+        queryClient.invalidateQueries({ queryKey: analysisQueryKey });
+      }
+      if (isComparisonMode && compareFunnelId) {
+        const comparisonSimulationsQueryKey = ['simulations', compareFunnelId];
+        queryClient.invalidateQueries({ queryKey: comparisonSimulationsQueryKey });
+        if (compareSimulationId) {
+          const compareAnalysisQueryKey = ['analysis', compareSimulationId];
+          queryClient.invalidateQueries({ queryKey: compareAnalysisQueryKey });
+        }
+      }
     },
     onError: (error) => {
-      toast({
-        title: 'Analysis Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+      // Only show error toast if it's not a "summary already exists" error
+      if (!error.message?.includes('Summary already exists')) {
+        toast({
+          title: 'Analysis Failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     },
   });
+
+  // Track simulations for which we've attempted to generate analysis
+  const [analysisAttemptedFor, setAnalysisAttemptedFor] = useState<Set<string>>(new Set());
+
+  // Auto-generate analysis when a simulation without analysis is selected
+  useEffect(() => {
+    // Handle primary simulation
+    if (
+      selectedSimulationId &&
+      simulationsData &&
+      !generateSummaryMutation.isPending &&
+      !analysisAttemptedFor.has(selectedSimulationId)
+    ) {
+      const selectedSimulation = simulationsData.find((sim) => sim.id === selectedSimulationId);
+      if (
+        selectedSimulation &&
+        !selectedSimulation.hasSummary &&
+        selectedSimulation.status === 'complete'
+      ) {
+        setAnalysisAttemptedFor((prev) => new Set([...prev, selectedSimulationId]));
+        generateSummaryMutation.mutate({ simulationId: selectedSimulationId });
+      }
+    }
+
+    // Handle comparison simulation
+    if (
+      isComparisonMode &&
+      compareSimulationId &&
+      comparisonSimulationsData &&
+      !generateSummaryMutation.isPending &&
+      !analysisAttemptedFor.has(compareSimulationId)
+    ) {
+      const compareSimulation = comparisonSimulationsData.find(
+        (sim) => sim.id === compareSimulationId
+      );
+      if (
+        compareSimulation &&
+        !compareSimulation.hasSummary &&
+        compareSimulation.status === 'complete'
+      ) {
+        setAnalysisAttemptedFor((prev) => new Set([...prev, compareSimulationId]));
+        generateSummaryMutation.mutate({ simulationId: compareSimulationId });
+      }
+    }
+  }, [
+    selectedSimulationId,
+    simulationsData,
+    compareSimulationId,
+    comparisonSimulationsData,
+    isComparisonMode,
+    generateSummaryMutation.isPending,
+    analysisAttemptedFor,
+  ]);
 
   // Get the current analysis data
   const currentAnalysis = analysisData;
@@ -230,38 +306,64 @@ export default function AnalysisPage() {
               onCheckedChange={handleComparisonToggle}
             />
           </div>
-          <Button
-            variant='outline'
-            size='sm'
-            className='gap-2'
-            onClick={() => generateSummaryMutation.mutate({ simulationId: selectedSimulationId! })}
-            disabled={generateSummaryMutation.isPending || !selectedSimulationId}
-          >
-            <Sparkles className='h-4 w-4' />
-            {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
-          </Button>
         </div>
       </div>
 
       {/* Analysis Configuration */}
-      <section className='border-border border rounded-lg p-2'>
-        <AnalysisSelectors
-          funnels={funnelsData || []}
-          simulations={simulationsData}
-          comparisonSimulations={comparisonSimulationsData}
-          selectedFunnelId={selectedFunnelId}
-          selectedSimulationId={selectedSimulationId}
-          compareFunnelId={compareFunnelId}
-          compareSimulationId={compareSimulationId}
-          isComparisonMode={isComparisonMode}
-          isLoadingSimulations={isSimulationsLoading}
-          isLoadingComparisonSimulations={isComparisonSimulationsLoading}
-          onFunnelSelect={handleFunnelSelect}
-          onSimulationSelect={handleSimulationSelect}
-          onCompareFunnelSelect={handleCompareFunnelSelect}
-          onCompareSimulationSelect={handleCompareSimulationSelect}
-        />
-      </section>
+      <div className='space-y-4'>
+        <Card>
+          <CardContent className='pt-6'>
+            <AnalysisSelectors
+              funnels={funnelsData || []}
+              simulations={simulationsData}
+              comparisonSimulations={comparisonSimulationsData}
+              selectedFunnelId={selectedFunnelId}
+              selectedSimulationId={selectedSimulationId}
+              compareFunnelId={compareFunnelId}
+              compareSimulationId={compareSimulationId}
+              isComparisonMode={isComparisonMode}
+              isLoadingSimulations={isSimulationsLoading}
+              isLoadingComparisonSimulations={isComparisonSimulationsLoading}
+              onFunnelSelect={handleFunnelSelect}
+              onSimulationSelect={handleSimulationSelect}
+              onCompareFunnelSelect={handleCompareFunnelSelect}
+              onCompareSimulationSelect={handleCompareSimulationSelect}
+              isGeneratingAnalysis={generateSummaryMutation.isPending}
+              currentGeneratingId={
+                generateSummaryMutation.isPending && generateSummaryMutation.variables
+                  ? generateSummaryMutation.variables.simulationId
+                  : null
+              }
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analysis Generation Progress */}
+      <AnalysisProgress
+        isGenerating={generateSummaryMutation.isPending}
+        simulationName={
+          generateSummaryMutation.isPending && generateSummaryMutation.variables?.simulationId
+            ? new Date(
+                simulationsData?.find(
+                  (sim) => sim.id === generateSummaryMutation.variables?.simulationId
+                )?.createdAt ||
+                  comparisonSimulationsData?.find(
+                    (sim) => sim.id === generateSummaryMutation.variables?.simulationId
+                  )?.createdAt ||
+                  new Date()
+              )
+                .toLocaleString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                })
+                .replace(',', '')
+            : undefined
+        }
+      />
 
       {/* Overall Summary */}
       {currentAnalysis?.summary ? (
@@ -361,6 +463,58 @@ export default function AnalysisPage() {
                     <p className='text-sm text-muted-foreground max-w-md'>
                       Choose a funnel and simulation to compare with the base analysis
                     </p>
+                  </div>
+                ) : isComparisonAnalysisLoading ? (
+                  <div className='space-y-6'>
+                    {/* Summary Skeleton */}
+                    <div className='rounded-lg border bg-background/50'>
+                      <div className='flex items-center gap-2 border-b p-3'>
+                        <Skeleton className='h-4 w-4' />
+                        <Skeleton className='h-4 w-32' />
+                      </div>
+                      <div className='p-3'>
+                        <Skeleton className='h-20 w-full' />
+                      </div>
+                    </div>
+                    {/* Recommendation Skeleton */}
+                    <div className='rounded-lg border bg-background/50'>
+                      <div className='flex items-center gap-2 border-b p-3'>
+                        <Skeleton className='h-4 w-4' />
+                        <Skeleton className='h-4 w-32' />
+                      </div>
+                      <div className='p-3'>
+                        <Skeleton className='h-20 w-full' />
+                      </div>
+                    </div>
+                    {/* Metrics Skeleton */}
+                    <div className='grid gap-4 grid-cols-2'>
+                      {[1, 2].map((i) => (
+                        <div key={i} className='rounded-lg border bg-background/50 p-4'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <Skeleton className='h-4 w-24' />
+                            <Skeleton className='h-4 w-4 rounded-full' />
+                          </div>
+                          <Skeleton className='h-8 w-20' />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : comparisonAnalysisError ? (
+                  <div className='flex flex-col items-center justify-center py-12 text-center'>
+                    <AlertCircle className='h-12 w-12 text-primary mb-4' />
+                    <h3 className='text-lg font-semibold'>No Analysis Available</h3>
+                    <p className='text-sm text-muted-foreground max-w-md'>
+                      {(comparisonAnalysisError as ApiError).message ||
+                        'Failed to load comparison analysis'}
+                    </p>
+                    <div className='flex items-center justify-center gap-4 mt-6'>
+                      <Link href='/account/support'>
+                        <Button variant='default' size='sm'>
+                          <HelpCircle className='h-4 w-4 mr-2' />
+                          Contact Support
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 ) : comparisonAnalysis?.summary ? (
                   <div className='space-y-6'>
@@ -502,7 +656,7 @@ export default function AnalysisPage() {
                 </div>
                 {/* Metrics Skeleton */}
                 <div className='grid gap-4 grid-cols-2'>
-                  {[1, 2, 3, 4].map((i) => (
+                  {[1, 2].map((i) => (
                     <div key={i} className='rounded-lg border bg-background/50 p-4'>
                       <div className='flex items-center justify-between mb-2'>
                         <Skeleton className='h-4 w-24' />
@@ -521,17 +675,6 @@ export default function AnalysisPage() {
                   {(analysisError as ApiError).message || 'Failed to load analysis'}
                 </p>
                 <div className='flex items-center justify-center gap-4 mt-6'>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() =>
-                      generateSummaryMutation.mutate({ simulationId: selectedSimulationId })
-                    }
-                    disabled={generateSummaryMutation.isPending}
-                  >
-                    <Sparkles className='h-4 w-4 mr-2' />
-                    {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
-                  </Button>
                   <Link href='/account/support'>
                     <Button variant='default' size='sm'>
                       <HelpCircle className='h-4 w-4 mr-2' />
@@ -547,18 +690,6 @@ export default function AnalysisPage() {
                 <p className='text-sm text-muted-foreground max-w-md'>
                   Select a funnel and simulation from the configuration above to begin analyzing
                 </p>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='mt-6'
-                  onClick={() =>
-                    generateSummaryMutation.mutate({ simulationId: selectedSimulationId })
-                  }
-                  disabled={generateSummaryMutation.isPending}
-                >
-                  <Sparkles className='h-4 w-4 mr-2' />
-                  {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
-                </Button>
               </div>
             )}
           </div>
@@ -609,17 +740,6 @@ export default function AnalysisPage() {
                   {(analysisError as ApiError).message || 'Failed to load analysis'}
                 </p>
                 <div className='flex items-center justify-center gap-4 mt-6'>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() =>
-                      generateSummaryMutation.mutate({ simulationId: selectedSimulationId })
-                    }
-                    disabled={generateSummaryMutation.isPending}
-                  >
-                    <Sparkles className='h-4 w-4 mr-2' />
-                    {generateSummaryMutation.isPending ? 'Analyzing...' : 'Generate Analysis'}
-                  </Button>
                   <Link href='/account/support'>
                     <Button variant='default' size='sm'>
                       <HelpCircle className='h-4 w-4 mr-2' />
@@ -666,6 +786,23 @@ export default function AnalysisPage() {
                   <h3 className='text-lg font-semibold'>Select Comparison Simulation</h3>
                   <p className='text-sm text-muted-foreground max-w-md'>
                     Choose a funnel and simulation to compare with the base flow
+                  </p>
+                </div>
+              ) : isComparisonAnalysisLoading ? (
+                <div className='h-[300px] space-y-4'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <Skeleton className='h-8 w-32' />
+                    <Skeleton className='h-6 w-24' />
+                  </div>
+                  <Skeleton className='h-[250px] w-full' />
+                </div>
+              ) : comparisonAnalysisError ? (
+                <div className='flex flex-col items-center justify-center h-full py-12 text-center'>
+                  <AlertCircle className='h-12 w-12 text-primary mb-4' />
+                  <h3 className='text-lg font-semibold'>Visualization Error</h3>
+                  <p className='text-sm text-muted-foreground max-w-md'>
+                    {(comparisonAnalysisError as ApiError).message ||
+                      'Failed to load comparison flow'}
                   </p>
                 </div>
               ) : comparisonAnalysis ? (
@@ -774,9 +911,9 @@ export default function AnalysisPage() {
         </section>
       )}
 
-      <FloatingDebugPanel
+      {/* <FloatingDebugPanel
         data={{ currentAnalysis, comparisonAnalysis, simulationsData, comparisonSimulationsData }}
-      />
+      /> */}
     </div>
   );
 }

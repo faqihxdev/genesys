@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, ArrowRight, CheckCircle, FlaskConical } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle, FlaskConical, Loader2 } from 'lucide-react';
 
 interface AnalysisSelectorsProps {
   funnels: FunnelOption[];
@@ -24,9 +24,17 @@ interface AnalysisSelectorsProps {
   onSimulationSelect: (simulationId: string) => void;
   onCompareFunnelSelect: (funnelId: string) => void;
   onCompareSimulationSelect: (simulationId: string) => void;
+  isGeneratingAnalysis?: boolean;
+  currentGeneratingId?: string | null;
 }
 
-function SimulationLabel({ simulation }: { simulation: SimulationOption }) {
+function SimulationLabel({
+  simulation,
+  isGenerating = false,
+}: {
+  simulation: SimulationOption;
+  isGenerating?: boolean;
+}) {
   const date = new Date(simulation.createdAt)
     .toLocaleString('en-GB', {
       day: '2-digit',
@@ -36,9 +44,19 @@ function SimulationLabel({ simulation }: { simulation: SimulationOption }) {
       hour12: false,
     })
     .replace(',', ''); // Remove comma between date and time
-  const hasNoAnalysis = simulation.status === 'complete' && !simulation.hasSummary;
 
-  if (!hasNoAnalysis) {
+  // If the simulation is currently being analyzed
+  if (isGenerating) {
+    return (
+      <span className='font-medium truncate flex items-center gap-2'>
+        <span className='min-w-[11rem]'>Simulation {date}</span>
+        <Loader2 className='h-4 w-4 text-primary shrink-0 animate-spin' />
+      </span>
+    );
+  }
+
+  // If the simulation already has analysis
+  if (simulation.hasSummary) {
     return (
       <span className='font-medium truncate flex items-center gap-2'>
         <span className='min-w-[11rem]'>Simulation {date}</span>
@@ -47,23 +65,32 @@ function SimulationLabel({ simulation }: { simulation: SimulationOption }) {
     );
   }
 
+  // If the simulation is complete but doesn't have analysis yet
+  if (simulation.status === 'complete') {
+    return (
+      <TooltipProvider delayDuration={100}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className='font-medium truncate flex items-center gap-2'>
+              <span className='min-w-[11rem]'>Simulation {date}</span>
+              <AlertCircle className='h-4 w-4 text-muted-foreground shrink-0' />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              This simulation is complete but has no analysis yet. Select it to generate analysis.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // For any other state (in progress, error, etc.)
   return (
-    <TooltipProvider delayDuration={100}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className='font-medium truncate flex items-center gap-2'>
-            <span className='min-w-[11rem]'>Simulation {date}</span>
-            <AlertCircle className='h-4 w-4 text-muted-foreground shrink-0' />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            This simulation is complete but has no analysis generated yet. Generate an analysis to
-            view insights.
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <span className='font-medium truncate flex items-center gap-2'>
+      <span className='min-w-[11rem]'>Simulation {date}</span>
+    </span>
   );
 }
 
@@ -82,7 +109,14 @@ export function AnalysisSelectors({
   onSimulationSelect,
   onCompareFunnelSelect,
   onCompareSimulationSelect,
+  isGeneratingAnalysis = false,
+  currentGeneratingId = null,
 }: AnalysisSelectorsProps) {
+  // Determine which selector should be disabled
+  const isPrimaryGenerating = isGeneratingAnalysis && selectedSimulationId === currentGeneratingId;
+  const isComparisonGenerating =
+    isGeneratingAnalysis && compareSimulationId === currentGeneratingId;
+
   return (
     <div className='flex items-center justify-between gap-4'>
       {/* Base Selectors */}
@@ -97,7 +131,7 @@ export function AnalysisSelectors({
           <Select
             value={selectedFunnelId || undefined}
             onValueChange={onFunnelSelect}
-            disabled={!funnels?.length}
+            disabled={!funnels?.length || isGeneratingAnalysis}
           >
             <SelectTrigger className='w-[250px]'>
               <SelectValue placeholder='Select a funnel' />
@@ -121,7 +155,9 @@ export function AnalysisSelectors({
         <Select
           value={selectedSimulationId || undefined}
           onValueChange={onSimulationSelect}
-          disabled={!selectedFunnelId || isLoadingSimulations || !simulations?.length}
+          disabled={
+            !selectedFunnelId || isLoadingSimulations || !simulations?.length || isPrimaryGenerating
+          }
         >
           <SelectTrigger className='w-[250px]'>
             <SelectValue
@@ -130,7 +166,9 @@ export function AnalysisSelectors({
                   ? 'Loading simulations...'
                   : !selectedFunnelId
                     ? 'Select a funnel first'
-                    : 'Select a simulation'
+                    : isPrimaryGenerating
+                      ? 'Generating analysis...'
+                      : 'Select a simulation'
               }
             />
           </SelectTrigger>
@@ -138,7 +176,10 @@ export function AnalysisSelectors({
             {simulations?.map((simulation) => (
               <SelectItem key={simulation.id} value={simulation.id}>
                 <div className='flex items-center w-full gap-4'>
-                  <SimulationLabel simulation={simulation} />
+                  <SimulationLabel
+                    simulation={simulation}
+                    isGenerating={isGeneratingAnalysis && simulation.id === currentGeneratingId}
+                  />
                 </div>
               </SelectItem>
             ))}
@@ -159,7 +200,7 @@ export function AnalysisSelectors({
           <Select
             value={compareFunnelId || undefined}
             onValueChange={onCompareFunnelSelect}
-            disabled={!funnels?.length}
+            disabled={!funnels?.length || isComparisonGenerating}
           >
             <SelectTrigger className='w-[250px]'>
               <SelectValue placeholder='Select a funnel' />
@@ -183,7 +224,10 @@ export function AnalysisSelectors({
             value={compareSimulationId || undefined}
             onValueChange={onCompareSimulationSelect}
             disabled={
-              !compareFunnelId || isLoadingComparisonSimulations || !comparisonSimulations?.length
+              !compareFunnelId ||
+              isLoadingComparisonSimulations ||
+              !comparisonSimulations?.length ||
+              isComparisonGenerating
             }
           >
             <SelectTrigger className='w-[250px]'>
@@ -193,7 +237,9 @@ export function AnalysisSelectors({
                     ? 'Loading simulations...'
                     : !compareFunnelId
                       ? 'Select a funnel first'
-                      : 'Select a simulation'
+                      : isComparisonGenerating
+                        ? 'Generating analysis...'
+                        : 'Select a simulation'
                 }
               />
             </SelectTrigger>
@@ -201,7 +247,10 @@ export function AnalysisSelectors({
               {comparisonSimulations?.map((simulation) => (
                 <SelectItem key={simulation.id} value={simulation.id}>
                   <div className='flex items-center w-full gap-4'>
-                    <SimulationLabel simulation={simulation} />
+                    <SimulationLabel
+                      simulation={simulation}
+                      isGenerating={isGeneratingAnalysis && simulation.id === currentGeneratingId}
+                    />
                   </div>
                 </SelectItem>
               ))}
