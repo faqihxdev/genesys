@@ -375,7 +375,7 @@ function PersonaConfigItem({
             </div>
           </div>
           <div className='flex-1'>
-            <h4 className='text-sm font-medium text-primary-800 dark:text-primary-300'>
+            <h4 className='text-sm text-primary-800 dark:text-primary-300'>
               Creating synthetic {config.size} personas
             </h4>
           </div>

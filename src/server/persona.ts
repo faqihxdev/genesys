@@ -34,7 +34,11 @@ export const createPersonaConfig = createAction({
     name: z.string().min(1, 'Name is required'),
     description: z.string().optional(),
     type: z.enum(['preset', 'custom']).default('custom'),
-    size: z.number().int().min(1, 'Size must be at least 1').max(100, 'Size cannot exceed 100'),
+    size: z
+      .number()
+      .int()
+      .min(1, 'Size must be at least 1')
+      .max(10000, 'Size cannot exceed 10,000'),
     constraints: z.string().default(''),
     traitsConfig: TraitsConfigSchema,
   }),
@@ -374,12 +378,6 @@ async function generatePersonaNameAndDescription(
     while (attempt < maxAttempts && !result) {
       try {
         attempt++;
-
-        if (attempt > 1) {
-          // Add a short delay between retries
-          await delay(500 * attempt); // Exponential backoff
-        }
-
         const completion = await openai.chat.completions.create({
           model: 'gpt-4o-mini', // Use GPT-4o mini, OpenAI's fastest model
           messages: [
@@ -464,9 +462,6 @@ async function generatePersonaNameAndDescription(
   }
 }
 
-// Utility function to delay execution for a specified time
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * Generate personas for a persona configuration
  * @param input - Object containing the persona config ID
@@ -499,87 +494,62 @@ export const generatePersonas = createAction({
         // Delete existing personas for this config
         await tx.delete(personas).where(eq(personas.personaConfigId, input.personaConfigId));
 
-        // Generate new personas
-        const newPersonas = [];
+        // Generate new personas concurrently for maximum speed
         const targetCount = config.size;
 
-        // Calculate batch sizes - process in batches for better performance
-        // Use smaller batch size to avoid overwhelming the API
-        const batchSize = 3;
-        const batches = Math.ceil(targetCount / batchSize);
+        // Create an array of generation promises without any delays for fastest execution
+        const personaPromises = Array.from({ length: targetCount }).map(async (_, index) => {
+          try {
+            // 1. Generate traits
+            const traits = generatePersonaTraitsFromConfig(traitsConfig);
 
-        for (let batchIndex = 0; batchIndex < batches; batchIndex++) {
-          const batchStart = batchIndex * batchSize;
-          const currentBatchSize = Math.min(batchSize, targetCount - batchStart);
+            // 2. Generate name and description using OpenAI
+            const { name, description } = await generatePersonaNameAndDescription(
+              traits,
+              config.constraints
+            );
 
-          // Create an array of generation promises
-          const batchPromises = Array.from({ length: currentBatchSize }).map(async (_, index) => {
-            const personaIndex = batchStart + index;
-
-            try {
-              // 1. Generate traits
-              const traits = generatePersonaTraitsFromConfig(traitsConfig);
-
-              // Add a small delay (200ms) between each OpenAI API call to avoid rate limiting
-              if (index > 0) {
-                await delay(200);
-              }
-
-              // 2. Generate name and description using OpenAI
-              const { name, description } = await generatePersonaNameAndDescription(
-                traits,
-                config.constraints
-              );
-
-              return {
-                personaConfigId: input.personaConfigId,
-                name,
-                description,
-                traits,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              };
-            } catch (error) {
-              console.error(
-                `[generatePersonas]: Error generating persona ${personaIndex + 1}/${targetCount}:`,
-                error
-              );
-              return null; // Return null for failed generations
-            }
-          });
-
-          // Wait for all personas in this batch to be generated
-          const batchResults = await Promise.all(batchPromises);
-          // Filter out null values and ensure proper typing for database insertion
-          const validResults = batchResults.filter(
-            (
-              result
-            ): result is {
-              personaConfigId: string;
-              name: string;
-              description: string;
-              traits: Traits;
-              createdAt: Date;
-              updatedAt: Date;
-            } => result !== null
-          );
-
-          // Insert the batch into the database if we have valid results
-          if (validResults.length > 0) {
-            const insertedPersonas = await tx.insert(personas).values(validResults).returning();
-
-            newPersonas.push(...insertedPersonas);
+            return {
+              personaConfigId: input.personaConfigId,
+              name,
+              description,
+              traits,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+          } catch (error) {
+            console.error(
+              `[generatePersonas]: Error generating persona ${index + 1}/${targetCount}:`,
+              error
+            );
+            return null; // Return null for failed generations
           }
+        });
 
-          // Add a pause between batches to avoid overwhelming the API (1 second)
-          if (batchIndex < batches - 1) {
-            await delay(1000);
-          }
-        }
+        // IMPORTANT! DANGER: This will call openai in parallel for each persona
+        // Wait for all persona generation promises to resolve concurrently
+        const allResults = await Promise.all(personaPromises);
+        // Filter out null values and ensure proper typing for database insertion
+        const validResults = allResults.filter(
+          (
+            result
+          ): result is {
+            personaConfigId: string;
+            name: string;
+            description: string;
+            traits: Traits;
+            createdAt: Date;
+            updatedAt: Date;
+          } => result !== null
+        );
+
+        // Insert all valid personas into the database in one bulk operation
+        const insertedPersonas =
+          validResults.length > 0 ? await tx.insert(personas).values(validResults).returning() : [];
 
         return {
           ...config,
-          personas: newPersonas,
+          personas: insertedPersonas,
         };
       });
     } catch (error) {
@@ -627,6 +597,7 @@ export const shouldRegeneratePersonas = createAction({
       // Check if traits configuration has changed
       const needsRegeneration = hasTraitsConfigChanged(oldConfig, input.newConfig as PersonaConfig);
 
+      // Return a boolean result
       return needsRegeneration;
     } catch (error) {
       console.error('[shouldRegeneratePersonas]: Error:', error);

@@ -376,15 +376,18 @@ export default function PersonaConfigForm({
                 },
               });
 
-              // Make sure we're getting a proper boolean result
-              if (typeof shouldRegenResult === 'object' && 'error' in shouldRegenResult) {
+              console.log('[PersonaConfigForm]: shouldRegenResult:', shouldRegenResult);
+
+              // Handle the ActionResponse structure
+              if (shouldRegenResult.error) {
                 console.error(
-                  '[PersonaConfigForm]: Error from shouldRegeneratePersonas:',
+                  '[PersonaConfigForm]: Error checking regeneration status:',
                   shouldRegenResult.error
                 );
                 needsRegeneration = true; // Default to regenerating on error
               } else {
-                needsRegeneration = Boolean(shouldRegenResult);
+                // Access the actual boolean result from the data property
+                needsRegeneration = Boolean(shouldRegenResult.data);
                 console.log('[PersonaConfigForm]: Regeneration needed:', needsRegeneration);
               }
             } catch (error) {
@@ -414,16 +417,44 @@ export default function PersonaConfigForm({
             ...configData,
           });
 
+          console.log('[PersonaConfigForm]: Create result:', result);
+
+          // Check if the result is an error response
+          if (result.error) {
+            console.error('[PersonaConfigForm]: Error creating config:', result.error);
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: result.error.message || 'Failed to create persona configuration',
+            });
+            return;
+          }
+
+          // Extract the actual config data from the response
+          result = result.data;
+
           // New configs always need persona generation
           needsRegeneration = true;
         }
 
-        if ('error' in result && result.error) {
-          console.error('[PersonaConfigForm]: Error saving persona configuration:', result.error);
+        // Validate the result structure
+        if (!result || typeof result !== 'object') {
+          console.error('[PersonaConfigForm]: Invalid result structure:', result);
           toast({
             variant: 'destructive',
             title: 'Error',
-            description: result.error.message || 'Failed to save persona configuration',
+            description: 'Invalid response from server',
+          });
+          return;
+        }
+
+        // For create operations, ensure we have an ID
+        if (isCreate && !result.id) {
+          console.error('[PersonaConfigForm]: Created config missing ID:', result);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Created configuration is missing an ID',
           });
           return;
         }
@@ -443,21 +474,32 @@ export default function PersonaConfigForm({
 
         toast({
           title: isCreate ? 'Created' : 'Updated',
+          variant: 'success',
           description: isCreate
             ? 'Persona configuration created successfully.'
             : 'Persona configuration updated successfully.',
         });
 
         // Get the config ID to pass back to the parent
-        const configIdToUse = isCreate && result.id ? result.id : configId;
+        const newConfigId = isCreate ? result.id : configId;
+
+        if (!newConfigId) {
+          console.error('[PersonaConfigForm]: No config ID available after save');
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to get configuration ID',
+          });
+          return;
+        }
 
         console.log(
           '[PersonaConfigForm]: Success - calling onSuccess with:',
-          configIdToUse,
+          newConfigId,
           needsRegeneration
         );
         // Let the parent component know if persona generation is needed
-        onSuccess(configIdToUse || '', needsRegeneration);
+        onSuccess(newConfigId, needsRegeneration);
       } catch (error) {
         console.error('[PersonaConfigForm]: Failed to save persona configuration:', error);
         toast({
@@ -642,7 +684,15 @@ export default function PersonaConfigForm({
                   rules={{
                     required: 'Size is required',
                     min: { value: 1, message: 'Must generate at least 1 persona' },
-                    max: { value: 100, message: 'Cannot generate more than 100 personas' },
+                    max: { value: 10000, message: 'Cannot generate more than 10,000 personas' },
+                    validate: {
+                      warning: (value) => {
+                        if (value > 1000) {
+                          return 'Generating a large number of personas may take several minutes';
+                        }
+                        return true;
+                      },
+                    },
                   }}
                   render={({ field, fieldState }) => (
                     <>
@@ -650,13 +700,17 @@ export default function PersonaConfigForm({
                         id='size'
                         type='number'
                         min={1}
-                        max={100}
+                        max={10000}
                         className='mt-1'
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         value={field.value}
                       />
                       {fieldState.error && (
-                        <p className='text-sm text-red-500 mt-1'>{fieldState.error.message}</p>
+                        <p
+                          className={`text-sm mt-1 ${fieldState.error.type === 'warning' ? 'text-yellow-500 dark:text-yellow-400' : 'text-red-500'}`}
+                        >
+                          {fieldState.error.message}
+                        </p>
                       )}
                     </>
                   )}
