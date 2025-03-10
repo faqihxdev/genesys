@@ -209,7 +209,7 @@ export default function AnalysisPage() {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className={`space-y-6 mx-auto ${isComparisonMode ? 'max-w-full' : 'max-w-4xl'}`}>
       {/* Header */}
       <div className='flex items-center justify-between'>
         <PageTitle

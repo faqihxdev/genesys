@@ -82,7 +82,7 @@ export default function FunnelsPage() {
           <Card key={funnel.id} className='overflow-hidden'>
             <CardHeader className='bg-muted/50 py-4'>
               <CardTitle className='flex items-center justify-between'>
-                <span>{funnel.name}</span>
+                <span>{funnel.name || 'Unnamed Funnel'}</span>
                 <div className='flex space-x-2'>
                   <SimulationControl funnelId={funnel.id} projectId={projectId} />
                   <Button
@@ -106,10 +106,11 @@ export default function FunnelsPage() {
                     {funnel.description || 'No description'}
                   </p>
                   <p className='text-sm mt-2'>
-                    <span className='font-medium'>Stages:</span> {funnel.stages.length}
+                    <span className='font-medium'>Stages:</span> {funnel.stages?.length || 0}
                   </p>
                   <p className='text-sm mt-1'>
-                    <span className='font-medium'>Stage Links:</span> {funnel.stageLinks.length}
+                    <span className='font-medium'>Stage Links:</span>{' '}
+                    {funnel.stageLinks?.length || 0}
                   </p>
                 </div>
               )}

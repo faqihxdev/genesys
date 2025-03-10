@@ -318,14 +318,16 @@ export default function SimulationControl({
                             : 'Unknown'}
                 </span>
                 <span>
-                  {simulationStatus.completeCount} / {simulationStatus.totalCount} personas
+                  {simulationStatus.completeCount || 0} / {simulationStatus.totalCount || 0}{' '}
+                  personas
                 </span>
               </div>
-              <Progress value={simulationStatus.progress} />
+              <Progress value={simulationStatus.progress || 0} />
 
               <div className='text-xs text-muted-foreground mt-2'>
                 <p>
-                  Active stages: {simulationStatus.activeStages} of {simulationStatus.totalStages}
+                  Active stages: {simulationStatus.activeStages || 0} of{' '}
+                  {simulationStatus.totalStages || 0}
                 </p>
                 {simulationStatus.error && (
                   <p className='text-destructive mt-1'>Error: {simulationStatus.error}</p>
