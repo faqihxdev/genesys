@@ -1,18 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -44,12 +32,6 @@ export default function SimulationControl({
   const [selectedConfigId, setSelectedConfigId] = useState('');
   const [isCreatingSimulation, setIsCreatingSimulation] = useState(false);
   const [activeSimulationId, setActiveSimulationId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [simulationParameters, setSimulationParameters] = useState({
-    maxPathsPerPersona: 1,
-    detailedResponses: true,
-    includeReasons: true,
-  });
 
   // Fetch persona configs for the project
   const {
@@ -105,17 +87,15 @@ export default function SimulationControl({
       const result = await withQuery(createSimulation)({
         funnelId,
         personaConfigId: selectedConfigId,
-        parameters: simulationParameters,
       });
 
       setActiveSimulationId(result.id);
-      setIsDialogOpen(false);
       toast({
         title: 'Simulation Started',
         description: `Simulation created with ${result.totalCount} personas.`,
       });
     } catch (error) {
-      console.error('Error creating simulation:', error);
+      console.error('[SimulationControl/handleStartSimulation]:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to create simulation',
@@ -138,7 +118,7 @@ export default function SimulationControl({
         description: 'The simulation has been cancelled.',
       });
     } catch (error) {
-      console.error('Error cancelling simulation:', error);
+      console.error('[SimulationControl/handleCancelSimulation]:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to cancel simulation',
@@ -149,134 +129,56 @@ export default function SimulationControl({
 
   return (
     <div className='space-y-4'>
-      {/* Simulation dialog trigger */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant='default'
-            disabled={!!activeSimulationId}
-            onClick={() => setIsDialogOpen(true)}
+      {/* Streamlined simulation controls */}
+      <div className='flex items-center gap-4'>
+        <div className='w-80'>
+          <Select
+            value={selectedConfigId}
+            onValueChange={setSelectedConfigId}
+            disabled={isLoadingConfigs || isCreatingSimulation || !!activeSimulationId}
           >
-            Run Simulation
-          </Button>
-        </DialogTrigger>
-
-        <DialogContent className='sm:max-w-[425px]'>
-          <DialogHeader>
-            <DialogTitle>Create New Simulation</DialogTitle>
-            <DialogDescription>
-              Select a persona configuration to simulate interactions with this funnel.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className='grid gap-4 py-4'>
-            <div className='space-y-2'>
-              <Label htmlFor='persona-config'>Persona Configuration</Label>
-              <Select
-                value={selectedConfigId}
-                onValueChange={setSelectedConfigId}
-                disabled={isLoadingConfigs || isCreatingSimulation}
-              >
-                <SelectTrigger id='persona-config'>
-                  <SelectValue placeholder='Select a persona configuration' />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingConfigs ? (
-                    <SelectItem value='loading' disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : configError ? (
-                    <SelectItem value='error' disabled>
-                      Error loading configs
-                    </SelectItem>
-                  ) : personaConfigs && personaConfigs.length > 0 ? (
-                    personaConfigs.map((config: PersonaConfig) => (
-                      <SelectItem key={config.id} value={config.id}>
-                        {config.name} ({config.size} personas)
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value='none' disabled>
-                      No persona configs found
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='max-paths'>Maximum Paths Per Persona</Label>
-              <Input
-                id='max-paths'
-                type='number'
-                min={1}
-                max={5}
-                value={simulationParameters.maxPathsPerPersona}
-                onChange={(e) =>
-                  setSimulationParameters({
-                    ...simulationParameters,
-                    maxPathsPerPersona: parseInt(e.target.value, 10) || 1,
-                  })
-                }
-                disabled={isCreatingSimulation}
-              />
-            </div>
-
-            <div className='flex items-center space-x-2'>
-              <Checkbox
-                id='detailed-responses'
-                checked={simulationParameters.detailedResponses}
-                onCheckedChange={(checked) =>
-                  setSimulationParameters({
-                    ...simulationParameters,
-                    detailedResponses: !!checked,
-                  })
-                }
-                disabled={isCreatingSimulation}
-              />
-              <Label htmlFor='detailed-responses'>Generate detailed responses</Label>
-            </div>
-
-            <div className='flex items-center space-x-2'>
-              <Checkbox
-                id='include-reasons'
-                checked={simulationParameters.includeReasons}
-                onCheckedChange={(checked) =>
-                  setSimulationParameters({
-                    ...simulationParameters,
-                    includeReasons: !!checked,
-                  })
-                }
-                disabled={isCreatingSimulation}
-              />
-              <Label htmlFor='include-reasons'>Include reasoning in responses</Label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={() => setIsDialogOpen(false)}
-              disabled={isCreatingSimulation}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleStartSimulation}
-              disabled={!selectedConfigId || isCreatingSimulation}
-            >
-              {isCreatingSimulation ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Creating...
-                </>
+            <SelectTrigger>
+              <SelectValue placeholder='Select a persona configuration' />
+            </SelectTrigger>
+            <SelectContent>
+              {isLoadingConfigs ? (
+                <SelectItem value='loading' disabled>
+                  Loading...
+                </SelectItem>
+              ) : configError ? (
+                <SelectItem value='error' disabled>
+                  Error loading configs
+                </SelectItem>
+              ) : personaConfigs && personaConfigs.length > 0 ? (
+                personaConfigs.map((config: PersonaConfig) => (
+                  <SelectItem key={config.id} value={config.id}>
+                    {config.name} ({config.size} personas)
+                  </SelectItem>
+                ))
               ) : (
-                'Start Simulation'
+                <SelectItem value='none' disabled>
+                  No persona configs found
+                </SelectItem>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          variant='default'
+          disabled={!selectedConfigId || isCreatingSimulation || !!activeSimulationId}
+          onClick={handleStartSimulation}
+        >
+          {isCreatingSimulation ? (
+            <>
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              Creating...
+            </>
+          ) : (
+            'Run Simulation'
+          )}
+        </Button>
+      </div>
 
       {/* Active simulation status */}
       {activeSimulationId && (

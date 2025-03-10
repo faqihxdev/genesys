@@ -227,9 +227,6 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
         `Failed to get simulation: ${simulationError?.message || 'No data returned'}`
       );
     }
-    const parameters = simulationData.parameters_json
-      ? JSON.parse(simulationData.parameters_json)
-      : undefined;
 
     // Step 2: Get persona data.
     const { data: personaData, error: personaError } = await supabase
@@ -285,12 +282,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     }
 
     // Step 5: Generate persona responses using OpenAI.
-    const simulationResponse = await generatePersonaResponse(
-      personaData,
-      stageData,
-      stageItems,
-      parameters
-    );
+    const simulationResponse = await generatePersonaResponse(personaData, stageData, stageItems);
 
     // Step 6: Save the responses to the database.
     // Save stage-level response.
@@ -415,13 +407,12 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
 async function generatePersonaResponse(
   persona: any,
   stage: any,
-  items: any[],
-  parameters?: any
+  items: any[]
 ): Promise<SimulationResponse> {
   try {
     const personaPrompt = formatPersonaForPrompt(persona);
     const stagePrompt = formatStageForPrompt(stage, items);
-    const systemInstructions = getSystemInstructions(parameters);
+    const systemInstructions = getSystemInstructions();
     const userPrompt = `Please simulate how this persona would interact with the following marketing funnel stage:
     
     ${personaPrompt}
@@ -433,7 +424,7 @@ async function generatePersonaResponse(
     let attempt = 0;
     const maxAttempts = 3;
     let result: SimulationResponse | null = null;
-    const temperature = parameters?.temperatureOverride ?? 0.7;
+    const temperature = 0.7;
 
     while (attempt < maxAttempts && !result) {
       try {
@@ -627,22 +618,13 @@ ${formattedItems}`;
 }
 
 /**
- * Generate system instructions based on parameters.
+ * Generate system instructions based on custom prompt additions.
  */
-function getSystemInstructions(parameters?: any): string {
+function getSystemInstructions(): string {
   return `You are a sophisticated AI simulating how a specific persona interacts with marketing content. 
 Your task is to realistically model how the given persona would respond to each item in a marketing funnel stage.
-${
-  parameters?.detailedResponses
-    ? "Provide detailed, nuanced responses explaining the persona's thoughts, feelings, and reactions."
-    : 'Keep responses concise but authentic to the persona.'
-}
-${
-  parameters?.includeReasons
-    ? 'Include clear reasoning behind each reaction and decision.'
-    : 'Focus on the outcomes rather than detailed reasoning.'
-}
-${parameters?.customPromptAdditions || ''}
+Provide detailed, nuanced responses explaining the persona's thoughts, feelings, and reactions.
+Include clear reasoning behind each reaction and decision.
 
 For each item, determine:
 1. How the persona would react

@@ -32,15 +32,6 @@ export const createSimulation = createAction({
   validator: z.object({
     funnelId: z.string().min(1, 'Funnel ID is required'),
     personaConfigId: z.string().min(1, 'Persona Config ID is required'),
-    parameters: z
-      .object({
-        maxPathsPerPersona: z.number().int().min(1).optional(),
-        detailedResponses: z.boolean().optional(),
-        temperatureOverride: z.number().min(0).max(2).optional(),
-        includeReasons: z.boolean().optional(),
-        customPromptAdditions: z.string().optional(),
-      })
-      .optional(),
   }),
   requireAuth: false,
   actionFn: async ({ input }) => {
@@ -60,7 +51,7 @@ export const createSimulation = createAction({
         });
       }
 
-      // Get the persona config
+      // Get the complete persona config with traits config
       const personaConfig = await db.query.personaConfigs.findFirst({
         where: eq(personaConfigs.id, input.personaConfigId),
       });
@@ -84,8 +75,11 @@ export const createSimulation = createAction({
         });
       }
 
+      // Store the entire persona config as JSON for historical reference
+      // This ensures we keep a snapshot of the persona config at the time of simulation
+      const parametersJson = JSON.stringify(personaConfig);
+
       // Create a new simulation record
-      const parametersJson = input.parameters ? JSON.stringify(input.parameters) : null;
       const newSimulation: NewSimulation = {
         funnelId: input.funnelId,
         personaConfigId: input.personaConfigId,

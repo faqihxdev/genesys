@@ -19,18 +19,6 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
 ]);
 
 /**
- * Simulation parameter interface
- * Defines configuration options for a simulation
- */
-export interface SimulationParameters {
-  maxPathsPerPersona?: number; // Maximum number of paths a persona can explore (for branching funnels)
-  detailedResponses?: boolean; // Whether to generate detailed responses or just proceed decisions
-  temperatureOverride?: number; // Optional override for OpenAI temperature setting
-  includeReasons?: boolean; // Whether to include detailed reasoning in responses
-  customPromptAdditions?: string; // Custom instructions to add to the prompt
-}
-
-/**
  * Simulations table schema
  * Represents a simulation run of personas through a funnel
  * completeCount: prevents calling the responses table to check progress
@@ -50,7 +38,7 @@ export const simulations = pgTable(
     status: simulationStatusEnum('simulation_status').notNull().default('idle'), // status of the simulation
     completeCount: integer('complete_count').notNull().default(0), // Number of personas that completed the simulation
     totalCount: integer('total_count').notNull().default(0), // Total number of personas in the simulation
-    parametersJson: text('parameters_json'), // JSON string of SimulationParameters
+    parametersJson: text('parameters_json'), // JSON string of the persona config snapshot at the time of simulation
     error: text('error'), // Error message if the simulation failed
     ...timestamps,
   },
