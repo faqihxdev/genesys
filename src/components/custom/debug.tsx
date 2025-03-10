@@ -278,19 +278,19 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className='h-6 text-xs placeholder:text-xs border-none bg-transparent focus-visible:ring-1 focus-visible:ring-primary/20'
             />
-            <Button 
-              variant='ghost' 
-              size='icon' 
-              className='h-6 w-6' 
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-6 w-6'
               onClick={handleCopyEntireData}
               title='Copy entire object'
             >
               <Copy className='h-3 w-3' />
             </Button>
-            <Button 
-              variant='ghost' 
-              size='icon' 
-              className='h-6 w-6' 
+            <Button
+              variant='ghost'
+              size='icon'
+              className='h-6 w-6'
               onClick={handleDownload}
               title='Download JSON'
             >
@@ -432,7 +432,7 @@ export function FloatingDebugPanel({ data }: DebugPanelProps) {
                             </Button>
                           </div>
                         )}
-                        
+
                         {isObject && (
                           <div
                             className='flex items-center pr-2 min-w-0 gap-1'

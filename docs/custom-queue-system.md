@@ -85,4 +85,4 @@ To monitor the queue system:
 2. Implement queue prioritization for critical tasks
 3. Add a dashboard for queue monitoring
 4. Implement task dependencies for complex workflows
-5. Add support for task cancellation 
+5. Add support for task cancellation

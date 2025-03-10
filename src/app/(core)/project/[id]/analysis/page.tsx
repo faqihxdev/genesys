@@ -209,6 +209,7 @@ export default function AnalysisPage() {
         generateSummaryMutation.mutate({ simulationId: compareSimulationId });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedSimulationId,
     simulationsData,
