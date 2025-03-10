@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, ArrowRight } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle, FlaskConical } from 'lucide-react';
 
 interface AnalysisSelectorsProps {
   funnels: FunnelOption[];
@@ -27,11 +27,24 @@ interface AnalysisSelectorsProps {
 }
 
 function SimulationLabel({ simulation }: { simulation: SimulationOption }) {
-  const simId = simulation.id.split('-').pop();
+  const date = new Date(simulation.createdAt)
+    .toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    .replace(',', ''); // Remove comma between date and time
   const hasNoAnalysis = simulation.status === 'complete' && !simulation.hasSummary;
 
   if (!hasNoAnalysis) {
-    return <span className='font-medium truncate'>Simulation {simId}</span>;
+    return (
+      <span className='font-medium truncate flex items-center gap-2'>
+        <span className='min-w-[11rem]'>Simulation {date}</span>
+        <CheckCircle className='h-4 w-4 text-primary shrink-0' />
+      </span>
+    );
   }
 
   return (
@@ -39,9 +52,8 @@ function SimulationLabel({ simulation }: { simulation: SimulationOption }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className='font-medium truncate flex items-center gap-2'>
-            Simulation {simId}
-            <AlertCircle className='h-4 w-4 text-muted-foreground' />
-            <span className='text-muted-foreground'>(No Analysis)</span>
+            <span className='min-w-[11rem]'>Simulation {date}</span>
+            <AlertCircle className='h-4 w-4 text-muted-foreground shrink-0' />
           </span>
         </TooltipTrigger>
         <TooltipContent>
@@ -95,8 +107,9 @@ export function AnalysisSelectors({
                 <SelectItem key={funnel.id} value={funnel.id}>
                   <div className='flex items-center justify-between w-full gap-4'>
                     <span className='font-medium truncate'>{funnel.name}</span>
-                    <span className='text-xs text-muted-foreground shrink-0'>
-                      {funnel.simulationCount} simulations
+                    <span className='text-xs text-muted-foreground shrink-0 flex items-center gap-1'>
+                      {funnel.simulationCount}
+                      <FlaskConical className='h-3.5 w-3.5' />
                     </span>
                   </div>
                 </SelectItem>
@@ -124,11 +137,8 @@ export function AnalysisSelectors({
           <SelectContent>
             {simulations?.map((simulation) => (
               <SelectItem key={simulation.id} value={simulation.id}>
-                <div className='flex items-center justify-between w-full gap-4'>
+                <div className='flex items-center w-full gap-4'>
                   <SimulationLabel simulation={simulation} />
-                  <span className='text-xs text-muted-foreground shrink-0'>
-                    {new Date(simulation.createdAt).toLocaleDateString()}
-                  </span>
                 </div>
               </SelectItem>
             ))}
@@ -159,8 +169,9 @@ export function AnalysisSelectors({
                 <SelectItem key={funnel.id} value={funnel.id}>
                   <div className='flex items-center justify-between w-full gap-4'>
                     <span className='font-medium truncate'>{funnel.name}</span>
-                    <span className='text-xs text-muted-foreground shrink-0'>
-                      {funnel.simulationCount} simulations
+                    <span className='text-xs text-muted-foreground shrink-0 flex items-center gap-1'>
+                      {funnel.simulationCount}
+                      <FlaskConical className='h-3.5 w-3.5' />
                     </span>
                   </div>
                 </SelectItem>
@@ -189,11 +200,8 @@ export function AnalysisSelectors({
             <SelectContent>
               {comparisonSimulations?.map((simulation) => (
                 <SelectItem key={simulation.id} value={simulation.id}>
-                  <div className='flex items-center justify-between w-full gap-4'>
+                  <div className='flex items-center w-full gap-4'>
                     <SimulationLabel simulation={simulation} />
-                    <span className='text-xs text-muted-foreground shrink-0'>
-                      {new Date(simulation.createdAt).toLocaleDateString()}
-                    </span>
                   </div>
                 </SelectItem>
               ))}

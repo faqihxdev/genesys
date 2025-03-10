@@ -774,7 +774,9 @@ export default function AnalysisPage() {
         </section>
       )}
 
-      <FloatingDebugPanel data={{ currentAnalysis, comparisonAnalysis }} />
+      <FloatingDebugPanel
+        data={{ currentAnalysis, comparisonAnalysis, simulationsData, comparisonSimulationsData }}
+      />
     </div>
   );
 }

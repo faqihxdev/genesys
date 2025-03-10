@@ -964,9 +964,10 @@ export const getFunnelSimulations = createAction({
       })
       .from(summary)
       .where(
-        sql`${summary.simulationId} IN (${funnelSimulations
-          .map((s) => s.id)
-          .join(',')}) AND ${summary.deletedAt} IS NULL`
+        inArray(
+          summary.simulationId,
+          funnelSimulations.map((s) => s.id)
+        )
       );
 
     // Create a Set of simulation IDs that have summaries for O(1) lookup
