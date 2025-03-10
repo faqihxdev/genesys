@@ -72,10 +72,8 @@ async function processTask(task: any): Promise<void> {
     try {
       if (typeof task.payload === 'string') {
         message = JSON.parse(task.payload);
-        console.log(`Parsed string payload for task ${taskId}`);
       } else {
         message = task.payload as SimulationChunkMessage;
-        console.log(`Using object payload for task ${taskId}`);
       }
       if (!message.simulationId || !message.personaId || !message.stageId) {
         console.error(`Invalid payload structure for task ${taskId}:`, message);
@@ -156,18 +154,19 @@ async function processTask(task: any): Promise<void> {
 // @ts-ignore
 // Main Deno serve function to handle HTTP requests
 Deno.serve(async (req) => {
-  const processingStartTime = Date.now();
   console.log('Processing simulation queue...');
 
-  // Process up to 20 tasks concurrently in the background.
-  const processingPromise = (async () => {
+  // IMPORTANT! DANGER: This will call openai in parallel for each persona
+  // Process up to 100 tasks concurrently in the background.
+  (async () => {
+    const startTime = performance.now();
     const { data: tasks, error: queryError } = await supabase
       .from('queue_tasks')
       .select('*')
       .eq('queue_name', 'simulation_tasks')
       .eq('queue_task_status', 'pending')
       .lt('visible_after', new Date().toISOString())
-      .limit(20);
+      .limit(100);
 
     if (queryError) {
       throw new Error(`Failed to query pending tasks: ${queryError.message}`);
@@ -180,6 +179,10 @@ Deno.serve(async (req) => {
 
     // Process all tasks concurrently.
     await Promise.allSettled(tasks.map((task: any) => processTask(task)));
+    const endTime = performance.now();
+    console.log(
+      `✅ Batch processing completed in ${((endTime - startTime) / 1000).toFixed(2)}s | Processed ${tasks.length} tasks`
+    );
   })();
 
   // Return an immediate response (processing runs in the background).
@@ -201,7 +204,7 @@ Deno.serve(async (req) => {
  */
 async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<void> {
   console.log(
-    `Processing chunk ${chunk.chunkId} for simulation ${chunk.simulationId}, persona ${chunk.personaId}, stage ${chunk.stageId}`
+    `Processing | chunk: ${chunk.chunkId} | simulation: ${chunk.simulationId} | persona: ${chunk.personaId} | stage: ${chunk.stageId}`
   );
   try {
     // Update simulation status to indicate progress.
@@ -368,7 +371,7 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
           throw new Error(`Failed to queue next stage: ${queueError.message}`);
         }
         console.log(
-          `Queued next stage ${nextStageId} for simulation ${chunk.simulationId}, persona ${chunk.personaId}`
+          `Queued next stage ${nextStageId} | simulation: ${chunk.simulationId} | persona: ${chunk.personaId}`
         );
       }
     }
@@ -376,10 +379,13 @@ async function processSimulationChunk(chunk: SimulationChunkMessage): Promise<vo
     // Step 9: Update simulation progress and check if simulation is complete.
     await updateSimulationProgress(chunk.simulationId);
     console.log(
-      `Successfully processed chunk ${chunk.chunkId} for simulation ${chunk.simulationId}`
+      `Successfully processed | chunk: ${chunk.chunkId} | simulation: ${chunk.simulationId}`
     );
   } catch (error) {
-    console.error(`Error processing chunk ${chunk.chunkId}:`, error);
+    console.error(
+      `Error processing | chunk: ${chunk.chunkId} | simulation: ${chunk.simulationId}`,
+      error
+    );
     await supabase
       .from('simulation_stages')
       .update({ simulation_stage_status: 'error' })
@@ -434,7 +440,7 @@ async function generatePersonaResponse(
         attempt++;
         if (attempt > 1) {
           await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
-          console.log(`Retry attempt ${attempt} for persona ${persona.id}, stage ${stage.id}`);
+          console.log(`Retry attempt ${attempt} | persona: ${persona.id} | stage: ${stage.id}`);
         }
 
         const completion = await openai.chat.completions.create({
@@ -701,7 +707,9 @@ async function askPersonaForNextStage(
   nextStageIds: string[]
 ): Promise<string | null> {
   try {
-    console.log(`Asking persona ${personaId} to choose next stage from options:`, nextStageIds);
+    console.log(
+      `Asking | persona: ${personaId} | simulation: ${simulationId} | stage: ${currentStageId}`
+    );
     const { data: persona, error: personaError } = await supabase
       .from('personas')
       .select('*')
@@ -874,10 +882,10 @@ async function updateSimulationProgress(simulationId: string): Promise<void> {
         .from('simulations')
         .update({ simulation_status: 'complete' })
         .eq('id', simulationId);
-      console.log(`Simulation ${simulationId} completed successfully!`);
+      console.log(`Simulation | id: ${simulationId} | completed successfully!`);
     }
   } catch (error) {
-    console.error('Error updating simulation progress:', error);
+    console.error(`Error updating simulation progress | id: ${simulationId}:`, error);
     throw error;
   }
 }
