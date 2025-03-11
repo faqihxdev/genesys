@@ -154,8 +154,6 @@ async function processTask(task: any): Promise<void> {
 // @ts-ignore
 // Main Deno serve function to handle HTTP requests
 Deno.serve(async (req) => {
-  console.log('Processing simulation queue...');
-
   // IMPORTANT! DANGER: This will call openai in parallel for each persona
   // Process up to 100 tasks concurrently in the background.
   (async () => {
@@ -174,8 +172,19 @@ Deno.serve(async (req) => {
 
     if (!tasks || tasks.length === 0) {
       console.log('No tasks in queue to process');
+
+      // If no tasks to process, try to clean up stale tasks
+      const cleanupResult = await cleanupStaleTasks();
+      if (cleanupResult.cleanedUp) {
+        console.log(`✅ Cleanup completed | ${cleanupResult.count} stale tasks cleaned up`);
+      } else {
+        console.log('No task to clean up');
+      }
+
       return;
     }
+
+    console.log('Processing simulation queue...');
 
     // Process all tasks concurrently.
     await Promise.allSettled(tasks.map((task: any) => processTask(task)));
@@ -197,6 +206,52 @@ Deno.serve(async (req) => {
     }
   );
 });
+
+/**
+ * Clean up stale tasks that have been stuck in processing state
+ * @returns Object with cleanup results
+ */
+async function cleanupStaleTasks(): Promise<{ cleanedUp: boolean; count: number }> {
+  try {
+    // Calculate the date threshold for old tasks (1 day ago)
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    // First, delete completed or cancelled tasks
+    const { error: completedError, count: completedCount } = await supabase
+      .from('queue_tasks')
+      .delete({ count: 'exact' })
+      .in('queue_task_status', ['completed', 'cancelled']);
+
+    if (completedError) {
+      console.error(
+        '[cleanupStaleTasks] Error deleting completed/cancelled tasks:',
+        completedError
+      );
+    }
+
+    // Then, delete any tasks older than 1 day regardless of status
+    const { error: oldTasksError, count: oldTasksCount } = await supabase
+      .from('queue_tasks')
+      .delete({ count: 'exact' })
+      .lt('created_at', oneDayAgo.toISOString());
+
+    if (oldTasksError) {
+      console.error('[cleanupStaleTasks] Error deleting old tasks:', oldTasksError);
+    }
+
+    // Calculate total count of deleted tasks
+    const totalDeleted = (completedCount || 0) + (oldTasksCount || 0);
+
+    return {
+      cleanedUp: totalDeleted > 0,
+      count: totalDeleted,
+    };
+  } catch (error) {
+    console.error('Error cleaning up tasks:', error);
+    return { cleanedUp: false, count: 0 };
+  }
+}
 
 /**
  * Process a simulation chunk.

@@ -61,4 +61,10 @@ export const queryKey = {
     all: (projectId: string) => ['funnels', projectId] as const,
     detail: (funnelId: string) => ['funnel', funnelId] as const,
   },
+  simulation: {
+    getFunnelSimulations: ({ funnelId }: { funnelId: string }) =>
+      ['simulations', 'funnel', funnelId] as const,
+    getProjectFunnelsWithSimulations: ({ projectId }: { projectId: string }) =>
+      ['simulations', 'project', projectId] as const,
+  },
 } as const;
