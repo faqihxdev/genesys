@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/custom/button';
-import { Spinner } from '@/components/custom/spinner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +30,26 @@ import { Clock, MoreHorizontal, Shield, User } from 'lucide-react';
 
 interface MemberListProps {
   projectId: string;
+}
+
+function SkeletonRow() {
+  return (
+    <div className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 px-3 bg-accent/20 rounded-lg'>
+      <div className='flex items-center gap-2'>
+        <Skeleton className='h-8 w-8 rounded-full' />
+        <Skeleton className='h-4 w-[180px]' />
+      </div>
+      <div className='flex items-center gap-2'>
+        <Skeleton className='h-4 w-[100px]' />
+      </div>
+      <div>
+        <Skeleton className='h-4 w-[120px]' />
+      </div>
+      <div>
+        <Skeleton className='h-8 w-8 rounded-md' />
+      </div>
+    </div>
+  );
 }
 
 export function MemberList({ projectId }: MemberListProps) {
@@ -131,8 +151,11 @@ export function MemberList({ projectId }: MemberListProps) {
 
   if (isMembersLoading || isUsersLoading || (isOwner && isInvitesLoading)) {
     return (
-      <div className='flex justify-center p-4'>
-        <Spinner />
+      <div className='space-y-2'>
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }
