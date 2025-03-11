@@ -1,5 +1,6 @@
 import { type Node, type NodeProps, Position } from "@xyflow/react";
 import { nanoid } from "nanoid";
+import { isEmpty } from "radash";
 import { memo, useCallback, useMemo, useState } from "react";
 import { BaseNodeData, BuilderNode, RegisterNodeMetadata } from "../../types";
 import { getNodeDetail } from "../../utils";
@@ -59,25 +60,17 @@ export function TextMessageNode({
       <NodeCardContent>
         <div className="flex flex-col p-4">
           <div className="text-xs font-medium text-card-foreground">
-            Content Summary
+            Message Content
           </div>
 
-          <div className="mt-2 flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-sm text-card-foreground/70">
-              <span className="font-medium">{data.textCount || 0}</span>
-              <span className="text-xs">×</span>
-              <div className="flex items-center gap-1.5">
-                <Icon icon="ph:text-t-bold" className="size-4" />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-card-foreground/70">
-              <span className="font-medium">{data.imageCount || 0}</span>
-              <span className="text-xs">×</span>
-              <div className="flex items-center gap-1.5">
-                <Icon icon="ph:image-bold" className="size-4" />
-              </div>
-            </div>
+          <div className="line-clamp-4 mt-2 text-sm leading-snug">
+            {isEmpty(data.message) ? (
+              <span className="text-card-foreground italic">
+                No message yet...
+              </span>
+            ) : (
+              data.message
+            )}
           </div>
         </div>
 

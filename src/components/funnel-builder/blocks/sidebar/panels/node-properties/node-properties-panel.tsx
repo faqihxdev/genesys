@@ -11,6 +11,7 @@ import { NodePropertyPanel } from "./_components/node-propery-panel";
 import IntroductionPropertyPanel from "./property-panels/introduction-property-panel";
 import { HeaderWithIcon } from "@/components/funnel-builder/ui/header-with-icon";
 import { selectedNodeAtom, setSelectedNodeAtom } from "@/stores/funnel";
+import { TagsNodeData } from "../../../nodes/tags-node/tags.node";
 
 export function NodePropertiesPanel() {
   const [selectedNode] = useAtom(selectedNodeAtom);
@@ -42,7 +43,7 @@ export function NodePropertiesPanel() {
     <SidebarPanelWrapper>
       <div className="h-80 w-80 flex flex-col">
         <SidebarPanelHeading className="shrink-0">
-          <HeaderWithIcon icon="Layers" title="Nodes in Flow" />
+          <HeaderWithIcon icon="Layers" title="Stages in Funnel" />
         </SidebarPanelHeading>
 
         <div className="flex w-full  flex-col gap-1 p-1.5 overflow-y-auto">
@@ -54,7 +55,11 @@ export function NodePropertiesPanel() {
                   ? undefined
                   : node.id
               }
-              title={node.detail.title}
+              title={
+                node.type === BuilderNode.TAGS 
+                  ? ((node.data as TagsNodeData)?.name || node.detail.title)
+                  : node.detail.title
+              }
               icon={node.detail.icon}
               selected={selectedNode?.id === node.id}
               pseudoSelected={node.selected}
@@ -68,7 +73,7 @@ export function NodePropertiesPanel() {
 
       <div className="w-80 max-h-[360px] 2xl:max-h-[594px] flex flex-col">
         <SidebarPanelHeading className="shrink-0">
-          <HeaderWithIcon icon="Settings" title="Node Properties" />
+          <HeaderWithIcon icon="Settings" title="Stage Properties" />
         </SidebarPanelHeading>
 
         <div className="flex w-full  flex-col  overflow-y-auto">

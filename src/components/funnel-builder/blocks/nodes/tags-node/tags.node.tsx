@@ -17,11 +17,24 @@ import {
 } from "@/components/funnel-builder/ui/node-card";
 import { Badge } from "@/components/ui/badge";
 import TagsNodePropertyPanel from "../../sidebar/panels/node-properties/property-panels/tags-property";
+import { Icon } from "@iconify/react/dist/iconify.js";
 
 const NODE_TYPE = BuilderNode.TAGS;
 
 export interface TagsNodeData extends BaseNodeData {
   tags: string[];
+  description: string;
+  name: string;
+  options: {
+    id: string;
+    option: {
+      id: number;
+      name: string;
+      description?: string;
+      type: "text" | "image";
+      content: string; // Text content or image URL
+    }
+  }[];
 }
 
 const badgeStyle = (color: string) => ({
@@ -47,11 +60,22 @@ export function TagsNode({ id, isConnectable, selected, data }: TagsNodeProps) {
     showNodeProperties({ id, type: NODE_TYPE });
   }, [id, showNodeProperties]);
 
+  // Count text and image options
+  const textOptionCount = useMemo(() =>
+    data.options.filter(option => option.option.type === "text").length,
+    [data.options]
+  );
+
+  const imageOptionCount = useMemo(() =>
+    data.options.filter(option => option.option.type === "image").length,
+    [data.options]
+  );
+
   return (
     <NodeCard data-selected={selected} onDoubleClick={handleShowNodeProperties}>
       <NodeCardHeader
         icon={meta.icon}
-        title={meta.title}
+        title={data.name || meta.title}
         handleDeleteNode={handleDeleteNode}
         handleShowNodeProperties={handleShowNodeProperties}
         gradientColor={meta.gradientColor}
@@ -59,34 +83,44 @@ export function TagsNode({ id, isConnectable, selected, data }: TagsNodeProps) {
 
       <NodeCardContent>
         <div className="flex flex-col p-4">
-          <div className="text-xs font-medium text-card-foreground">
-            Tags added
-          </div>
-
-          <div className="line-clamp-1 flex gap-2 flex-wrap mt-2 text-sm leading-snug">
-            {isEmpty(data.tags) ? (
+          <div className="line-clamp-4 mt-2 text-sm leading-snug">
+            {isEmpty(data.description) ? (
               <span className="text-card-foreground italic">
-                No tags added...
+                Stage description is empty
               </span>
             ) : (
-              data.tags.map((tagValue) => {
-                const tag = tags.find(({ value }) => value === tagValue);
-                return (
-                  <Badge
-                    key={tagValue}
-                    variant="outline"
-                    style={badgeStyle(tag?.color || "#cecece")}
-                    className="mb-1 mr-1"
-                  >
-                    {tag?.label || tagValue}
-                  </Badge>
-                );
-              })
+              data.description
             )}
           </div>
         </div>
 
-        <NodeCardDescription description="Add tags" />
+        <NodeCardDescription
+          description=""
+          badges={
+            <div className="line-clamp-1 flex gap-2 flex-wrap text-sm leading-snug">
+              {data.options.length === 0 ? (
+                <span className="text-card-foreground italic">
+                  No items added
+                </span>
+              ) : (
+                <>
+                  {textOptionCount > 0 && (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/15 flex items-center gap-1">
+                      {textOptionCount} x
+                      <Icon icon="material-symbols:text-fields" className="h-3.5 w-3.5" />
+                    </Badge>
+                  )}
+                  {imageOptionCount > 0 && (
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/15 flex items-center gap-1">
+                      {imageOptionCount} x
+                      <Icon icon="material-symbols:image" className="h-3.5 w-3.5" />
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
+          }
+        />
 
         <NodeCardFooter nodeId={id} />
       </NodeCardContent>
@@ -111,10 +145,10 @@ export const metadata: RegisterNodeMetadata<TagsNodeData> = {
   type: NODE_TYPE,
   node: memo(TagsNode),
   detail: {
-    icon: "tabler:tags-filled",
-    title: "Stage 2",
+    icon: "material-symbols:credit-card",
+    title: "Stage",
     description:
-      "Description of this Stage or something",
+      "Press to add stage to build your funnel simulator",
     gradientColor: "pink",
   },
   connection: {
@@ -123,6 +157,9 @@ export const metadata: RegisterNodeMetadata<TagsNodeData> = {
   },
   defaultData: {
     tags: ["marketing", "new"],
+    description: "",
+    name: "",
+    options: [],
   },
   propertyPanel: TagsNodePropertyPanel,
 };

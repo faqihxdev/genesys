@@ -4,7 +4,7 @@ import { metadata as TextMessageNodeMetadata } from "./nodes/text-message-node/t
 import { metadata as TagsNodeMetadata } from "./nodes/tags-node/tags.node";
 import { metadata as MenuNodeMetadata } from "./nodes/menu-node/menu.node";
 
-import { BuilderNodeType, RegisterNodeMetadata } from "./types";
+import { BuilderNode, BuilderNodeType, RegisterNodeMetadata } from "./types";
 
 export const NODES: RegisterNodeMetadata[] = [
   StartNodeMetadata,
@@ -28,7 +28,7 @@ export const NODES_METADATA = NODES.reduce((acc, current) => {
 }, {} as Record<BuilderNodeType, RegisterNodeMetadata & { __details: { type: RegisterNodeMetadata["type"] } & RegisterNodeMetadata["detail"] }>);
 
 export const AVAILABLE_NODES = NODES.filter(
-  (node) => node.available === undefined || node.available
+  (node) => node.type === BuilderNode.TAGS
 ).map((node) => ({
   type: node.type,
   icon: node.detail.icon,

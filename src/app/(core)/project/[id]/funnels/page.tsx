@@ -12,9 +12,22 @@ import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { getFunnelsWithFullData } from '@/server/funnel';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import SimulationControl from './components/simulation-control';
+import { FunnelDialog } from './_funnel-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from '@/components/ui/dialog';
+import { deleteFunnel } from '@/server/funnel';
+import { useQueryClient } from '@tanstack/react-query';
 
 /**
  * Funnels page component
@@ -43,6 +56,9 @@ export default function FunnelsPage() {
   const params = useParams();
   const projectId = params.id as string;
   const [expandedFunnelId, setExpandedFunnelId] = useState<string | null>(null);
+  const [funnelToDelete, setFunnelToDelete] = useState<{ id: string, name: string } | null>(null);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Fetch funnels data directly in the component
   const {
@@ -58,10 +74,30 @@ export default function FunnelsPage() {
   });
 
   const toggleFunnelExpansion = (funnelId: string) => {
-    if (expandedFunnelId === funnelId) {
-      setExpandedFunnelId(null);
-    } else {
-      setExpandedFunnelId(funnelId);
+    setExpandedFunnelId(expandedFunnelId === funnelId ? null : funnelId);
+  };
+
+  const handleDeleteFunnel = async () => {
+    if (!funnelToDelete) return;
+
+    try {
+      const result = await deleteFunnel({
+        funnelId: funnelToDelete.id,
+      });
+
+      if (!result.error) {
+        // Invalidate the query cache to refresh the data
+        queryClient.invalidateQueries({
+          queryKey: queryKey.funnel.all(projectId)
+        });
+        
+        // Close the dialog
+        setFunnelToDelete(null);
+      } else {
+        console.error('Failed to delete funnel:', result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting funnel:', error);
     }
   };
 
@@ -87,7 +123,10 @@ export default function FunnelsPage() {
   if (!funnels || funnels.length === 0) {
     return (
       <div className='p-4'>
-        <h2 className='text-xl font-bold mb-4'>No funnels found</h2>
+        <div className='flex items-center justify-between mb-4'>
+          <h2 className='text-xl font-bold'>No funnels found</h2>
+          <FunnelDialog projectId={projectId} />
+        </div>
         <p className='text-muted-foreground'>No funnels have been created for this project yet.</p>
       </div>
     );
@@ -95,29 +134,51 @@ export default function FunnelsPage() {
 
   return (
     <div className='space-y-4'>
-      <PageTitle
-        title='Marketing Funnels'
-        description='Design and optimize your marketing funnels by analyzing how different personas interact with each stage of your customer journey.'
-      />
+      <div className='flex items-center justify-between'>
+        <PageTitle
+          title='Marketing Funnels'
+          description='Design and optimize your marketing funnels by analyzing how different personas interact with each stage of your customer journey.'
+        />
+        <FunnelDialog projectId={projectId} />
+      </div>
 
       <div className='space-y-4'>
         {funnels.map((funnel) => (
-          <Card key={funnel.id} className='overflow-hidden'>
+          <Card
+            key={funnel.id}
+            className='overflow-hidden hover:border-primary/50 hover:shadow-md transition-all cursor-pointer'
+            onClick={() => router.push(`/project/${projectId}/funnels/${funnel.id}`)}
+          >
             <CardHeader className='bg-muted/50 py-4'>
               <CardTitle className='flex items-center justify-between'>
                 <span>{funnel.name || 'Unnamed Funnel'}</span>
                 <div className='flex space-x-2'>
                   <SimulationControl funnelId={funnel.id} projectId={projectId} />
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() => toggleFunnelExpansion(funnel.id)}
-                  >
-                    {expandedFunnelId === funnel.id ? 'Collapse' : 'Expand'}
-                  </Button>
+                  <div className="flex flex-col space-y-1">
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click from triggering
+                        toggleFunnelExpansion(funnel.id);
+                      }}
+                    >
+                      {expandedFunnelId === funnel.id ? 'Collapse' : 'Expand'}
+                    </Button>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click from triggering
+                        setFunnelToDelete({ id: funnel.id, name: funnel.name });
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              </CardTitle>
-            </CardHeader>
+              </CardTitle>            </CardHeader>
             <CardContent className='p-0'>
               {expandedFunnelId === funnel.id ? (
                 <pre className='p-4 overflow-auto max-h-[500px] text-xs'>
@@ -141,6 +202,32 @@ export default function FunnelsPage() {
           </Card>
         ))}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!funnelToDelete} onOpenChange={(open) => !open && setFunnelToDelete(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Funnel</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the funnel "{funnelToDelete?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteFunnel}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

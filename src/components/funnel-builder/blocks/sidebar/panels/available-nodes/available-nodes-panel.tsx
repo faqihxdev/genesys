@@ -60,10 +60,10 @@ export default function AvailableNodesPanel() {
           <Icon icon="mynaui:grid" className="size-6 text-white" />
         </div>
 
-        <div className="mt-4 text-balance font-medium">Available Nodes</div>
+        <div className="mt-4 text-balance font-medium">Available Stages</div>
 
         <div className="mt-1 w-2/3 text-xs text-light-50/40 font-medium leading-normal">
-          Drag and drop nodes to build your chatbot flow
+          Drag and drop stages to build your funnel simulator
         </div>
       </div>
 

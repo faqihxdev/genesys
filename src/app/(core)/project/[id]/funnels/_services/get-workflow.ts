@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type { Node, Edge } from "@xyflow/react";
 import { activeSidebarAtom, nodesAtom, edgesAtom, workflowIdAtom, workflowNameAtom, selectedNodeAtom } from "@/stores/funnel";
+import { getFunnelWithFullData } from "@/server/funnel";
 
 export interface Workflow {
   id: string;
@@ -18,49 +19,158 @@ export interface Workflow {
 }
 
 export const getWorkflow = async (id: string): Promise<Workflow> => {
-  // TODO: Get data from API
-  return {
-    id: nanoid(),
-    name: "Sample Workflow",
-    edges: [
-      {
-        id: "27Uqm_guQgYOw81_ibdSu",
-        source: "rFM8ixvItA-i-bXblxZ_M",
-        target: "nESW80juDe8b5bB_tbmSc",
+  try {
+    // Get the funnel data from the database
+    const funnelResult = await getFunnelWithFullData({ funnelId: id });
+
+    if (funnelResult.error) {
+      console.error("Error fetching funnel:", funnelResult.error);
+      throw new Error(funnelResult.error.message);
+    }
+
+    const funnel = funnelResult.data;
+
+    if (!funnel) {
+      throw new Error("Funnel not found");
+    }
+
+    // Create the base nodes (start and end)
+    const startNode: Node = {
+      id: "start-node",
+      type: "start",
+      position: { x: 0, y: 267 },
+      deletable: false,
+      data: { label: "Start", deletable: false },
+      measured: { width: 96, height: 42 },
+    };
+
+    const endNode: Node = {
+      id: "end-node",
+      type: "end",
+      position: { x: 1440, y: 272 },
+      deletable: false,
+      data: { label: "End", deletable: true },
+      measured: { width: 90, height: 42 },
+    };
+
+    const nodes: Node[] = [startNode, endNode];
+    const edges: Edge[] = [];
+
+    // Convert stages to nodes
+    const stageNodes = funnel.stages.map((stage, index) => {
+      // Position the stage node between start and end
+      const xPosition = 400 + (index * 300);
+
+      // Create a node for each stage
+      const stageNode: Node = {
+        id: stage.id,
+        type: "tags",
+        position: { x: xPosition, y: 267 },
+        data: {
+          description: stage.description || "",
+          name: stage.name || "", // Add the stage name from the database
+          tags: [],
+          options: stage.items.map((item, itemIndex) => ({
+            id: nanoid(),
+            option: {
+              id: itemIndex, // Use the index as a fallback for display order
+              name: item.name,
+              description: item.description || "", // Add the description from the database
+              type: item.type,
+              content: item.content,
+            }
+          }))
+        },
+      };
+
+      return stageNode;
+    });
+
+    // Add stage nodes to the nodes array
+    nodes.push(...stageNodes);
+
+    // Create edges based on stage links
+    if (stageNodes.length > 0) {
+      // Connect start to first stage
+      edges.push({
+        id: nanoid(),
+        source: startNode.id,
+        target: stageNodes[0].id,
         type: "deletable",
-      },
-      {
-        id: "aiMB_q-I713SLcttfM6PS",
-        source: "nESW80juDe8b5bB_tbmSc",
-        target: "5zne5FShP-jUCF1s7823h",
+      });
+
+      // Connect last stage to end
+      edges.push({
+        id: nanoid(),
+        source: stageNodes[stageNodes.length - 1].id,
+        target: endNode.id,
         type: "deletable",
-      },
-    ],
-    nodes: [
-      {
-        id: "rFM8ixvItA-i-bXblxZ_M",
-        type: "start",
-        position: { x: 0, y: 267 },
-        deletable: false,
-        data: { label: "Start", deletable: false },
-        measured: { width: 96, height: 42 },
-      },
-      {
-        id: "DtJ7scXmGEA101ommJOKc",
-        type: "end",
-        position: { x: 1440, y: 272 },
-        deletable: false,
-        data: { label: "End", deletable: true },
-        measured: { width: 90, height: 42 },
-      },
-    ],
-    sidebar: {
-      active: "available-nodes",
-      panels: {
-        nodeProperties: {
-          selectedNode: null,
+      });
+
+      // Connect stages based on stage links
+      funnel.stageLinks.forEach(link => {
+        const sourceNode = stageNodes.find(node => node.id === link.fromStageId);
+        const targetNode = stageNodes.find(node => node.id === link.toStageId);
+
+        if (sourceNode && targetNode) {
+          edges.push({
+            id: nanoid(),
+            source: sourceNode.id,
+            target: targetNode.id,
+            type: "deletable",
+          });
+        }
+      });
+    }
+
+    return {
+      id: funnel.id,
+      name: funnel.name,
+      nodes,
+      edges,
+      sidebar: {
+        active: "available-nodes",
+        panels: {
+          nodeProperties: {
+            selectedNode: null,
+          },
         },
       },
-    },
-  };
+    };
+  } catch (error) {
+    console.error("Error in getWorkflow:", error);
+
+    // Return a default workflow if there's an error
+    return {
+      id: id || nanoid(),
+      name: "New Workflow",
+      edges: [],
+      nodes: [
+        {
+          id: "start-node",
+          type: "start",
+          position: { x: 0, y: 267 },
+          deletable: false,
+          data: { label: "Start", deletable: false },
+          measured: { width: 96, height: 42 },
+        },
+        {
+          id: "end-node",
+          type: "end",
+          position: { x: 1440, y: 272 },
+          deletable: false,
+          data: { label: "End", deletable: true },
+          measured: { width: 90, height: 42 },
+        },
+      ],
+      sidebar: {
+        active: "available-nodes",
+        panels: {
+          nodeProperties: {
+            selectedNode: null,
+          },
+        },
+      },
+    };
+  }
 };

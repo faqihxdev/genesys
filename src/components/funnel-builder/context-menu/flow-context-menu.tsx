@@ -797,7 +797,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                   onMouseLeave={handleAddNodeTriggerLeave}
                 >
                   <Icon icon="mynaui:plus" className="mr-2 h-4 w-4" />
-                  Add Node
+                  Add Stage
                   <Icon icon="lucide:chevron-right" className="ml-auto h-4 w-4" />
                 </button>
                 {showNodeSubmenu && (
@@ -863,7 +863,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                     onClick={handleDeleteSelected}
                   >
                     <Icon icon="mynaui:trash" className="mr-2 h-4 w-4" />
-                    Delete {selectedCount} {selectedCount === 1 ? 'Node' : 'Nodes'}
+                    Delete {selectedCount} {selectedCount === 1 ? 'Stage' : 'Stages'}
                     <span className="ml-auto text-xs text-muted-foreground">Del</span>
                   </button>
                 </>
@@ -908,7 +908,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                 onClick={handleCopyNode}
               >
                 <Icon icon="mynaui:copy" className="mr-2 h-4 w-4" />
-                Copy Node
+                Copy Stage
                 <span className="ml-auto text-xs text-muted-foreground">Ctrl+C</span>
               </button>
               <button
@@ -919,7 +919,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                 onClick={handleDuplicateNode}
               >
                 <Icon icon="ph:copy-simple-duotone" className="mr-2 h-4 w-4" />
-                Duplicate Node
+                Duplicate Stage
                 <span className="ml-auto text-xs text-muted-foreground">Ctrl+D</span>
               </button>
               <div className="h-px my-1 bg-border" />
@@ -931,7 +931,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                 onClick={handleDeleteSelected}
               >
                 <Icon icon="mynaui:trash" className="mr-2 h-4 w-4" />
-                Delete Node
+                Delete Stage
                 <span className="ml-auto text-xs text-muted-foreground">Del</span>
               </button>
             </div>
