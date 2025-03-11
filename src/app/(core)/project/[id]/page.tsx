@@ -450,41 +450,48 @@ export default function OverviewPage() {
                       <p className='text-sm font-medium leading-none truncate'>
                         {simulation.funnelName}
                       </p>
-                      <div className='flex items-center gap-2 mt-1'>
-                        <Badge
-                          variant={
-                            simulation.status === 'complete'
-                              ? 'default'
-                              : simulation.status === 'processing'
-                                ? 'outline'
-                                : 'secondary'
-                          }
-                          className='text-xs'
-                        >
-                          {simulation.status}
-                        </Badge>
-                        <p className='text-xs text-muted-foreground'>
-                          {new Date(simulation.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
+                      <p className='text-xs text-muted-foreground mt-1'>
+                        {new Date(simulation.createdAt).toLocaleString('en-GB', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </p>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant='outline' size='sm' asChild>
-                            <Link
-                              href={`/project/${project.id}/analysis?fid=${simulation.funnelId}&sid=${simulation.id}`}
-                            >
-                              <ArrowUpRight className='h-4 w-4' />
-                              View
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View simulation analysis</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className='flex items-center gap-2'>
+                      <Badge
+                        variant={
+                          simulation.status === 'complete'
+                            ? 'default'
+                            : simulation.status === 'processing'
+                              ? 'outline'
+                              : 'secondary'
+                        }
+                        className='text-xs'
+                      >
+                        {simulation.status}
+                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant='outline' size='sm' asChild>
+                              <Link
+                                href={`/project/${project.id}/analysis?fid=${simulation.funnelId}&sid=${simulation.id}`}
+                              >
+                                <ArrowUpRight className='h-4 w-4' />
+                                View
+                              </Link>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View simulation analysis</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                 ))}
               </div>
