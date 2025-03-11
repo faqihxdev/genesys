@@ -66,20 +66,20 @@ export const notificationPriorityEnum = pgEnum('notification_priority', [
 export const notifications = pgTable(
   'notifications',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'ntf-' }))
       .primaryKey(),
-    userId: text().notNull(), // FK: which user is this notification for?
-    category: notificationCategoryEnum().notNull(), // category of notification
-    type: notificationTypeEnum().notNull(), // specific type of notification
-    priority: notificationPriorityEnum().notNull().default('low'), // priority level
-    title: text().notNull(), // notification title
-    message: text().notNull(), // notification message
-    isRead: boolean().notNull().default(false), // whether notification has been read
-    isArchived: boolean().notNull().default(false), // whether notification has been archived
-    actionUrl: text(), // optional URL to navigate to when clicked
-    metadata: jsonb(), // additional data specific to notification type
-    expiresAt: timestamp(), // optional expiration date
+    userId: text('user_id').notNull(), // FK: which user is this notification for?
+    category: notificationCategoryEnum('notification_category').notNull(), // category of notification
+    type: notificationTypeEnum('notification_type').notNull(), // specific type of notification
+    priority: notificationPriorityEnum('notification_priority').notNull().default('low'), // priority level
+    title: text('title').notNull(), // notification title
+    message: text('message').notNull(), // notification message
+    isRead: boolean('is_read').notNull().default(false), // whether notification has been read
+    isArchived: boolean('is_archived').notNull().default(false), // whether notification has been archived
+    actionUrl: text('action_url'), // optional URL to navigate to when clicked
+    metadata: jsonb('metadata'), // additional data specific to notification type
+    expiresAt: timestamp('expires_at'), // optional expiration date
     ...timestamps,
   },
   (table) => [

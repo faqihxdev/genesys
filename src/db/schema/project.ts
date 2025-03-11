@@ -13,11 +13,11 @@ export const projectUserRoleEnum = pgEnum('project_user_role', ['owner', 'member
 export const projects = pgTable(
   'projects',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'prj-' }))
       .primaryKey(),
-    name: text().notNull(), // user reference: name of the project
-    description: text(), // user reference: description of the project
+    name: text('name').notNull(), // user reference: name of the project
+    description: text('description'), // user reference: description of the project
     ...timestamps,
   },
   (table) => [
@@ -32,12 +32,12 @@ export const projects = pgTable(
 export const projectUsers = pgTable(
   'project_users',
   {
-    projectId: text() // FK: which project is this user a member of?
+    projectId: text('project_id') // FK: which project is this user a member of?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    userId: text().notNull(), // FK: which user is this? (Supabase auth.users)
-    role: projectUserRoleEnum().notNull().default('member'), // role of the user in the project
-    isDefault: boolean().notNull().default(false), // whether the project is the default project for the user
+    userId: text('user_id').notNull(), // FK: which user is this? (Supabase auth.users)
+    role: projectUserRoleEnum('project_user_role').notNull().default('member'), // role of the user in the project
+    isDefault: boolean('is_default').notNull().default(false), // whether the project is the default project for the user
     ...timestamps,
   },
   (table) => [

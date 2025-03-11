@@ -4,9 +4,9 @@ export const ID_LENGTH = 13;
 export const SUPABASE_USER_ID_LENGTH = 36;
 
 export const timestamps = {
-  createdAt: timestamp().defaultNow().notNull(),
-  updatedAt: timestamp().defaultNow().notNull(),
-  deletedAt: timestamp(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 };
 
 /**

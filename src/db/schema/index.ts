@@ -1,3 +1,4 @@
+export type { User } from '@supabase/supabase-js';
 export * from './feedback';
 export * from './funnel';
 export * from './invite';
@@ -5,6 +6,7 @@ export * from './mailing-list';
 export * from './notification';
 export * from './persona';
 export * from './project';
+export * from './queue';
 export * from './response';
 export * from './simulation';
 export * from './summary';

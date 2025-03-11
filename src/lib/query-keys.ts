@@ -48,4 +48,8 @@ export const queryKey = {
     getUnreadCount: () => ['notifications', 'unread-count'] as const,
     getUserNotifications: () => ['notifications', 'list'] as const,
   },
+  funnels: {
+    getProjectFunnels: ({ projectId }: { projectId: string }) =>
+      ['funnels', 'project', projectId] as const,
+  },
 } as const;

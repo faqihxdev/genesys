@@ -6,21 +6,21 @@ import { simulations } from './simulation';
 
 /**
  * Summary table schema
- * Contains the overall summary and analytics for a simulation
+ * Contains the overall summary and analysis for a simulation
  */
 export const summary = pgTable(
   'summary',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sum-' }))
       .primaryKey(),
-    simulationId: text() // which simulation is this summary for?
+    simulationId: text('simulation_id') // which simulation is this summary for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    conversionRate: decimal({ precision: 3, scale: 2 }).notNull(), // conversion rate of the simulation
-    sentiment: decimal({ precision: 3, scale: 2 }).notNull(), // sentiment score of the simulation
-    summary: text().notNull(), // summary of the simulation response
-    recommendation: text().notNull(), // recommendation for the simulation response
+    conversionRate: decimal('conversion_rate', { precision: 3, scale: 2 }).notNull(), // conversion rate of the simulation
+    sentiment: decimal('sentiment', { precision: 3, scale: 2 }).notNull(), // sentiment score of the simulation
+    summary: text('summary').notNull(), // summary of the simulation response
+    recommendation: text('recommendation').notNull(), // recommendation for the simulation response
     ...timestamps,
   },
   (table) => [
@@ -32,24 +32,24 @@ export const summary = pgTable(
 
 /**
  * Summary stages table schema
- * Contains summary and analytics for each stage in a simulation
+ * Contains summary and analysis for each stage in a simulation
  */
 export const summaryStages = pgTable(
   'summary_stages',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sms-' }))
       .primaryKey(),
-    simulationId: text() // which simulation is this summary stage for?
+    simulationId: text('simulation_id') // which simulation is this summary stage for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: text() // which stage is this summary stage for?
+    stageId: text('stage_id') // which stage is this summary stage for?
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    conversionRate: decimal({ precision: 3, scale: 2 }).notNull(), // conversion rate of the stage
-    sentiment: decimal({ precision: 3, scale: 2 }).notNull(), // sentiment score of the stage
-    summary: text().notNull(), // summary of the stage
-    recommendation: text().notNull(), // recommendation for the stage
+    conversionRate: decimal('conversion_rate', { precision: 3, scale: 2 }).notNull(), // conversion rate of the stage
+    sentiment: decimal('sentiment', { precision: 3, scale: 2 }).notNull(), // sentiment score of the stage
+    summary: text('summary').notNull(), // summary of the stage
+    recommendation: text('recommendation').notNull(), // recommendation for the stage
     ...timestamps,
   },
   (table) => [
@@ -62,23 +62,23 @@ export const summaryStages = pgTable(
 
 /**
  * Summary stage items table schema
- * Contains summary and analytics for each stage item in a simulation
+ * Contains summary and analysis for each stage item in a simulation
  */
 export const summaryStageItems = pgTable(
   'summary_stage_items',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'smi-' }))
       .primaryKey(),
-    simulationId: text() // which simulation is this summary stage item for?
+    simulationId: text('simulation_id') // which simulation is this summary stage item for?
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageItemId: text() // which stage item is this summary stage item for?
+    stageItemId: text('stage_item_id') // which stage item is this summary stage item for?
       .references(() => stageItems.id, { onDelete: 'cascade' })
       .notNull(),
-    sentiment: decimal({ precision: 3, scale: 2 }).notNull(), // sentiment score of the stage item
-    summary: text().notNull(), // summary of the stage item
-    recommendation: text().notNull(), // recommendation for the stage item
+    sentiment: decimal('sentiment', { precision: 3, scale: 2 }).notNull(), // sentiment score of the stage item
+    summary: text('summary').notNull(), // summary of the stage item
+    recommendation: text('recommendation').notNull(), // recommendation for the stage item
     ...timestamps,
   },
   (table) => [
@@ -149,7 +149,7 @@ export interface SummaryStageItemWithDetails extends SummaryStageItem {
   stageItem: import('./funnel').StageItem;
 }
 
-export interface SummaryAnalytics {
+export interface SummaryAnalysis {
   totalSimulations: number;
   averageConversionRate: number;
   averageSentiment: number;

@@ -4,6 +4,7 @@ import { index, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/p
 import { ID_LENGTH, timestamps } from './_utils';
 import { funnels, stages } from './funnel';
 import { personaConfigs } from './persona';
+import { responseStages } from './response';
 
 /**
  * Simulation status enum
@@ -14,7 +15,20 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
   'processing', // Currently running
   'complete', // Successfully completed
   'error', // Failed with error
+  'cancelled', // Cancelled by user
 ]);
+
+/**
+ * Simulation parameter interface
+ * Defines configuration options for a simulation
+ */
+export interface SimulationParameters {
+  maxPathsPerPersona?: number; // Maximum number of paths a persona can explore (for branching funnels)
+  detailedResponses?: boolean; // Whether to generate detailed responses or just proceed decisions
+  temperatureOverride?: number; // Optional override for OpenAI temperature setting
+  includeReasons?: boolean; // Whether to include detailed reasoning in responses
+  customPromptAdditions?: string; // Custom instructions to add to the prompt
+}
 
 /**
  * Simulations table schema
@@ -24,17 +38,20 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
 export const simulations = pgTable(
   'simulations',
   {
-    id: text()
+    id: text('id')
       .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'sim-' }))
       .primaryKey(),
-    funnelId: text() // FK: which funnel is this simulation for?
+    funnelId: text('funnel_id') // FK: which funnel is this simulation for?
       .references(() => funnels.id, { onDelete: 'cascade' })
       .notNull(),
-    personaConfigId: text() // FK: which persona config is this simulation for?
+    personaConfigId: text('persona_config_id') // FK: which persona config is this simulation for?
       .references(() => personaConfigs.id, { onDelete: 'cascade' })
       .notNull(),
-    status: simulationStatusEnum().notNull().default('idle'), // status of the simulation
-    completeCount: integer().notNull().default(0), // Number of personas that completed the simulation
+    status: simulationStatusEnum('simulation_status').notNull().default('idle'), // status of the simulation
+    completeCount: integer('complete_count').notNull().default(0), // Number of personas that completed the simulation
+    totalCount: integer('total_count').notNull().default(0), // Total number of personas in the simulation
+    parametersJson: text('parameters_json'), // JSON string of SimulationParameters
+    error: text('error'), // Error message if the simulation failed
     ...timestamps,
   },
   (table) => [
@@ -51,7 +68,9 @@ export const simulations = pgTable(
 export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
   'idle', // Initial state
   'processing', // Currently processing
+  'complete', // Successfully completed
   'error', // Failed with error
+  'skipped', // Stage was skipped (persona didn't proceed to this stage)
 ]);
 
 /**
@@ -61,14 +80,15 @@ export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
 export const simulationStages = pgTable(
   'simulation_stages',
   {
-    simulationId: text()
+    simulationId: text('simulation_id')
       .references(() => simulations.id, { onDelete: 'cascade' })
       .notNull(),
-    stageId: text()
+    stageId: text('stage_id')
       .references(() => stages.id, { onDelete: 'cascade' })
       .notNull(),
-    status: simulationStageStatusEnum().notNull().default('idle'),
-    completeCount: integer().notNull().default(0), // Number of personas that completed the stage
+    status: simulationStageStatusEnum('simulation_stage_status').notNull().default('idle'),
+    completeCount: integer('complete_count').notNull().default(0), // Number of personas that completed the stage
+    error: text('error'), // Error message if processing the stage failed
     ...timestamps,
   },
   (table) => [
@@ -92,6 +112,7 @@ export const simulationsRelations = relations(simulations, ({ one, many }) => ({
     references: [personaConfigs.id],
   }),
   stages: many(simulationStages),
+  responseStages: many(responseStages),
 }));
 
 /**
