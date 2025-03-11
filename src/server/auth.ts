@@ -1,8 +1,8 @@
 'use server';
 
+import type { User } from '@/db/schema';
 import env from '@/env';
 import { createClient } from '@/lib/supabase/server';
-import type { User } from '@/types';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
 
@@ -15,6 +15,7 @@ import { createAction, fail } from './_utils';
  * @param credentials - User signup credentials
  */
 export const signUp = createAction({
+  name: 'signUp',
   validator: z.object({
     email: z.string().email('Invalid email format'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -55,6 +56,7 @@ export const signUp = createAction({
  * @param credentials - User signin credentials
  */
 export const signIn = createAction({
+  name: 'signIn',
   validator: z.object({
     email: z.string().email('Invalid email format'),
     password: z.string().min(1, 'Password is required'),
@@ -82,6 +84,7 @@ export const signIn = createAction({
  * @description Sign in a user with Google OAuth
  */
 export const signInWithGoogle = createAction({
+  name: 'signInWithGoogle',
   validator: null,
   requireAuth: false,
   actionFn: async () => {
@@ -106,6 +109,7 @@ export const signInWithGoogle = createAction({
  * @description Sign out the current user
  */
 export const signOut = createAction({
+  name: 'signOut',
   validator: null,
   requireAuth: true,
   actionFn: async () => {
@@ -125,6 +129,7 @@ export const signOut = createAction({
  * @description Get the current authenticated user
  */
 export const getCurrentUser = createAction({
+  name: 'getCurrentUser',
   validator: null,
   requireAuth: false,
   actionFn: async () => {
@@ -152,6 +157,7 @@ export const getCurrentUser = createAction({
  * @param code - The invite code to verify
  */
 export const verifyInviteCode = createAction({
+  name: 'verifyInviteCode',
   validator: z.object({
     code: z.string().min(1, 'Invite code is required'),
   }),
@@ -172,6 +178,7 @@ export const verifyInviteCode = createAction({
  * @description Refresh the current session
  */
 export const refreshSession = createAction({
+  name: 'refreshSession',
   validator: null,
   requireAuth: false,
   actionFn: async () => {
@@ -217,6 +224,7 @@ export const refreshSession = createAction({
  * @param credentials - Password reset credentials
  */
 export const resetPassword = createAction({
+  name: 'resetPassword',
   validator: z.object({
     email: z.string().email('Invalid email format'),
     redirectTo: z.string().min(1, 'Redirect URL is required'),
@@ -242,6 +250,7 @@ export const resetPassword = createAction({
  * @param credentials - New password credentials
  */
 export const updatePassword = createAction({
+  name: 'updatePassword',
   validator: z.object({
     password: z.string().min(8, 'Password must be at least 8 characters'),
   }),

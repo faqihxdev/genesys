@@ -1,8 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { projectInvites } from '@/db/schema/invite';
-import { projectUsers } from '@/db/schema/project';
+import { projectInvites, projectUsers } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -19,6 +18,7 @@ import { getUsersByIds, searchUsersByEmail } from './users';
  * @returns Promise with the created invite ID
  */
 export const createProjectInvite = createAction({
+  name: 'createProjectInvite',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
     email: z.string().email('Invalid email address'),
@@ -99,6 +99,7 @@ export const createProjectInvite = createAction({
  * @returns Promise with array of project invites with user emails
  */
 export const getProjectInvites = createAction({
+  name: 'getProjectInvites',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
@@ -147,6 +148,7 @@ export const getProjectInvites = createAction({
  * @returns Promise with array of project invites with project details
  */
 export const getUserInvites = createAction({
+  name: 'getUserInvites',
   validator: null,
   requireAuth: true,
   actionFn: async ({ currentUser }) => {
@@ -197,6 +199,7 @@ export const getUserInvites = createAction({
  * @returns Promise with success status
  */
 export const acceptProjectInvite = createAction({
+  name: 'acceptProjectInvite',
   validator: z.object({
     inviteId: z.string().min(1, 'Invite ID is required'),
   }),
@@ -240,6 +243,7 @@ export const acceptProjectInvite = createAction({
  * @returns Promise with success status
  */
 export const rejectProjectInvite = createAction({
+  name: 'rejectProjectInvite',
   validator: z.object({
     inviteId: z.string().min(1, 'Invite ID is required'),
   }),
@@ -273,6 +277,7 @@ export const rejectProjectInvite = createAction({
  * @returns Promise with success status
  */
 export const removeProjectInvite = createAction({
+  name: 'removeProjectInvite',
   validator: z.object({
     inviteId: z.string().min(1, 'Invite ID is required'),
   }),

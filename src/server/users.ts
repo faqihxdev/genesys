@@ -19,6 +19,7 @@ export interface UserData {
  * @returns Promise with user data
  */
 export const getUserById = createAction({
+  name: 'getUserById',
   validator: z.object({
     userId: z.string().min(1, 'User ID is required'),
   }),
@@ -43,6 +44,7 @@ export const getUserById = createAction({
  * @returns Promise with array of user data
  */
 export const getUsersByIds = createAction({
+  name: 'getUsersByIds',
   validator: z.object({
     userIds: z.array(z.string().min(1, 'User ID is required')),
   }),
@@ -90,6 +92,7 @@ export const getUsersByIds = createAction({
  * @returns Promise with user data if found
  */
 export const searchUsersByEmail = createAction({
+  name: 'searchUsersByEmail',
   validator: z.object({
     email: z.string().email('Invalid email format'),
   }),

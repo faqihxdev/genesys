@@ -1,11 +1,11 @@
 'use server';
 
 import { db } from '@/db';
-import { projectUsers } from '@/db/schema/project';
+import { projectUsers } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
-import { isProjectOwner } from './projects';
+import { _isProjectOwner } from './projects';
 
 // ==================================================
 // CREATE
@@ -17,6 +17,7 @@ import { isProjectOwner } from './projects';
  * @returns Promise with the added project member
  */
 export const addProjectMember = createAction({
+  name: 'addProjectMember',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
     userId: z.string().min(1, 'User ID is required'),
@@ -27,12 +28,8 @@ export const addProjectMember = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner({
-      projectId: input.projectId,
-      userId: currentUser.id,
-    });
-    if (ownerError) return fail(ownerError);
+    // Check if user is project owner using internal helper
+    const isOwner = await _isProjectOwner(input.projectId, currentUser.id);
     if (!isOwner) {
       return fail({ message: 'Only project owners can add members', status: 403 });
     }
@@ -74,6 +71,7 @@ export const addProjectMember = createAction({
  * @returns Promise with array of project members
  */
 export const getProjectMembers = createAction({
+  name: 'getProjectMembers',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
@@ -97,6 +95,7 @@ export const getProjectMembers = createAction({
  * @returns Promise with the updated project member
  */
 export const updateProjectMemberRole = createAction({
+  name: 'updateProjectMemberRole',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
     userId: z.string().min(1, 'User ID is required'),
@@ -107,14 +106,8 @@ export const updateProjectMemberRole = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner({
-      projectId: input.projectId,
-      userId: currentUser.id,
-    });
-
-    if (ownerError) return fail(ownerError);
-
+    // Check if user is project owner using internal helper
+    const isOwner = await _isProjectOwner(input.projectId, currentUser.id);
     if (!isOwner) {
       return fail({ message: 'Only project owners can update member roles', status: 403 });
     }
@@ -154,20 +147,15 @@ export const updateProjectMemberRole = createAction({
  * @returns Promise with success status
  */
 export const removeProjectMember = createAction({
+  name: 'removeProjectMember',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
     userId: z.string().min(1, 'User ID is required'),
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner({
-      projectId: input.projectId,
-      userId: currentUser.id,
-    });
-
-    if (ownerError) return fail(ownerError);
-
+    // Check if user is project owner using internal helper
+    const isOwner = await _isProjectOwner(input.projectId, currentUser.id);
     if (!isOwner) {
       return fail({ message: 'Only project owners can remove members', status: 403 });
     }

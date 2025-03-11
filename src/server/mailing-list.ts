@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { mailingList } from '@/db/schema/mailing-list';
+import { mailingList } from '@/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -16,6 +16,7 @@ import { createAction, fail } from './_utils';
  * @returns Promise with the created subscription
  */
 export const subscribeToMailingList = createAction({
+  name: 'subscribeToMailingList',
   validator: z.object({
     email: z.string().email('Please enter a valid email'),
     description: z.string().max(1000, 'Description must not exceed 1000 characters').optional(),
@@ -70,6 +71,7 @@ export const subscribeToMailingList = createAction({
  * @returns Promise with boolean indicating if email is subscribed
  */
 export const isEmailSubscribed = createAction({
+  name: 'isEmailSubscribed',
   validator: z.object({
     email: z.string().email('Please enter a valid email'),
   }),
@@ -90,6 +92,7 @@ export const isEmailSubscribed = createAction({
  * @returns Promise with subscription details or null if not found
  */
 export const getSubscriptionByEmail = createAction({
+  name: 'getSubscriptionByEmail',
   validator: z.object({
     email: z.string().email('Please enter a valid email'),
   }),
@@ -114,6 +117,7 @@ export const getSubscriptionByEmail = createAction({
  * @returns Promise with the updated subscription
  */
 export const toggleSubscription = createAction({
+  name: 'toggleSubscription',
   validator: z.object({
     email: z.string().email('Please enter a valid email'),
     subscribed: z.boolean(),

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/db';
-import { supportTickets, ticketResponses } from '@/db/schema/support';
+import { supportTickets, ticketResponses } from '@/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -16,6 +16,7 @@ import { createAction, fail } from './_utils';
  * @returns Promise with the created ticket
  */
 export const createSupportTicket = createAction({
+  name: 'createSupportTicket',
   validator: z.object({
     subject: z.string().min(5, 'Subject must be at least 5 characters'),
     category: z.enum(['technical', 'billing', 'feature', 'other'], {
@@ -52,6 +53,7 @@ export const createSupportTicket = createAction({
  * @returns Promise with the created response
  */
 export const addTicketResponse = createAction({
+  name: 'addTicketResponse',
   validator: z.object({
     ticketId: z.string().min(1, 'Ticket ID is required'),
     message: z.string().min(1, 'Message is required'),
@@ -94,6 +96,7 @@ export const addTicketResponse = createAction({
  * @returns Promise with the user's tickets
  */
 export const getUserTickets = createAction({
+  name: 'getUserTickets',
   validator: null,
   requireAuth: true,
   actionFn: async ({ currentUser }) => {
@@ -115,6 +118,7 @@ export const getUserTickets = createAction({
  * @returns Promise with the ticket data
  */
 export const getTicketById = createAction({
+  name: 'getTicketById',
   validator: z.object({
     ticketId: z.string().min(1, 'Ticket ID is required'),
   }),
@@ -145,6 +149,7 @@ export const getTicketById = createAction({
  * @returns Promise with the updated ticket
  */
 export const updateTicket = createAction({
+  name: 'updateTicket',
   validator: z.object({
     ticketId: z.string().min(1, 'Ticket ID is required'),
     subject: z.string().min(5, 'Subject must be at least 5 characters').optional(),
@@ -214,6 +219,7 @@ export const updateTicket = createAction({
  * @returns Promise with success status
  */
 export const deleteTicket = createAction({
+  name: 'deleteTicket',
   validator: z.object({
     ticketId: z.string().min(1, 'Ticket ID is required'),
   }),

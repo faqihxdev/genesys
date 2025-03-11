@@ -1,12 +1,8 @@
 'use server';
 
 import { db } from '@/db';
-import type {
-  NotificationCategory,
-  NotificationMetadata,
-  NotificationType,
-} from '@/db/schema/notification';
-import { notifications } from '@/db/schema/notification';
+import type { NotificationCategory, NotificationMetadata, NotificationType } from '@/db/schema';
+import { notifications } from '@/db/schema';
 import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction } from './_utils';
@@ -21,6 +17,7 @@ import { createAction } from './_utils';
  * @returns Promise with the created notification
  */
 export const createNotification = createAction({
+  name: 'createNotification',
   validator: z.object({
     userId: z.string().min(1, 'User ID is required'),
     category: z.string().min(1, 'Category is required'),
@@ -63,6 +60,7 @@ export const createNotification = createAction({
  * @returns Promise with notifications and count
  */
 export const getUserNotifications = createAction({
+  name: 'getUserNotifications',
   validator: z.object({
     limit: z.number().min(1).max(50).optional().default(20),
     offset: z.number().min(0).optional().default(0),
@@ -119,6 +117,7 @@ export const getUserNotifications = createAction({
  * @returns Promise with unread count
  */
 export const getUnreadCount = createAction({
+  name: 'getUnreadCount',
   validator: null,
   requireAuth: true,
   actionFn: async ({ currentUser }) => {
@@ -148,6 +147,7 @@ export const getUnreadCount = createAction({
  * @returns Promise with success status
  */
 export const markNotificationsAsRead = createAction({
+  name: 'markNotificationsAsRead',
   validator: z.object({
     notificationIds: z.array(z.string()).min(1, 'At least one notification ID is required'),
   }),
@@ -173,6 +173,7 @@ export const markNotificationsAsRead = createAction({
  * @returns Promise with success status
  */
 export const markAllNotificationsAsRead = createAction({
+  name: 'markAllNotificationsAsRead',
   validator: null,
   requireAuth: true,
   actionFn: async ({ currentUser }) => {
@@ -198,6 +199,7 @@ export const markAllNotificationsAsRead = createAction({
  * @returns Promise with success status
  */
 export const archiveNotifications = createAction({
+  name: 'archiveNotifications',
   validator: z.object({
     notificationIds: z.array(z.string()).min(1, 'At least one notification ID is required'),
   }),
@@ -224,6 +226,7 @@ export const archiveNotifications = createAction({
  * @returns Promise with success status
  */
 export const markNotificationsAsUnread = createAction({
+  name: 'markNotificationsAsUnread',
   validator: z.object({
     notificationIds: z.array(z.string()).min(1, 'At least one notification ID is required'),
   }),
@@ -253,6 +256,7 @@ export const markNotificationsAsUnread = createAction({
  * @returns Promise with number of deleted notifications
  */
 export const deleteExpiredNotifications = createAction({
+  name: 'deleteExpiredNotifications',
   validator: null,
   requireAuth: false,
   actionFn: async () => {
@@ -273,6 +277,7 @@ export const deleteExpiredNotifications = createAction({
  * @returns Promise with number of deleted notifications
  */
 export const deleteOldArchivedNotifications = createAction({
+  name: 'deleteOldArchivedNotifications',
   validator: z.object({
     daysToKeep: z.number().min(1).max(365).default(30),
   }),

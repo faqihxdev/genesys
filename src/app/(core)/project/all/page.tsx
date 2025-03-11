@@ -4,7 +4,7 @@ import { Button } from '@/components/custom/button';
 import { PageTitle } from '@/components/custom/page-title';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { ProjectExtended } from '@/db/schema/project';
+import type { ProjectExtended } from '@/db/schema';
 import { useAuth } from '@/hooks/use-auth';
 import useHydration from '@/hooks/use-hydration';
 import { queryKey } from '@/lib/query-keys';

@@ -146,6 +146,38 @@
   .custom-scrollbar:hover {
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
+
+  /* Animation for the indeterminate loading indicator */
+  @keyframes rolling {
+    0% {
+      left: -30%;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  /* Animation for slow rotation effect */
+  @keyframes spin-slow {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Used for indeterminate rolling indicators such as in persona generation */
+  .animate-rolling {
+    animation: rolling 1.5s ease-in-out infinite;
+  }
+
+  /* Used for slow rotation effects such as the regenerate button during generation */
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
 }
 
 /*!***************************************************************************************************************************************************************************************************************************************************************************************!*\

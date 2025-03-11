@@ -1,4 +1,4 @@
-import type { Notification } from '@/db/schema/notification';
+import type { Notification } from '@/db/schema';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Bell, CheckCircle2, Clock, Info, MessageCircle, Zap } from 'lucide-react';

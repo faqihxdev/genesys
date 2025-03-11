@@ -21,6 +21,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.9.1",
     "@iconify/react": "^5.2.0",
+    "@nivo/sankey": "^0.88.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -67,6 +68,7 @@
     "input-otp": "^1.4.1",
     "jotai": "^2.11.3",
     "lucide-react": "^0.465.0",
+    "motion": "^12.4.10",
     "nanoid": "^5.1.0",
     "next": "15.1.6",
     "next-themes": "^0.4.3",
@@ -101,6 +103,7 @@
     "eslint-plugin-react-compiler": "19.0.0-beta-714736e-20250131",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
+    "supabase": "^2.15.8",
     "typescript": "^5"
   }
 }

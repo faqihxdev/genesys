@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { NotificationCategory, NotificationPriority } from '@/db/schema/notification';
+import type { NotificationCategory, NotificationPriority } from '@/db/schema';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
