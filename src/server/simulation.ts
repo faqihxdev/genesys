@@ -344,3 +344,57 @@ async function queueSimulationInitialChunks(simulationId: string): Promise<boole
  * Helper function to run withQuery from utils
  */
 import { withQuery } from '@/lib/utils';
+
+/**
+ * Get any active simulations for a funnel
+ * @param input - The funnel ID
+ * @returns The active simulation if it exists, or null
+ */
+export const getActiveFunnelSimulation = createAction({
+  name: 'getActiveFunnelSimulation',
+  validator: z.object({
+    funnelId: z.string().min(1, 'Funnel ID is required'),
+  }),
+  requireAuth: false,
+  actionFn: async ({ input }) => {
+    try {
+      // Find any simulation for this funnel that is not complete, cancelled, or errored
+      const activeSimulation = await db.query.simulations.findFirst({
+        where: and(eq(simulations.funnelId, input.funnelId), eq(simulations.status, 'processing')),
+        with: {
+          stages: true,
+        },
+        orderBy: (simulations, { desc }) => [desc(simulations.createdAt)],
+      });
+
+      if (!activeSimulation) {
+        return null;
+      }
+
+      // Calculate progress percentage
+      const progress =
+        activeSimulation.totalCount > 0
+          ? Math.round((activeSimulation.completeCount / activeSimulation.totalCount) * 100)
+          : 0;
+
+      // Get all stages in process
+      const activeStages = activeSimulation.stages.filter((stage) => stage.status === 'processing');
+
+      return {
+        id: activeSimulation.id,
+        status: activeSimulation.status,
+        progress,
+        completeCount: activeSimulation.completeCount,
+        totalCount: activeSimulation.totalCount,
+        activeStages: activeStages.length,
+        totalStages: activeSimulation.stages.length,
+        createdAt: activeSimulation.createdAt,
+        updatedAt: activeSimulation.updatedAt,
+        error: activeSimulation.error,
+      };
+    } catch (error) {
+      console.error('[getActiveFunnelSimulation]:', error);
+      return null;
+    }
+  },
+});
