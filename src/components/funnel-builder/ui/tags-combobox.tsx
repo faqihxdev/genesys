@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Check, ChevronsUpDown, Edit2 } from "lucide-react";
-import { useAtom } from "jotai";
-import { tagsAtom, createTagAtom, updateTagAtom, deleteTagAtom } from "@/stores/funnel";
-import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from '@/components/ui/accordion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandGroup,
@@ -31,7 +26,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command";
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -39,16 +34,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { DialogClose } from "@radix-ui/react-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tag } from "@/types/tag";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { createTagAtom, deleteTagAtom, tagsAtom, updateTagAtom } from '@/stores/funnel';
+import { Tag } from '@/types/tag';
+import { DialogClose } from '@radix-ui/react-dialog';
+import { useAtom } from 'jotai';
+import { Check, ChevronsUpDown, Edit2 } from 'lucide-react';
+import * as React from 'react';
 
 const badgeStyle = (color: string) => ({
   borderColor: `${color}20`,
@@ -59,7 +55,6 @@ const badgeStyle = (color: string) => ({
 export function TagsCombobox({
   value,
   onValueChange,
-  maxItems,
 }: {
   value: string[];
   onValueChange: (value: string[]) => void;
@@ -72,17 +67,37 @@ export function TagsCombobox({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [openCombobox, setOpenCombobox] = React.useState(false);
   const [openDialog, setOpenDialog] = React.useState(false);
-  const [inputValue, setInputValue] = React.useState<string>("");
+  const [inputValue, setInputValue] = React.useState<string>('');
   const [selectedValues, setSelectedValues] = React.useState<Tag[]>(
-    value.map((t) => tags.find((f) => f.value === t) || { value: t, label: t[0].toUpperCase() + t.substring(1), color: "#cecece" })
+    value.map(
+      (t) =>
+        tags.find((f) => f.value === t) || {
+          value: t,
+          label: t[0].toUpperCase() + t.substring(1),
+          color: '#cecece',
+        }
+    )
   );
 
   React.useEffect(() => {
-    setSelectedValues(value.map((t) => tags.find((f) => f.value === t) || { value: t, label: t[0].toUpperCase() + t.substring(1), color: "#cecece" }));
+    setSelectedValues(
+      value.map(
+        (t) =>
+          tags.find((f) => f.value === t) || {
+            value: t,
+            label: t[0].toUpperCase() + t.substring(1),
+            color: '#cecece',
+          }
+      )
+    );
   }, [value, tags]);
 
   const handleCreateTag = (name: string) => {
-    const newTag = { value: name.toLowerCase(), label: name[0].toUpperCase() + name.substring(1), color: "#cecece" };
+    const newTag = {
+      value: name.toLowerCase(),
+      label: name[0].toUpperCase() + name.substring(1),
+      color: '#cecece',
+    };
     createTag(newTag);
     onValueChange([...value, newTag.value]);
     setSelectedValues((prev) => [...prev, newTag]);
@@ -90,10 +105,14 @@ export function TagsCombobox({
 
   const toggleTag = (tag: Tag) => {
     setSelectedValues((currentTags) =>
-      !currentTags.includes(tag) ? [...currentTags, tag] : currentTags.filter((l) => l.value !== tag.value)
+      !currentTags.includes(tag)
+        ? [...currentTags, tag]
+        : currentTags.filter((l) => l.value !== tag.value)
     );
     inputRef?.current?.focus();
-    onValueChange(value.includes(tag.value) ? value.filter((f) => f !== tag.value) : [...value, tag.value]);
+    onValueChange(
+      value.includes(tag.value) ? value.filter((f) => f !== tag.value) : [...value, tag.value]
+    );
   };
 
   const handleUpdateTag = (tag: Tag, newTag: Tag) => {
@@ -121,53 +140,44 @@ export function TagsCombobox({
   };
 
   return (
-    <div className="w-full mb-8">
+    <div className='w-full mb-8'>
       <Popover open={openCombobox} onOpenChange={onComboboxOpenChange}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
-            role="combobox"
+            variant='outline'
+            role='combobox'
             aria-expanded={openCombobox}
-            className="w-full justify-between text-foreground"
+            className='w-full justify-between text-foreground'
           >
-            <span className="truncate">
-              {selectedValues.length === 0 && "Select tags"}
+            <span className='truncate'>
+              {selectedValues.length === 0 && 'Select tags'}
               {selectedValues.length === 1 && selectedValues[0].label}
-              {selectedValues.length === 2 &&
-                selectedValues.map(({ label }) => label).join(", ")}
-              {selectedValues.length > 2 &&
-                `${selectedValues.length} tags selected`}
+              {selectedValues.length === 2 && selectedValues.map(({ label }) => label).join(', ')}
+              {selectedValues.length > 2 && `${selectedValues.length} tags selected`}
             </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
+        <PopoverContent className='w-full p-0'>
           <Command loop>
             <CommandInput
               ref={inputRef}
-              placeholder="Search tag..."
+              placeholder='Search tag...'
               value={inputValue}
               onValueChange={setInputValue}
             />
             <CommandList>
-              <CommandGroup className="max-h-[145px] overflow-auto">
+              <CommandGroup className='max-h-[145px] overflow-auto'>
                 {mergeArraysUnique(tags, selectedValues).map((tag) => {
                   const isActive = selectedValues.includes(tag);
                   return (
-                    <CommandItem
-                      key={tag.value}
-                      value={tag.value}
-                      onSelect={() => toggleTag(tag)}
-                    >
+                    <CommandItem key={tag.value} value={tag.value} onSelect={() => toggleTag(tag)}>
                       <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          isActive ? "opacity-100" : "opacity-0"
-                        )}
+                        className={cn('mr-2 h-4 w-4', isActive ? 'opacity-100' : 'opacity-0')}
                       />
-                      <div className="flex-1">{tag.label}</div>
+                      <div className='flex-1'>{tag.label}</div>
                       <div
-                        className="h-4 w-4 rounded-full"
+                        className='h-4 w-4 rounded-full'
                         style={{ backgroundColor: tag.color }}
                       />
                     </CommandItem>
@@ -182,11 +192,11 @@ export function TagsCombobox({
               <CommandGroup>
                 <CommandItem
                   value={`:${inputValue}:`}
-                  className="text-xs text-muted-foreground"
+                  className='text-xs text-muted-foreground'
                   onSelect={() => setOpenDialog(true)}
                 >
-                  <div className={cn("mr-2 h-4 w-4")} />
-                  <Edit2 className="mr-2 h-2.5 w-2.5" />
+                  <div className={cn('mr-2 h-4 w-4')} />
+                  <Edit2 className='mr-2 h-2.5 w-2.5' />
                   Edit Tags
                 </CommandItem>
               </CommandGroup>
@@ -203,15 +213,14 @@ export function TagsCombobox({
           setOpenDialog(open);
         }}
       >
-        <DialogContent className="flex max-h-[90vh]  flex-col">
+        <DialogContent className='flex max-h-[90vh]  flex-col'>
           <DialogHeader>
             <DialogTitle>Edit Tags</DialogTitle>
             <DialogDescription>
-              Change the tag names or delete the tags. Create a tag through the
-              combobox though.
+              Change the tag names or delete the tags. Create a tag through the combobox though.
             </DialogDescription>
           </DialogHeader>
-          <div className="-mx-6 flex-1 overflow-y-scroll px-6 py-2">
+          <div className='-mx-6 flex-1 overflow-y-scroll px-6 py-2'>
             {mergeArraysUnique(tags, selectedValues).map((tag) => {
               return (
                 <DialogListItem
@@ -220,7 +229,7 @@ export function TagsCombobox({
                   onSubmit={(e) => {
                     e.preventDefault();
                     const target = e.target as typeof e.target &
-                      Record<"name" | "color", { value: string }>;
+                      Record<'name' | 'color', { value: string }>;
                     const newTag = {
                       value: target.name.value.toLowerCase(),
                       label: target.name.value,
@@ -233,21 +242,16 @@ export function TagsCombobox({
               );
             })}
           </div>
-          <DialogFooter className="bg-opacity-40">
+          <DialogFooter className='bg-opacity-40'>
             <DialogClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant='outline'>Close</Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="relative -mb-24 mt-3 h-24 overflow-y-auto">
+      <div className='relative -mb-24 mt-3 h-24 overflow-y-auto'>
         {selectedValues.map(({ label, value, color }) => (
-          <Badge
-            key={value}
-            variant="outline"
-            style={badgeStyle(color)}
-            className="mb-2 mr-2"
-          >
+          <Badge key={value} variant='outline' style={badgeStyle(color)} className='mb-2 mr-2'>
             {label}
           </Badge>
         ))}
@@ -265,11 +269,9 @@ const CommandItemCreate = ({
   tags: Tag[];
   onSelect: () => void;
 }) => {
-  const hasNoTag = !tags
-    .map(({ value }) => value)
-    .includes(`${inputValue.toLowerCase()}`);
+  const hasNoTag = !tags.map(({ value }) => value).includes(`${inputValue.toLowerCase()}`);
 
-  const render = inputValue !== "" && hasNoTag;
+  const render = inputValue !== '' && hasNoTag;
 
   if (!render) return null;
 
@@ -277,10 +279,10 @@ const CommandItemCreate = ({
     <CommandItem
       key={`${inputValue}`}
       value={`${inputValue}`}
-      className="text-xs text-muted-foreground"
+      className='text-xs text-muted-foreground'
       onSelect={onSelect}
     >
-      <div className={cn("mr-2 h-4 w-4")} />
+      <div className={cn('mr-2 h-4 w-4')} />
       Create new tag &quot;{inputValue}&quot;
     </CommandItem>
   );
@@ -297,32 +299,38 @@ const DialogListItem = ({
   onDelete: () => void;
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [accordionValue, setAccordionValue] = React.useState<string>("");
+  const [accordionValue, setAccordionValue] = React.useState<string>('');
   const [inputValue, setInputValue] = React.useState<string>(label);
   const [colorValue, setColorValue] = React.useState<string>(color);
   const disabled = label === inputValue && color === colorValue;
 
   React.useEffect(() => {
-    if (accordionValue !== "") {
+    if (accordionValue !== '') {
       inputRef.current?.focus();
     }
   }, [accordionValue]);
 
   return (
-    <Accordion key={value} type="single" collapsible value={accordionValue} onValueChange={setAccordionValue}>
+    <Accordion
+      key={value}
+      type='single'
+      collapsible
+      value={accordionValue}
+      onValueChange={setAccordionValue}
+    >
       <AccordionItem value={value}>
-        <div className="flex items-center justify-between">
+        <div className='flex items-center justify-between'>
           <div>
-            <Badge variant="outline" style={badgeStyle(color)}>
+            <Badge variant='outline' style={badgeStyle(color)}>
               {label}
             </Badge>
           </div>
-          <div className="flex items-center gap-4">
+          <div className='flex items-center gap-4'>
             <AccordionTrigger>Edit</AccordionTrigger>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 {/* <Button variant="destructive" size="xs"> */}
-                <Button variant="destructive" size="sm">
+                <Button variant='destructive' size='sm'>
                   Delete
                 </Button>
               </AlertDialogTrigger>
@@ -330,7 +338,11 @@ const DialogListItem = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    You are about to delete the label <Badge variant="outline" style={badgeStyle(color)}>{label}</Badge>.
+                    You are about to delete the label{' '}
+                    <Badge variant='outline' style={badgeStyle(color)}>
+                      {label}
+                    </Badge>
+                    .
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -343,34 +355,34 @@ const DialogListItem = ({
         </div>
         <AccordionContent>
           <form
-            className="flex items-end gap-4"
+            className='flex items-end gap-4'
             onSubmit={(e) => {
               onSubmit(e);
-              setAccordionValue("");
+              setAccordionValue('');
             }}
           >
-            <div className="grid w-full gap-3">
-              <Label htmlFor="name">Label name</Label>
+            <div className='grid w-full gap-3'>
+              <Label htmlFor='name'>Label name</Label>
               <Input
                 ref={inputRef}
-                id="name"
+                id='name'
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="h-8 ml-1"
+                className='h-8 ml-1'
               />
             </div>
-            <div className="grid gap-3">
-              <Label htmlFor="color">Color</Label>
+            <div className='grid gap-3'>
+              <Label htmlFor='color'>Color</Label>
               <Input
-                id="color"
-                type="color"
+                id='color'
+                type='color'
                 value={colorValue}
                 onChange={(e) => setColorValue(e.target.value)}
-                className="h-8 px-2 py-1"
+                className='h-8 px-2 py-1'
               />
             </div>
             {/* <Button type="submit" disabled={disabled} size="xs"> */}
-            <Button type="submit" disabled={disabled} size="sm">
+            <Button type='submit' disabled={disabled} size='sm'>
               Save
             </Button>
           </form>

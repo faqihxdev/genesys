@@ -1,7 +1,7 @@
-import { useAtom } from "jotai";
-import { getConnectedEdges, useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
-import { deleteNodeAtom, deleteEdgeAtom } from "@/stores/funnel";
+import { deleteEdgeAtom, deleteNodeAtom } from '@/stores/funnel';
+import { getConnectedEdges, useReactFlow } from '@xyflow/react';
+import { useAtom } from 'jotai';
+import { useCallback } from 'react';
 
 export function useDeleteNode() {
   const { getNode, getEdges, deleteElements } = useReactFlow();

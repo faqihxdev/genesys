@@ -1,19 +1,12 @@
-import { BuilderNodeType } from "@/components/funnel-builder/blocks/types";
+import { BuilderNodeType } from '@/components/funnel-builder/blocks/types';
 
-import { Input } from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
 
-import {
-  restrictToVerticalAxis,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
-import { nanoid } from "nanoid";
+import { nanoid } from 'nanoid';
 
-import { MenuNodeData } from "../../../../nodes/menu-node/menu.node";
-import { useCallback } from "react";
-import { useReactFlow } from "@xyflow/react";
-import { produce } from "immer";
-import { MenuOptionProperty } from "./_components/menu-option-property";
+import { Button } from '@/components/ui/button';
 import {
   closestCenter,
   DndContext,
@@ -21,13 +14,17 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { Button } from "@/components/ui/button";
+} from '@dnd-kit/sortable';
+import { useReactFlow } from '@xyflow/react';
+import { produce } from 'immer';
+import { useCallback } from 'react';
+import { MenuNodeData } from '../../../../nodes/menu-node/menu.node';
+import { MenuOptionProperty } from './_components/menu-option-property';
 
 type MenuNodePropertyPanelProps = Readonly<{
   id: string;
@@ -57,7 +54,7 @@ export default function MenuNodePropertyPanel({
           const node = draft.find((n) => n.id === id);
 
           if (node) {
-            const options = node.data.options as MenuNodeData["options"];
+            const options = node.data.options as MenuNodeData['options'];
             const pathIndex = options.findIndex((p) => p.id === optionId);
 
             if (pathIndex !== -1) {
@@ -73,15 +70,13 @@ export default function MenuNodePropertyPanel({
         })
       );
 
-      setEdges((edges) =>
-        edges.filter((edge) => edge.sourceHandle !== optionId)
-      );
+      setEdges((edges) => edges.filter((edge) => edge.sourceHandle !== optionId));
     },
     [id, setEdges, setNodes]
   );
 
   const handleUpdateOption = useCallback(
-    (index: number, option: MenuNodeData["options"][number]) => {
+    (index: number, option: MenuNodeData['options'][number]) => {
       updateData({
         options: data.options.map((o, i) => (i === index ? option : o)),
       });
@@ -89,6 +84,7 @@ export default function MenuNodePropertyPanel({
     [data.options, updateData]
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleDragEnd(event: any) {
     const { active, over } = event;
 
@@ -124,11 +120,11 @@ export default function MenuNodePropertyPanel({
         const node = draft.find((n) => n.id === id);
 
         if (node) {
-          (node.data.options as MenuNodeData["options"]).push({
+          (node.data.options as MenuNodeData['options']).push({
             id: nanoid(),
             option: {
               id: data.options.length,
-              value: "Option " + (data.options.length + 1),
+              value: 'Option ' + (data.options.length + 1),
             },
           });
         }
@@ -137,35 +133,28 @@ export default function MenuNodePropertyPanel({
   }, [id, setNodes, data.options]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="text-xs text-card-foreground/20 self-end -mb-4">{id}</div>
+    <div className='flex flex-col gap-4 p-4'>
+      <div className='text-xs text-card-foreground/20 self-end -mb-4'>{id}</div>
 
-      <div className="flex flex-col">
-        <div className="text-xs text-card-foreground/60 font-semibold">
-          Question
-        </div>
+      <div className='flex flex-col'>
+        <div className='text-xs text-card-foreground/60 font-semibold'>Question</div>
 
-        <div className="mt-2 flex">
+        <div className='mt-2 flex'>
           <Input
-            type="text"
-            value={data.question || ""}
+            type='text'
+            value={data.question || ''}
             onChange={(e) => updateData({ question: e.target.value })}
-            placeholder="Type your question here..."
+            placeholder='Type your question here...'
           />
         </div>
-        <div className="text-xs text-card-foreground/60 font-semibold mt-4">
-          Options
-        </div>
+        <div className='text-xs text-card-foreground/60 font-semibold mt-4'>Options</div>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
           modifiers={[restrictToVerticalAxis, restrictToParentElement]}
         >
-          <SortableContext
-            items={data.options}
-            strategy={verticalListSortingStrategy}
-          >
+          <SortableContext items={data.options} strategy={verticalListSortingStrategy}>
             {Array.from(data.options)
               .sort((a, b) => a.option.id - b.option.id)
               .map((option) => (
@@ -179,12 +168,7 @@ export default function MenuNodePropertyPanel({
           </SortableContext>
         </DndContext>
 
-        <Button
-          className="mt-4"
-          size={"sm"}
-          variant={"outline"}
-          onClick={handleAddNodePath}
-        >
+        <Button className='mt-4' size={'sm'} variant={'outline'} onClick={handleAddNodePath}>
           Add option
         </Button>
       </div>

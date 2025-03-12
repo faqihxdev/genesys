@@ -272,7 +272,7 @@ export default function SimulationControl({
   // Default state - no active simulation
   return (
     <Card className='border border-muted/30 bg-card/50'>
-      <CardContent className='pt-4'>
+      <CardContent className='p-2'>
         <div className='flex flex-col sm:flex-row sm:items-center gap-3'>
           <div className='flex-1'>
             <Select

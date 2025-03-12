@@ -1,10 +1,5 @@
-import {
-  type Connection,
-  type Edge,
-  type Node,
-  getOutgoers,
-} from "@xyflow/react";
-import { useCallback } from "react";
+import { type Connection, type Edge, type Node, getOutgoers } from '@xyflow/react';
+import { useCallback } from 'react';
 
 function findTargetNode(nodes: Node[], connection: Edge | Connection) {
   return nodes.find((node) => node.id === connection.target);

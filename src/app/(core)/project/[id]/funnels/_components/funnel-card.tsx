@@ -1,10 +1,10 @@
 'use client';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GitFork } from 'lucide-react';
 import type { Funnel } from '@/types/funnel';
-import { FunnelActions } from './funnel-actions';
+import { GitFork } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { FunnelActions } from './funnel-actions';
 
 interface FunnelCardProps {
   funnel: Funnel;
@@ -41,12 +41,15 @@ export function FunnelCard({ funnel }: FunnelCardProps) {
         </div>
 
         <div className='flex flex-wrap items-center gap-x-2 gap-y-1'>
-          <div className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${funnel.status === 'active'
-            ? 'border-green-600 bg-green-600/10 text-green-600'
-            : funnel.status === 'draft'
-              ? 'border-yellow-600 bg-yellow-600/10 text-yellow-600'
-              : 'border-muted bg-muted/10 text-muted-foreground'
-            }`}>
+          <div
+            className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+              funnel.status === 'active'
+                ? 'border-green-600 bg-green-600/10 text-green-600'
+                : funnel.status === 'draft'
+                  ? 'border-yellow-600 bg-yellow-600/10 text-yellow-600'
+                  : 'border-muted bg-muted/10 text-muted-foreground'
+            }`}
+          >
             {funnel.status.charAt(0).toUpperCase() + funnel.status.slice(1)}
           </div>
         </div>

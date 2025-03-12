@@ -1,33 +1,25 @@
 'use client';
-
-import useHydration from '@/hooks/use-hydration';
-import { GitFork } from 'lucide-react';
-import { FunnelGrid } from './_components/funnel-grid';
-
 import { PageTitle } from '@/components/custom/page-title';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { queryKey } from '@/lib/query-keys';
-import { withQuery } from '@/lib/utils';
-import { getFunnelsWithFullData } from '@/server/funnel';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
-import SimulationControl from './components/simulation-control';
-import { FunnelDialog } from './_funnel-dialog';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose
 } from '@/components/ui/dialog';
-import { deleteFunnel } from '@/server/funnel';
-import { useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { queryKey } from '@/lib/query-keys';
+import { withQuery } from '@/lib/utils';
+import { deleteFunnel, getFunnelsWithFullData } from '@/server/funnel';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { FunnelDialog } from './_funnel-dialog';
+import SimulationControl from './components/simulation-control';
 
 /**
  * Funnels page component
@@ -56,7 +48,7 @@ export default function FunnelsPage() {
   const params = useParams();
   const projectId = params.id as string;
   const [expandedFunnelId, setExpandedFunnelId] = useState<string | null>(null);
-  const [funnelToDelete, setFunnelToDelete] = useState<{ id: string, name: string } | null>(null);
+  const [funnelToDelete, setFunnelToDelete] = useState<{ id: string; name: string } | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -88,9 +80,9 @@ export default function FunnelsPage() {
       if (!result.error) {
         // Invalidate the query cache to refresh the data
         queryClient.invalidateQueries({
-          queryKey: queryKey.funnel.all(projectId)
+          queryKey: queryKey.funnel.all(projectId),
         });
-        
+
         // Close the dialog
         setFunnelToDelete(null);
       } else {
@@ -154,7 +146,7 @@ export default function FunnelsPage() {
                 <span>{funnel.name || 'Unnamed Funnel'}</span>
                 <div className='flex space-x-2'>
                   <SimulationControl funnelId={funnel.id} projectId={projectId} />
-                  <div className="flex flex-col space-y-1">
+                  <div className='flex flex-col space-y-1'>
                     <Button
                       variant='ghost'
                       size='sm'
@@ -168,7 +160,7 @@ export default function FunnelsPage() {
                     <Button
                       variant='ghost'
                       size='sm'
-                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      className='text-red-500 hover:text-red-700 hover:bg-red-100'
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent card click from triggering
                         setFunnelToDelete({ id: funnel.id, name: funnel.name });
@@ -178,7 +170,8 @@ export default function FunnelsPage() {
                     </Button>
                   </div>
                 </div>
-              </CardTitle>            </CardHeader>
+              </CardTitle>{' '}
+            </CardHeader>
             <CardContent className='p-0'>
               {expandedFunnelId === funnel.id ? (
                 <pre className='p-4 overflow-auto max-h-[500px] text-xs'>
@@ -205,24 +198,21 @@ export default function FunnelsPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!funnelToDelete} onOpenChange={(open) => !open && setFunnelToDelete(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>Delete Funnel</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the funnel "{funnelToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete the funnel &quot;{funnelToDelete?.name}&quot;? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sm:justify-end">
+          <DialogFooter className='sm:justify-end'>
             <DialogClose asChild>
-              <Button type="button" variant="secondary">
+              <Button type='button' variant='secondary'>
                 Cancel
               </Button>
             </DialogClose>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleDeleteFunnel}
-            >
+            <Button type='button' variant='destructive' onClick={handleDeleteFunnel}>
               Delete
             </Button>
           </DialogFooter>

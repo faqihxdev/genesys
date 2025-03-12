@@ -1,27 +1,21 @@
-import { useCallback, useMemo } from "react";
-import { useAtom, useSetAtom } from "jotai";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  showMenuAtom,
-  setShowMenuAtom,
   anchorPositionAtom,
   incomingNodeMetadetailsAtom,
-} from "@/stores/add-node-on-edge-drop-state";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import NodeList from "./_components/node-list";
-import { BuilderNode, BuilderNodeType } from "../blocks/types";
-import { AVAILABLE_NODES, NODES_METADATA } from "../blocks";
+  setShowMenuAtom,
+  showMenuAtom,
+} from '@/stores/add-node-on-edge-drop-state';
+import { useAtom, useSetAtom } from 'jotai';
+import { useCallback, useMemo } from 'react';
+import { AVAILABLE_NODES, NODES_METADATA } from '../blocks';
+import { BuilderNode, BuilderNodeType } from '../blocks/types';
+import NodeList from './_components/node-list';
 
 type AddNodeFloatingMenuProps = Readonly<{
   onNodeAdd: (type: BuilderNodeType) => void;
 }>;
 
-export default function AddNodeFloatingMenu({
-  onNodeAdd,
-}: AddNodeFloatingMenuProps) {
+export default function AddNodeFloatingMenu({ onNodeAdd }: AddNodeFloatingMenuProps) {
   const [showMenu] = useAtom(showMenuAtom);
   const [anchorPosition] = useAtom(anchorPositionAtom);
   const [incomingNodeMetadetails] = useAtom(incomingNodeMetadetailsAtom);
@@ -50,10 +44,8 @@ export default function AddNodeFloatingMenu({
     > =>
       types.map((type) => {
         const meta = NODES_METADATA[type];
-        const isFromSource =
-          incomingNodeMetadetails?.fromHandle?.type === "source";
-        const isFromTarget =
-          incomingNodeMetadetails?.fromHandle?.type === "target";
+        const isFromSource = incomingNodeMetadetails?.fromHandle?.type === 'source';
+        const isFromTarget = incomingNodeMetadetails?.fromHandle?.type === 'target';
 
         const enabled =
           (isFromSource && meta.connection.inputs > 0) ||
@@ -72,9 +64,7 @@ export default function AddNodeFloatingMenu({
       });
 
     return {
-      availableNodes: mapNodesWithMetadata(
-        AVAILABLE_NODES.map((node) => node.type)
-      ),
+      availableNodes: mapNodesWithMetadata(AVAILABLE_NODES.map((node) => node.type)),
       additionalNodes: mapNodesWithMetadata([BuilderNode.END]),
     };
   }, [incomingNodeMetadetails]);
@@ -83,7 +73,7 @@ export default function AddNodeFloatingMenu({
     <Popover open={showMenu}>
       <PopoverTrigger asChild>
         <div
-          className="left absolute size-0 bg-card"
+          className='left absolute size-0 bg-card'
           style={{
             left: `${anchorPosition.x}px`,
             top: `${anchorPosition.y}px`,
@@ -91,27 +81,21 @@ export default function AddNodeFloatingMenu({
         />
       </PopoverTrigger>
       <PopoverContent
-        className="isolate p-0 w-fit z-10 transform origin-[var(--radix-popover-content-transform-origin)] data-[state=closed]:animate-out data-[state=closed]:fade-out  data-[state=open]:animate-in animate-duration-200 select-none overflow-clip border border-card-foreground/10 rounded-xl bg-card/40 shadow-2xl shadow-card/30 backdrop-blur-2xl"
-        side="bottom"
-        align="start"
+        className='isolate p-0 w-fit z-10 transform origin-[var(--radix-popover-content-transform-origin)] data-[state=closed]:animate-out data-[state=closed]:fade-out  data-[state=open]:animate-in animate-duration-200 select-none overflow-clip border border-card-foreground/10 rounded-xl bg-card/40 shadow-2xl shadow-card/30 backdrop-blur-2xl'
+        side='bottom'
+        align='start'
         tabIndex={-1}
-        updatePositionStrategy="always"
+        updatePositionStrategy='always'
         onFocusOutside={() => onOutsideClick()}
         onInteractOutside={() => onOutsideClick()}
         onEscapeKeyDown={() => onOutsideClick()}
       >
-        <div tabIndex={-1} className="w-60 flex flex-col outline-none">
-          <NodeList
-            nodes={nodesWithMetadata.availableNodes}
-            onNodeAdd={handleOnNodeAdd}
-          />
+        <div tabIndex={-1} className='w-60 flex flex-col outline-none'>
+          <NodeList nodes={nodesWithMetadata.availableNodes} onNodeAdd={handleOnNodeAdd} />
 
-          <div className="my-0.5 h-px bg-card-foreground/10" />
+          <div className='my-0.5 h-px bg-card-foreground/10' />
 
-          <NodeList
-            nodes={nodesWithMetadata.additionalNodes}
-            onNodeAdd={handleOnNodeAdd}
-          />
+          <NodeList nodes={nodesWithMetadata.additionalNodes} onNodeAdd={handleOnNodeAdd} />
         </div>
       </PopoverContent>
     </Popover>

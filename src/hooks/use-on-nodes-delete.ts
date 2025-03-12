@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback } from "react";
-import type { Node } from "@xyflow/react";
-import { useAtom } from "jotai";
-import { selectedNodeAtom, setSelectedNodeAtom } from "@/stores/funnel";
+import { selectedNodeAtom, setSelectedNodeAtom } from '@/stores/funnel';
+import type { Node } from '@xyflow/react';
+import { useAtom } from 'jotai';
+import { useCallback } from 'react';
 
 export function useOnNodesDelete(nodes: Node[]) {
   const [nodePropertiesSelectedNode] = useAtom(selectedNodeAtom);

@@ -56,7 +56,8 @@ export function FunnelGrid() {
         <div className='space-y-2'>
           <h3 className='text-xl font-semibold tracking-tight'>No funnels found</h3>
           <p className='text-sm text-muted-foreground max-w-[400px]'>
-            You haven&apos;t created any funnels yet. Create your first funnel to start analyzing your customer journey.
+            You haven&apos;t created any funnels yet. Create your first funnel to start analyzing
+            your customer journey.
           </p>
         </div>
         <Button size='lg' className='mt-2'>

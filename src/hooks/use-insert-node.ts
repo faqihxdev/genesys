@@ -1,11 +1,10 @@
-import { BuilderNodeType } from "@/components/funnel-builder/blocks/types";
-import { createNodeWithDefaultData } from "@/components/funnel-builder/blocks/utils";
-import { type XYPosition, useReactFlow } from "@xyflow/react";
-import { useCallback } from "react";
+import { BuilderNodeType } from '@/components/funnel-builder/blocks/types';
+import { createNodeWithDefaultData } from '@/components/funnel-builder/blocks/utils';
+import { type XYPosition, useReactFlow } from '@xyflow/react';
+import { useCallback } from 'react';
 
 export function useInsertNode() {
-  const { addNodes, screenToFlowPosition, getNodes, updateNode } =
-    useReactFlow();
+  const { addNodes, screenToFlowPosition, getNodes, updateNode } = useReactFlow();
 
   return useCallback(
     (type: BuilderNodeType, pos?: XYPosition) => {

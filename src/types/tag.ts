@@ -1,1 +1,1 @@
-export type Tag = Record<"value" | "label" | "color", string>;
+export type Tag = Record<'value' | 'label' | 'color', string>;

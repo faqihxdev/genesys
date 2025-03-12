@@ -1,43 +1,42 @@
-"use client";
+'use client';
 
+import { useAddNodeOnEdgeDrop } from '@/hooks/use-add-node-on-edge-drop';
+import { useDeleteKeyCode } from '@/hooks/use-delete-key-code';
+import { useDragDropFlowBuilder } from '@/hooks/use-drag-drop-flow-builder';
+import { useIsValidConnection } from '@/hooks/use-is-valid-connection';
+import { useNodeAutoAdjust } from '@/hooks/use-node-auto-adjust';
+import { cn } from '@/lib/utils';
+import {
+  deleteEdgeAtom,
+  deleteNodeAtom,
+  edgesAtom,
+  nodesAtom,
+  onConnectAtom,
+  onEdgesChangeAtom,
+  onNodesChangeAtom,
+  workflowNameAtom,
+} from '@/stores/funnel';
+import { Icon } from '@iconify/react/dist/iconify.js';
 import {
   Background,
   type EdgeTypes,
   type NodeChange,
   ReactFlow,
-  useReactFlow,
   SelectionMode,
-} from "@xyflow/react";
-import { useCallback } from "react";
-import { useDeleteKeyCode } from "@/hooks/use-delete-key-code";
-import { useOnNodesDelete } from "@/hooks/use-on-nodes-delete";
-import { useNodeAutoAdjust } from "@/hooks/use-node-auto-adjust";
-import CustomDeletableEdge from "./edges/custom-deletable-edge";
-import { useAddNodeOnEdgeDrop } from "@/hooks/use-add-node-on-edge-drop";
-import { useDragDropFlowBuilder } from "@/hooks/use-drag-drop-flow-builder";
-import { useIsValidConnection } from "@/hooks/use-is-valid-connection";
-import CustomControls from "./controls/custom-controls";
-import { cn } from "@/lib/utils";
-import AddNodeFloatingMenu from "./add-node-floating-menu/add-node-floating-menu";
-import { useAtom } from "jotai";
-import {
-  workflowNameAtom,
-  nodesAtom,
-  edgesAtom,
-  onNodesChangeAtom,
-  onEdgesChangeAtom,
-  onConnectAtom,
-  deleteNodeAtom,
-  deleteEdgeAtom,
-} from "@/stores/funnel";
-import { NODE_TYPES } from "./blocks";
-import { BuilderNode } from "./blocks/types";
-import { Card } from "../ui/card";
-import { SaveFlowButton } from "./ui/save-flow-button";
-import { Button } from "../ui/button";
-import { useRouter } from "next/navigation";
-import { FlowContextMenu } from "./context-menu/flow-context-menu";
-import { Icon } from "@iconify/react/dist/iconify.js";
+  useReactFlow,
+} from '@xyflow/react';
+import { useAtom } from 'jotai';
+import { useRouter } from 'next/navigation';
+import { useCallback } from 'react';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import AddNodeFloatingMenu from './add-node-floating-menu/add-node-floating-menu';
+import { NODE_TYPES } from './blocks';
+import { BuilderNode } from './blocks/types';
+import { FlowContextMenu } from './context-menu/flow-context-menu';
+import CustomControls from './controls/custom-controls';
+import CustomDeletableEdge from './edges/custom-deletable-edge';
+import { SaveFlowButton } from './ui/save-flow-button';
 
 const edgeTypes: EdgeTypes = {
   deletable: CustomDeletableEdge,
@@ -55,14 +54,10 @@ export const FlowBuilder = () => {
   const deleteEdge = useAtom(deleteEdgeAtom)[1];
   const { getNodes } = useReactFlow();
 
-  const {
-    handleOnEdgeDropConnectEnd,
-    floatingMenuWrapperRef,
-    handleAddConnectedNode,
-  } = useAddNodeOnEdgeDrop();
+  const { handleOnEdgeDropConnectEnd, floatingMenuWrapperRef, handleAddConnectedNode } =
+    useAddNodeOnEdgeDrop();
 
   const deleteKeyCode = useDeleteKeyCode();
-  const onNodesDelete = useOnNodesDelete(nodes);
 
   const [onDragOver, onDrop] = useDragDropFlowBuilder();
   const isValidConnection = useIsValidConnection(nodes, edges);
@@ -90,9 +85,9 @@ export const FlowBuilder = () => {
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const filteredChanges = changes.map(change => {
+      const filteredChanges = changes.map((change) => {
         if (change.type === 'select') {
-          const node = nodes.find(n => n.id === change.id);
+          const node = nodes.find((n) => n.id === change.id);
           if (node && (node.type === BuilderNode.START || node.type === BuilderNode.END)) {
             return { ...change, selected: false };
           }
@@ -101,34 +96,25 @@ export const FlowBuilder = () => {
       });
 
       filteredChanges.forEach((change) => {
-        if (change.type === "dimensions") {
+        if (change.type === 'dimensions') {
           const node = getNodes().find((n) => n.id === change.id);
           if (node) {
             autoAdjustNode(node);
           }
         }
 
-        if (change.type === "add") {
+        if (change.type === 'add') {
           handleAutoAdjustNodeAfterNodeMeasured(change.item.id);
         }
       });
       onNodesChange(filteredChanges);
     },
-    [
-      autoAdjustNode,
-      getNodes,
-      handleAutoAdjustNodeAfterNodeMeasured,
-      onNodesChange,
-      nodes,
-    ]
+    [autoAdjustNode, getNodes, handleAutoAdjustNodeAfterNodeMeasured, onNodesChange, nodes]
   );
 
   const handleDeleteElements = useCallback(() => {
     const selectedNodes = nodes.filter(
-      (node) =>
-        node.selected &&
-        node.type !== BuilderNode.START &&
-        node.type !== BuilderNode.END
+      (node) => node.selected && node.type !== BuilderNode.START && node.type !== BuilderNode.END
     );
     const selectedEdges = edges.filter((edge) => edge.selected);
 
@@ -138,27 +124,26 @@ export const FlowBuilder = () => {
 
   return (
     <>
-      <Card className="h-14 border bg-card rounded-md mx-4 my-2 p-2 w-auto items-center flex justify-between shadow-sm">
-        <div className="inline-flex items-center gap-2">
+      <Card className='h-14 border bg-card rounded-md mx-4 my-2 p-2 w-auto items-center flex justify-between shadow-sm'>
+        <div className='inline-flex items-center gap-2'>
           <Button
-            variant="ghost"
-            size="icon"
-            className="text-primary-foreground font-bold"
+            variant='ghost'
+            size='icon'
+            className='text-primary-foreground font-bold'
             onClick={() => router.back()}
           >
-            <Icon
-              icon="ion:arrow-back-outline"
-              className="size-6 text-card-foreground"
-            />
+            <Icon icon='ion:arrow-back-outline' className='size-6 text-card-foreground' />
           </Button>
-          <h1 className="text-card-foreground font-bold">{name || "Untitled Funnel"}</h1>
+          <h1 className='text-card-foreground font-bold'>{name || 'Untitled Funnel'}</h1>
         </div>
 
-        {name !== "" && <div className="inline-flex items-center gap-2">
-          <SaveFlowButton />
-        </div>}
+        {name !== '' && (
+          <div className='inline-flex items-center gap-2'>
+            <SaveFlowButton />
+          </div>
+        )}
       </Card>
-      <div className="relative w-full h-[94vh]">
+      <div className='relative w-full h-[94vh]'>
         <FlowContextMenu>
           <ReactFlow
             proOptions={{ hideAttribution: true }}
@@ -179,7 +164,7 @@ export const FlowBuilder = () => {
             onNodesDelete={handleDeleteElements}
             isValidConnection={isValidConnection}
             selectionMode={SelectionMode.Full}
-            multiSelectionKeyCode="Control"
+            multiSelectionKeyCode='Control'
             selectionOnDrag={true}
             selectionKeyCode={null}
             deleteKeyCode={deleteKeyCode}
@@ -194,11 +179,11 @@ export const FlowBuilder = () => {
       </div>
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 backdrop-blur-3xl transition-all",
-          "opacity-0 bg-zinc-800/0 backdrop-saturate-100 pointer-events-none"
+          'pointer-events-none absolute inset-0 backdrop-blur-3xl transition-all',
+          'opacity-0 bg-zinc-800/0 backdrop-saturate-100 pointer-events-none'
         )}
       >
-        <div ref={floatingMenuWrapperRef} className="relative size-full">
+        <div ref={floatingMenuWrapperRef} className='relative size-full'>
           <AddNodeFloatingMenu onNodeAdd={handleAddConnectedNode} />
         </div>
       </div>

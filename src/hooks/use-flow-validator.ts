@@ -1,30 +1,14 @@
-import {
-  BuilderNode,
-  BuilderNodeType,
-} from "@/components/funnel-builder/blocks/types";
-import {
-  type Edge,
-  type Node,
-  getConnectedEdges,
-  useReactFlow,
-} from "@xyflow/react";
-import { useCallback, useState } from "react";
+import { BuilderNode, BuilderNodeType } from '@/components/funnel-builder/blocks/types';
+import { type Edge, type Node, getConnectedEdges, useReactFlow } from '@xyflow/react';
+import { useCallback, useState } from 'react';
 
 function findEdges(node: Node, connectedEdges: Edge[]) {
-  const outgoingEdges = connectedEdges.filter(
-    (edge) => edge.source === node.id
-  );
-  const incomingEdges = connectedEdges.filter(
-    (edge) => edge.target === node.id
-  );
+  const outgoingEdges = connectedEdges.filter((edge) => edge.source === node.id);
+  const incomingEdges = connectedEdges.filter((edge) => edge.target === node.id);
   return { outgoingEdges, incomingEdges };
 }
 
-function checkFlowTerminalNode(
-  outgoingEdges: Edge[],
-  incomingEdges: Edge[],
-  type: string
-) {
+function checkFlowTerminalNode(outgoingEdges: Edge[], incomingEdges: Edge[], type: string) {
   switch (type) {
     case BuilderNode.START:
       return outgoingEdges.length >= 1;
@@ -35,11 +19,7 @@ function checkFlowTerminalNode(
   }
 }
 
-function checkLoneNode(
-  outgoingEdges: Edge[],
-  incomingEdges: Edge[],
-  type: string
-) {
+function checkLoneNode(outgoingEdges: Edge[], incomingEdges: Edge[], type: string) {
   switch (type) {
     case BuilderNode.START:
       return outgoingEdges.length === 0;
@@ -48,9 +28,7 @@ function checkLoneNode(
   }
 }
 
-export function useFlowValidator(
-  onValidate?: (isValid: boolean) => void
-): [boolean, () => void] {
+export function useFlowValidator(onValidate?: (isValid: boolean) => void): [boolean, () => void] {
   const [isValidating, setIsValidating] = useState(false);
   const { getNodes, getEdges } = useReactFlow();
 
@@ -71,31 +49,16 @@ export function useFlowValidator(
       const { outgoingEdges, incomingEdges } = findEdges(node, connectedEdges);
 
       if (node.type === BuilderNode.START)
-        isStartConnected = checkFlowTerminalNode(
-          outgoingEdges,
-          incomingEdges,
-          BuilderNode.START
-        );
+        isStartConnected = checkFlowTerminalNode(outgoingEdges, incomingEdges, BuilderNode.START);
       else if (node.type === BuilderNode.END)
-        isEndConnected = checkFlowTerminalNode(
-          outgoingEdges,
-          incomingEdges,
-          BuilderNode.END
-        );
+        isEndConnected = checkFlowTerminalNode(outgoingEdges, incomingEdges, BuilderNode.END);
 
-      if (
-        checkLoneNode(
-          outgoingEdges,
-          incomingEdges,
-          node.type as BuilderNodeType
-        )
-      )
+      if (checkLoneNode(outgoingEdges, incomingEdges, node.type as BuilderNodeType))
         nodesWithEmptyTarget.push(node);
     }
 
     const hasAnyLoneNode = nodesWithEmptyTarget.length > 0;
-    const isFlowComplete =
-      isStartConnected && isEndConnected && !hasAnyLoneNode;
+    const isFlowComplete = isStartConnected && isEndConnected && !hasAnyLoneNode;
 
     onValidate?.(isFlowComplete);
 

@@ -1,8 +1,8 @@
-import { useReactFlow } from "@xyflow/react";
-import { type DragEvent, useCallback } from "react";
-import { useInsertNode } from "./use-insert-node";
-import { NODE_TYPE_DRAG_DATA_FORMAT } from "@/constants/symbols";
-import { BuilderNode } from "@/components/funnel-builder/blocks/types";
+import { BuilderNode } from '@/components/funnel-builder/blocks/types';
+import { NODE_TYPE_DRAG_DATA_FORMAT } from '@/constants/symbols';
+import { useReactFlow } from '@xyflow/react';
+import { type DragEvent, useCallback } from 'react';
+import { useInsertNode } from './use-insert-node';
 
 export function useDragDropFlowBuilder() {
   const { screenToFlowPosition } = useReactFlow();
@@ -10,7 +10,7 @@ export function useDragDropFlowBuilder() {
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    e.dataTransfer.dropEffect = 'move';
   }, []);
 
   const onDrop = useCallback(
@@ -18,7 +18,7 @@ export function useDragDropFlowBuilder() {
       e.preventDefault();
 
       const type = e.dataTransfer.getData(NODE_TYPE_DRAG_DATA_FORMAT);
-      if (typeof type === "undefined" || !type) return;
+      if (typeof type === 'undefined' || !type) return;
 
       insertNode(
         type as BuilderNode,

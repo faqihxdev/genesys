@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import type { Node } from "@xyflow/react";
-import { BuilderNode } from "../../../../types";
-import { getNodeDetail } from "@/components/funnel-builder/blocks/utils";
+import { getNodeDetail } from '@/components/funnel-builder/blocks/utils';
+import type { Node } from '@xyflow/react';
+import { BuilderNode } from '../../../../types';
 
 export function useNodeList(nodes: Node[]) {
   return useMemo(() => {

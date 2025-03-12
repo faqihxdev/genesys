@@ -1,18 +1,17 @@
-import { HeaderWithIcon } from "@/components/funnel-builder/ui/header-with-icon";
-import { Button } from "@/components/ui/button";
-import { cn, truncateMiddle } from "@/lib/utils";
+import { HeaderWithIcon } from '@/components/funnel-builder/ui/header-with-icon';
+import { Button } from '@/components/ui/button';
+import { cn, truncateMiddle } from '@/lib/utils';
 
-import { isEmpty } from "radash";
+import { isEmpty } from 'radash';
 
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef } from 'react';
 
 type NodeListItemProps = Readonly<
-  ComponentPropsWithoutRef<"button"> & {
+  ComponentPropsWithoutRef<'button'> & {
     icon: string;
     title: string;
     id?: string;
     selected?: boolean;
-    pseudoSelected?: boolean;
   }
 >;
 
@@ -22,15 +21,14 @@ export function NodeListItem({
   className,
   icon,
   selected,
-  pseudoSelected,
   ...props
 }: NodeListItemProps) {
   return (
     <Button
-      type="button"
-      variant={selected ? "default" : "ghost"}
+      type='button'
+      variant={selected ? 'default' : 'ghost'}
       className={cn(
-        "h-8 select-none flex items-center justify-between gap-4 ",
+        'h-8 select-none flex items-center justify-between gap-4 ',
 
         className
       )}
@@ -39,7 +37,7 @@ export function NodeListItem({
       <HeaderWithIcon icon={icon} title={title} />
 
       {id && !isEmpty(id) && (
-        <div className="rounded-md text-xs max-w-20 overflow-hidden bg-card px-2 py-1.5 text-2.5 text-card-foreground/80 font-semibold leading-none tracking-wide">
+        <div className='rounded-md text-xs max-w-20 overflow-hidden bg-card px-2 py-1.5 text-2.5 text-card-foreground/80 font-semibold leading-none tracking-wide'>
           {truncateMiddle(id, 4)}
         </div>
       )}

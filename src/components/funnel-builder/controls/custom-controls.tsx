@@ -1,12 +1,7 @@
-import {
-  Controls,
-  type ReactFlowState,
-  useReactFlow,
-  useStore,
-} from "@xyflow/react";
-import { atom, useAtomValue } from "jotai";
-import CustomControlButton from "./custom-control-button";
-import { MaximizeIcon, MinusIcon, PlusIcon } from "lucide-react";
+import { Controls, type ReactFlowState, useReactFlow } from '@xyflow/react';
+import { atom, useAtomValue } from 'jotai';
+import { MaximizeIcon, MinusIcon, PlusIcon } from 'lucide-react';
+import CustomControlButton from './custom-control-button';
 
 const ZOOM_DURATION = 500;
 
@@ -26,12 +21,7 @@ export default function CustomControls() {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
-    <Controls
-      showFitView={false}
-      showZoom={false}
-      showInteractive={false}
-      position={"bottom-left"}
-    >
+    <Controls showFitView={false} showZoom={false} showInteractive={false} position={'bottom-left'}>
       <CustomControlButton
         onClick={() => zoomIn({ duration: ZOOM_DURATION })}
         disabled={maxZoomReached}

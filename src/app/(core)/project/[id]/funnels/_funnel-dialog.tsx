@@ -19,7 +19,7 @@ import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
 import { createFunnel } from '@/server/funnel';
 import { useMutation } from '@tanstack/react-query';
-import { GitFork, Plus } from 'lucide-react';
+import { GitFork } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -51,6 +51,7 @@ export function FunnelDialog({ projectId, trigger }: FunnelDialogProps) {
 
   const { mutate: createNewFunnel, isPending } = useMutation({
     mutationFn: withQuery(createFunnel),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSuccess: (newFunnel: any) => {
       // Invalidate queries
       queryClient.invalidateQueries({
@@ -91,7 +92,7 @@ export function FunnelDialog({ projectId, trigger }: FunnelDialogProps) {
       <DialogTrigger asChild>
         {trigger || (
           <Button>
-            <GitFork className="mr-2 h-4 w-4" />
+            <GitFork className='mr-2 h-4 w-4' />
             Create Funnel
           </Button>
         )}
@@ -101,7 +102,8 @@ export function FunnelDialog({ projectId, trigger }: FunnelDialogProps) {
           <DialogHeader>
             <DialogTitle>Create New Funnel</DialogTitle>
             <DialogDescription>
-              Create a new marketing funnel to analyze how different personas interact with each stage of your customer journey.
+              Create a new marketing funnel to analyze how different personas interact with each
+              stage of your customer journey.
             </DialogDescription>
           </DialogHeader>
           <div className='space-y-4 py-4'>
@@ -141,11 +143,7 @@ export function FunnelDialog({ projectId, trigger }: FunnelDialogProps) {
             >
               Cancel
             </Button>
-            <Button
-              type='submit'
-              isLoading={isPending}
-              loadingText='Creating...'
-            >
+            <Button type='submit' isLoading={isPending} loadingText='Creating...'>
               Create Funnel
             </Button>
           </DialogFooter>

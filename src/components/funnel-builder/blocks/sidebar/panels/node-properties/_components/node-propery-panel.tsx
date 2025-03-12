@@ -1,14 +1,14 @@
-import { useReactFlow } from "@xyflow/react";
-import { produce } from "immer";
-import { useCallback } from "react";
-import { BuilderNodeType } from "../../../../types";
-import { NODE_PROPERTY_PANEL_COMPONENTS } from "../constants/property-panels";
-import UnavailableNodePropertyPanel from "../property-panels/unavailable-property-panel";
+import { useReactFlow } from '@xyflow/react';
+import { produce } from 'immer';
+import { useCallback } from 'react';
+import { BuilderNodeType } from '../../../../types';
+import { NODE_PROPERTY_PANEL_COMPONENTS } from '../constants/property-panels';
+import UnavailableNodePropertyPanel from '../property-panels/unavailable-property-panel';
 
 type NodePropertyPanelProps = Readonly<{
   id: string;
   type: BuilderNodeType;
-  data: any;
+  data: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }>;
 
 export function NodePropertyPanel({ id, type, data }: NodePropertyPanelProps) {
@@ -16,9 +16,10 @@ export function NodePropertyPanel({ id, type, data }: NodePropertyPanelProps) {
 
   const { setNodes } = useReactFlow();
 
-  const nodeData = produce(data, () => { });
+  const nodeData = produce(data, () => {});
 
   const updateData = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (newData: Partial<any>) => {
       setNodes((nds) =>
         produce(nds, (draft) => {
@@ -32,12 +33,7 @@ export function NodePropertyPanel({ id, type, data }: NodePropertyPanelProps) {
   );
 
   return PanelComponent && nodeData ? (
-    <PanelComponent
-      id={id}
-      type={type}
-      data={nodeData}
-      updateData={updateData}
-    />
+    <PanelComponent id={id} type={type} data={nodeData} updateData={updateData} />
   ) : (
     <UnavailableNodePropertyPanel />
   );

@@ -472,16 +472,16 @@
 //   );
 // }
 
-import { AVAILABLE_NODES } from "../blocks";
-import { useInsertNode } from "@/hooks/use-insert-node";
-import { useCallback, useEffect, useState, useRef } from "react";
-import { BuilderNode, BuilderNodeType } from "../blocks/types";
-import { useReactFlow, useViewport, Node } from "@xyflow/react";
-import { useAtom } from "jotai";
-import { deleteNodeAtom, deleteEdgeAtom, setSelectedNodeAtom, showNodePropertiesOfAtom, nodesAtom, edgesAtom } from "@/stores/funnel";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { Icon } from "@iconify/react";
+import { useInsertNode } from '@/hooks/use-insert-node';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { deleteEdgeAtom, deleteNodeAtom, showNodePropertiesOfAtom } from '@/stores/funnel';
+import { Icon } from '@iconify/react';
+import { Node, useReactFlow, useViewport } from '@xyflow/react';
+import { useAtom } from 'jotai';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AVAILABLE_NODES } from '../blocks';
+import { BuilderNode, BuilderNodeType } from '../blocks/types';
 
 interface FlowContextMenuProps {
   children: React.ReactNode;
@@ -528,10 +528,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
 
   const getSelectedNodes = useCallback(() => {
     return getNodes().filter(
-      (node) =>
-        node.selected &&
-        node.type !== BuilderNode.START &&
-        node.type !== BuilderNode.END
+      (node) => node.selected && node.type !== BuilderNode.START && node.type !== BuilderNode.END
     );
   }, [getNodes]);
 
@@ -553,12 +550,10 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
     setNodes((nodes) =>
       nodes.map((node) => ({
         ...node,
-        selected: node.type !== BuilderNode.START && node.type !== BuilderNode.END
+        selected: node.type !== BuilderNode.START && node.type !== BuilderNode.END,
       }))
     );
-    setEdges((edges) =>
-      edges.map((edge) => ({ ...edge, selected: true }))
-    );
+    setEdges((edges) => edges.map((edge) => ({ ...edge, selected: true })));
     setIsMenuOpen(false);
   }, [setNodes, setEdges]);
 
@@ -566,12 +561,13 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
     if (selectedNode) {
       setCopiedNode(selectedNode);
       toast({
-        title: "Node copied",
-        description: "Press Ctrl+V to paste the node",
-        variant: "success",
+        title: 'Node copied',
+        description: 'Press Ctrl+V to paste the node',
+        variant: 'success',
       });
       setIsMenuOpen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNode]);
 
   const handlePasteNode = useCallback(() => {
@@ -588,92 +584,99 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
     }
   }, [copiedNode, insertNode, viewport, menuPosition]);
 
-  const findFreePosition = useCallback((baseNode: Node) => {
-    const nodes = getNodes();
-    const nodeSize = { width: 300, height: 150 }; // Approximate node size
-    const padding = 20; // Space between nodes
-    const positions = [
-      { x: 1, y: 0 },  // right
-      { x: 0, y: 1 },  // bottom
-      { x: 1, y: 1 },  // bottom-right
-      { x: -1, y: 0 }, // left
-      { x: 0, y: -1 }, // top
-      { x: -1, y: -1 }, // top-left
-      { x: 1, y: -1 }, // top-right
-      { x: -1, y: 1 }, // bottom-left
-    ];
+  const findFreePosition = useCallback(
+    (baseNode: Node) => {
+      const nodes = getNodes();
+      const nodeSize = { width: 300, height: 150 }; // Approximate node size
+      const padding = 20; // Space between nodes
+      const positions = [
+        { x: 1, y: 0 }, // right
+        { x: 0, y: 1 }, // bottom
+        { x: 1, y: 1 }, // bottom-right
+        { x: -1, y: 0 }, // left
+        { x: 0, y: -1 }, // top
+        { x: -1, y: -1 }, // top-left
+        { x: 1, y: -1 }, // top-right
+        { x: -1, y: 1 }, // bottom-left
+      ];
 
-    for (const pos of positions) {
-      const candidatePosition = {
-        x: baseNode.position.x + pos.x * (nodeSize.width + padding),
-        y: baseNode.position.y + pos.y * (nodeSize.height + padding)
-      };
+      for (const pos of positions) {
+        const candidatePosition = {
+          x: baseNode.position.x + pos.x * (nodeSize.width + padding),
+          y: baseNode.position.y + pos.y * (nodeSize.height + padding),
+        };
 
-      // Check if this position overlaps with any existing node
-      const hasOverlap = nodes.some(node => {
-        if (node.id === baseNode.id) return false;
-        const dx = Math.abs(node.position.x - candidatePosition.x);
-        const dy = Math.abs(node.position.y - candidatePosition.y);
-        return dx < nodeSize.width && dy < nodeSize.height;
-      });
+        // Check if this position overlaps with any existing node
+        const hasOverlap = nodes.some((node) => {
+          if (node.id === baseNode.id) return false;
+          const dx = Math.abs(node.position.x - candidatePosition.x);
+          const dy = Math.abs(node.position.y - candidatePosition.y);
+          return dx < nodeSize.width && dy < nodeSize.height;
+        });
 
-      if (!hasOverlap) {
-        return candidatePosition;
+        if (!hasOverlap) {
+          return candidatePosition;
+        }
       }
-    }
 
-    // If all positions are taken, return a position with offset
-    return {
-      x: baseNode.position.x + (nodeSize.width + padding),
-      y: baseNode.position.y + (nodeSize.height + padding)
-    };
-  }, [getNodes]);
+      // If all positions are taken, return a position with offset
+      return {
+        x: baseNode.position.x + (nodeSize.width + padding),
+        y: baseNode.position.y + (nodeSize.height + padding),
+      };
+    },
+    [getNodes]
+  );
 
   const handleDuplicateNode = useCallback(() => {
     if (selectedNode) {
       const newPosition = findFreePosition(selectedNode);
       insertNode(selectedNode.type as BuilderNodeType, newPosition);
       toast({
-        title: "Node duplicated",
-        description: "A duplicate node has been added.",
-        variant: "success",
+        title: 'Node duplicated',
+        description: 'A duplicate node has been added.',
+        variant: 'success',
       });
       setIsMenuOpen(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNode, insertNode, findFreePosition]);
 
-  const handleContextMenu = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    const target = event.target as HTMLElement;
-    const nodeElement = target.closest('.react-flow__node');
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      const target = event.target as HTMLElement;
+      const nodeElement = target.closest('.react-flow__node');
 
-    if (nodeElement) {
-      const nodeId = nodeElement.getAttribute('data-id');
-      const node = getNodes().find(n => n.id === nodeId);
-      if (node?.type === BuilderNode.END) {
-        setContextMenuType('end-node');
-        setSelectedNode(node);
-      } else if (node?.type !== BuilderNode.START) {
-        setNodes((nodes) =>
-          nodes.map((n) => ({
-            ...n,
-            selected: n.id === nodeId
-          }))
-        );
-        setContextMenuType('node');
-        setSelectedNode(node || null);
+      if (nodeElement) {
+        const nodeId = nodeElement.getAttribute('data-id');
+        const node = getNodes().find((n) => n.id === nodeId);
+        if (node?.type === BuilderNode.END) {
+          setContextMenuType('end-node');
+          setSelectedNode(node);
+        } else if (node?.type !== BuilderNode.START) {
+          setNodes((nodes) =>
+            nodes.map((n) => ({
+              ...n,
+              selected: n.id === nodeId,
+            }))
+          );
+          setContextMenuType('node');
+          setSelectedNode(node || null);
+        } else {
+          setContextMenuType('canvas');
+          setSelectedNode(null);
+        }
       } else {
         setContextMenuType('canvas');
         setSelectedNode(null);
       }
-    } else {
-      setContextMenuType('canvas');
-      setSelectedNode(null);
-    }
 
-    setMenuPosition({ x: event.clientX, y: event.clientY });
-    setIsMenuOpen(true);
-  }, [getNodes, setNodes]);
+      setMenuPosition({ x: event.clientX, y: event.clientY });
+      setIsMenuOpen(true);
+    },
+    [getNodes, setNodes]
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -728,7 +731,16 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
         clearTimeout(closeTimeoutRef.current);
       }
     };
-  }, [handleDeleteSelected, handleSelectAll, handleCopyNode, handlePasteNode, handleDuplicateNode, selectedNode, copiedNode, getNodes]);
+  }, [
+    handleDeleteSelected,
+    handleSelectAll,
+    handleCopyNode,
+    handlePasteNode,
+    handleDuplicateNode,
+    selectedNode,
+    copiedNode,
+    getNodes,
+  ]);
 
   const handleAddNodeTriggerEnter = useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -760,7 +772,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
     if (selectedNode) {
       showNodeProperties({
         id: selectedNode.id,
-        type: selectedNode.type as BuilderNodeType
+        type: selectedNode.type as BuilderNodeType,
       });
       setIsMenuOpen(false);
     }
@@ -768,17 +780,14 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
 
   return (
     <>
-      <div
-        className="flex h-full w-full"
-        onContextMenu={handleContextMenu}
-      >
+      <div className='flex h-full w-full' onContextMenu={handleContextMenu}>
         {children}
       </div>
       {isMenuOpen && menuPosition && (
         <div
           className={cn(
-            "flow-context-menu fixed z-50 min-w-[220px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none",
-            "animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+            'flow-context-menu fixed z-50 min-w-[220px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none',
+            'animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95'
           )}
           style={{
             left: menuPosition.x,
@@ -786,25 +795,25 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
           }}
         >
           {contextMenuType === 'canvas' ? (
-            <div className="space-y-1">
-              <div className="relative">
+            <div className='space-y-1'>
+              <div className='relative'>
                 <button
                   className={cn(
-                    "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                    "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                    'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                   )}
                   onMouseEnter={handleAddNodeTriggerEnter}
                   onMouseLeave={handleAddNodeTriggerLeave}
                 >
-                  <Icon icon="mynaui:plus" className="mr-2 h-4 w-4" />
+                  <Icon icon='mynaui:plus' className='mr-2 h-4 w-4' />
                   Add Stage
-                  <Icon icon="lucide:chevron-right" className="ml-auto h-4 w-4" />
+                  <Icon icon='lucide:chevron-right' className='ml-auto h-4 w-4' />
                 </button>
                 {showNodeSubmenu && (
                   <div
                     className={cn(
-                      "node-submenu absolute left-full top-0 ml-0.5 min-w-[180px] rounded-md border bg-popover p-1",
-                      "animate-in fade-in-0 zoom-in-95"
+                      'node-submenu absolute left-full top-0 ml-0.5 min-w-[180px] rounded-md border bg-popover p-1',
+                      'animate-in fade-in-0 zoom-in-95'
                     )}
                     onMouseEnter={handleSubmenuEnter}
                     onMouseLeave={handleSubmenuLeave}
@@ -813,126 +822,126 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
                       <button
                         key={node.type}
                         className={cn(
-                          "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                          "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                          'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                         )}
                         onClick={() => handleAddNode(node.type as BuilderNodeType)}
                       >
-                        <Icon icon={node.icon} className="mr-2 h-4 w-4" />
+                        <Icon icon={node.icon} className='mr-2 h-4 w-4' />
                         {node.title}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="h-px my-1 bg-border" />
+              <div className='h-px my-1 bg-border' />
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-                  !canSelectAll && "opacity-50 cursor-not-allowed"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                  !canSelectAll && 'opacity-50 cursor-not-allowed'
                 )}
                 onClick={handleSelectAll}
                 disabled={!canSelectAll}
               >
-                <Icon icon="mynaui:select-all" className="mr-2 h-4 w-4" />
+                <Icon icon='mynaui:select-all' className='mr-2 h-4 w-4' />
                 Select All
-                <span className="ml-auto text-xs text-muted-foreground">Ctrl+A</span>
+                <span className='ml-auto text-xs text-muted-foreground'>Ctrl+A</span>
               </button>
               {copiedNode && (
                 <button
                   className={cn(
-                    "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                    "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                    'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                   )}
                   onClick={handlePasteNode}
                 >
-                  <Icon icon="mynaui:paste" className="mr-2 h-4 w-4" />
+                  <Icon icon='mynaui:paste' className='mr-2 h-4 w-4' />
                   Paste Node
-                  <span className="ml-auto text-xs text-muted-foreground">Ctrl+V</span>
+                  <span className='ml-auto text-xs text-muted-foreground'>Ctrl+V</span>
                 </button>
               )}
               {selectedCount > 0 && (
                 <>
-                  <div className="h-px my-1 bg-border" />
+                  <div className='h-px my-1 bg-border' />
                   <button
                     className={cn(
-                      "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600",
-                      "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                      'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600',
+                      'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                     )}
                     onClick={handleDeleteSelected}
                   >
-                    <Icon icon="mynaui:trash" className="mr-2 h-4 w-4" />
+                    <Icon icon='mynaui:trash' className='mr-2 h-4 w-4' />
                     Delete {selectedCount} {selectedCount === 1 ? 'Stage' : 'Stages'}
-                    <span className="ml-auto text-xs text-muted-foreground">Del</span>
+                    <span className='ml-auto text-xs text-muted-foreground'>Del</span>
                   </button>
                 </>
               )}
             </div>
           ) : contextMenuType === 'end-node' ? (
-            <div className="space-y-1">
+            <div className='space-y-1'>
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                 )}
                 onClick={handleDeleteSelected}
               >
-                <Icon icon="mynaui:trash" className="mr-2 h-4 w-4" />
+                <Icon icon='mynaui:trash' className='mr-2 h-4 w-4' />
                 Delete End Node
-                <span className="ml-auto text-xs text-muted-foreground">Del</span>
+                <span className='ml-auto text-xs text-muted-foreground'>Del</span>
               </button>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className='space-y-1'>
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                 )}
                 onClick={handleShowNodeProperties}
               >
-                <Icon icon="mynaui:settings" className="mr-2 h-4 w-4" />
+                <Icon icon='mynaui:settings' className='mr-2 h-4 w-4' />
                 Open Settings
-                <span className="ml-auto inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <Icon icon="mynaui:settings" className="h-3 w-3" />
+                <span className='ml-auto inline-flex items-center gap-2 text-xs text-muted-foreground'>
+                  <Icon icon='mynaui:settings' className='h-3 w-3' />
                   Alt+O
                 </span>
               </button>
-              <div className="h-px my-1 bg-border" />
+              <div className='h-px my-1 bg-border' />
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                 )}
                 onClick={handleCopyNode}
               >
-                <Icon icon="mynaui:copy" className="mr-2 h-4 w-4" />
+                <Icon icon='mynaui:copy' className='mr-2 h-4 w-4' />
                 Copy Stage
-                <span className="ml-auto text-xs text-muted-foreground">Ctrl+C</span>
+                <span className='ml-auto text-xs text-muted-foreground'>Ctrl+C</span>
               </button>
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                 )}
                 onClick={handleDuplicateNode}
               >
-                <Icon icon="ph:copy-simple-duotone" className="mr-2 h-4 w-4" />
+                <Icon icon='ph:copy-simple-duotone' className='mr-2 h-4 w-4' />
                 Duplicate Stage
-                <span className="ml-auto text-xs text-muted-foreground">Ctrl+D</span>
+                <span className='ml-auto text-xs text-muted-foreground'>Ctrl+D</span>
               </button>
-              <div className="h-px my-1 bg-border" />
+              <div className='h-px my-1 bg-border' />
               <button
                 className={cn(
-                  "relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600",
-                  "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  'relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none text-red-600',
+                  'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground'
                 )}
                 onClick={handleDeleteSelected}
               >
-                <Icon icon="mynaui:trash" className="mr-2 h-4 w-4" />
+                <Icon icon='mynaui:trash' className='mr-2 h-4 w-4' />
                 Delete Stage
-                <span className="ml-auto text-xs text-muted-foreground">Del</span>
+                <span className='ml-auto text-xs text-muted-foreground'>Del</span>
               </button>
             </div>
           )}

@@ -1,20 +1,18 @@
-"use client";
-import { useAtom, useSetAtom } from "jotai";
+'use client';
+import { BuilderNodeType } from '@/components/funnel-builder/blocks/types';
 import {
-  anchorPositionAtom,
   dropPositionAtom,
-  showMenuAtom,
   incomingNodeMetadetailsAtom,
   setAnchorPositionAtom,
   setDropPositionAtom,
-  setShowMenuAtom,
   setIncomingNodeMetadetailsAtom,
-} from "@/stores/add-node-on-edge-drop-state";
-import { type FinalConnectionState, useReactFlow } from "@xyflow/react";
-import { nanoid } from "nanoid";
-import { useCallback, useRef } from "react";
-import { useInsertNode } from "./use-insert-node";
-import { BuilderNodeType } from "@/components/funnel-builder/blocks/types";
+  setShowMenuAtom,
+} from '@/stores/add-node-on-edge-drop-state';
+import { type FinalConnectionState, useReactFlow } from '@xyflow/react';
+import { useAtom, useSetAtom } from 'jotai';
+import { nanoid } from 'nanoid';
+import { useCallback, useRef } from 'react';
+import { useInsertNode } from './use-insert-node';
 
 export function useAddNodeOnEdgeDrop() {
   const [dropPosition] = useAtom(dropPositionAtom);
@@ -31,23 +29,27 @@ export function useAddNodeOnEdgeDrop() {
 
   const handleAddConnectedNode = useCallback(
     (type: BuilderNodeType) => {
-      if (!incomingNodeMetadetails || !incomingNodeMetadetails.fromHandle || !incomingNodeMetadetails.fromNode) {
+      if (
+        !incomingNodeMetadetails ||
+        !incomingNodeMetadetails.fromHandle ||
+        !incomingNodeMetadetails.fromNode
+      ) {
         return;
       }
       const newNode = insertNode(type, dropPosition);
 
-      if (incomingNodeMetadetails.fromHandle.type === "source") {
+      if (incomingNodeMetadetails.fromHandle.type === 'source') {
         addEdges({
           id: nanoid(),
-          type: "deletable",
+          type: 'deletable',
           target: newNode.id,
           sourceHandle: incomingNodeMetadetails.fromHandle.id,
           source: incomingNodeMetadetails.fromNode.id,
         });
-      } else if (incomingNodeMetadetails.fromHandle.type === "target") {
+      } else if (incomingNodeMetadetails.fromHandle.type === 'target') {
         addEdges({
           id: nanoid(),
-          type: "deletable",
+          type: 'deletable',
           target: incomingNodeMetadetails.fromNode.id,
           targetHandle: incomingNodeMetadetails.fromHandle.id,
           source: newNode.id,
@@ -70,7 +72,7 @@ export function useAddNodeOnEdgeDrop() {
   const onConnectEnd = useCallback(
     (e: MouseEvent | TouchEvent, connectionState: FinalConnectionState) => {
       if (!connectionState.isValid && floatingMenuWrapperRef.current) {
-        const { clientX, clientY } = "changedTouches" in e ? e.changedTouches[0] : e;
+        const { clientX, clientY } = 'changedTouches' in e ? e.changedTouches[0] : e;
 
         const _anchorPositionPadding = 20;
         const _floatingMenuWrapperRect = floatingMenuWrapperRef.current.getBoundingClientRect();

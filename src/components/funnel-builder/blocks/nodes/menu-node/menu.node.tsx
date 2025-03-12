@@ -1,11 +1,11 @@
-import { type Node, type NodeProps, Position } from "@xyflow/react";
-import { nanoid } from "nanoid";
-import { memo, useCallback, useMemo, useState } from "react";
-import { BaseNodeData, BuilderNode, RegisterNodeMetadata } from "../../types";
-import { getNodeDetail } from "../../utils";
-import { useDeleteNode } from "@/hooks/use-delete-node";
-import CustomHandle from "../../../handles/custom-handler";
-import { NodeOption } from "./_components/node-option";
+import { useDeleteNode } from '@/hooks/use-delete-node';
+import { type Node, type NodeProps, Position } from '@xyflow/react';
+import { nanoid } from 'nanoid';
+import { memo, useCallback, useMemo, useState } from 'react';
+import CustomHandle from '../../../handles/custom-handler';
+import { BaseNodeData, BuilderNode, RegisterNodeMetadata } from '../../types';
+import { getNodeDetail } from '../../utils';
+import { NodeOption } from './_components/node-option';
 
 import {
   NodeCard,
@@ -13,11 +13,11 @@ import {
   NodeCardDescription,
   NodeCardFooter,
   NodeCardHeader,
-} from "@/components/funnel-builder/ui/node-card";
-import { useSetAtom } from "jotai";
-import { showNodePropertiesOfAtom } from "@/stores/funnel";
-import { isEmpty } from "radash";
-import MenuNodePropertyPanel from "../../sidebar/panels/node-properties/property-panels/menu-property-panel";
+} from '@/components/funnel-builder/ui/node-card';
+import { showNodePropertiesOfAtom } from '@/stores/funnel';
+import { useSetAtom } from 'jotai';
+import { isEmpty } from 'radash';
+import MenuNodePropertyPanel from '../../sidebar/panels/node-properties/property-panels/menu-property-panel';
 
 const NODE_TYPE = BuilderNode.MENU;
 
@@ -54,22 +54,20 @@ export function MenuNode({ id, isConnectable, selected, data }: MenuNodeProps) {
       />
 
       <NodeCardContent>
-        <div className=" min-h-10 flex flex-col">
-          <div className="flex flex-col p-4">
-            <div className="text-xs font-medium text-card-foreground">
-              Question
-            </div>
+        <div className=' min-h-10 flex flex-col'>
+          <div className='flex flex-col p-4'>
+            <div className='text-xs font-medium text-card-foreground'>Question</div>
 
-            <div className="line-clamp-4 mt-2 text-sm leading-snug">
-              <span className="text-card-foreground italic">
-                {isEmpty(data.question) ? "No question..." : data.question}
+            <div className='line-clamp-4 mt-2 text-sm leading-snug'>
+              <span className='text-card-foreground italic'>
+                {isEmpty(data.question) ? 'No question...' : data.question}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col p-4 z-50">
-          <div className="text-xs text-light-900/50 font-medium">Options</div>
+        <div className='flex flex-col p-4 z-50'>
+          <div className='text-xs text-light-900/50 font-medium'>Options</div>
 
           {data.options.length > 0 &&
             Array.from(data.options)
@@ -84,11 +82,11 @@ export function MenuNode({ id, isConnectable, selected, data }: MenuNodeProps) {
               ))}
         </div>
 
-        <NodeCardDescription description="Options to choose from." />
+        <NodeCardDescription description='Options to choose from.' />
         <NodeCardFooter nodeId={id} />
       </NodeCardContent>
       <CustomHandle
-        type="target"
+        type='target'
         id={sourceHandleId}
         position={Position.Left}
         isConnectable={isConnectable}
@@ -101,11 +99,10 @@ export const metadata: RegisterNodeMetadata<MenuNodeData> = {
   type: NODE_TYPE,
   node: memo(MenuNode),
   detail: {
-    icon: "f7:menu",
-    title: "Stage 3",
-    description:
-      "Description of this Stage or something",
-    gradientColor: "fuchsia",
+    icon: 'f7:menu',
+    title: 'Stage 3',
+    description: 'Description of this Stage or something',
+    gradientColor: 'fuchsia',
   },
   connection: {
     inputs: 1,
@@ -118,21 +115,21 @@ export const metadata: RegisterNodeMetadata<MenuNodeData> = {
         id: nanoid(),
         option: {
           id: 0,
-          value: "Option 1",
+          value: 'Option 1',
         },
       },
       {
         id: nanoid(),
         option: {
           id: 1,
-          value: "Option 2",
+          value: 'Option 2',
         },
       },
       {
         id: nanoid(),
         option: {
           id: 2,
-          value: "Option 3",
+          value: 'Option 3',
         },
       },
     ],

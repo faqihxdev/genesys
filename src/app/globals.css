@@ -283,7 +283,10 @@
 }
 
 .react-flow__background {
-  background-color: var(--xy-background-color, var(--xy-background-color-props, var(--xy-background-color-default)));
+  background-color: var(
+    --xy-background-color,
+    var(--xy-background-color-props, var(--xy-background-color-default))
+  );
   pointer-events: none;
   z-index: -1;
 }
@@ -339,7 +342,10 @@
 
 .react-flow__connection-path {
   stroke: var(--xy-connectionline-stroke, var(--xy-connectionline-stroke-default));
-  stroke-width: var(--xy-connectionline-stroke-width, var(--xy-connectionline-stroke-width-default));
+  stroke-width: var(
+    --xy-connectionline-stroke-width,
+    var(--xy-connectionline-stroke-width-default)
+  );
   fill: none;
 }
 
@@ -534,7 +540,10 @@ svg.react-flow__connectionline {
 
 .react-flow__attribution {
   font-size: 10px;
-  background: var(--xy-attribution-background-color, var(--xy-attribution-background-color-default));
+  background: var(
+    --xy-attribution-background-color,
+    var(--xy-attribution-background-color-default)
+  );
   padding: 2px 3px;
   margin: 0;
 }
@@ -574,8 +583,10 @@ svg.react-flow__connectionline {
 }
 
 .react-flow__minimap {
-  background: var(--xy-minimap-background-color-props,
-      var(--xy-minimap-background-color, var(--xy-minimap-background-color-default)));
+  background: var(
+    --xy-minimap-background-color-props,
+    var(--xy-minimap-background-color, var(--xy-minimap-background-color-default))
+  );
 }
 
 .react-flow__minimap-svg {
@@ -583,36 +594,54 @@ svg.react-flow__connectionline {
 }
 
 .react-flow__minimap-mask {
-  fill: var(--xy-minimap-mask-background-color-props,
-      var(--xy-minimap-mask-background-color, var(--xy-minimap-mask-background-color-default)));
-  stroke: var(--xy-minimap-mask-stroke-color-props,
-      var(--xy-minimap-mask-stroke-color, var(--xy-minimap-mask-stroke-color-default)));
-  stroke-width: var(--xy-minimap-mask-stroke-width-props,
-      var(--xy-minimap-mask-stroke-width, var(--xy-minimap-mask-stroke-width-default)));
+  fill: var(
+    --xy-minimap-mask-background-color-props,
+    var(--xy-minimap-mask-background-color, var(--xy-minimap-mask-background-color-default))
+  );
+  stroke: var(
+    --xy-minimap-mask-stroke-color-props,
+    var(--xy-minimap-mask-stroke-color, var(--xy-minimap-mask-stroke-color-default))
+  );
+  stroke-width: var(
+    --xy-minimap-mask-stroke-width-props,
+    var(--xy-minimap-mask-stroke-width, var(--xy-minimap-mask-stroke-width-default))
+  );
 }
 
 .react-flow__minimap-node {
-  fill: var(--xy-minimap-node-background-color-props,
-      var(--xy-minimap-node-background-color, var(--xy-minimap-node-background-color-default)));
-  stroke: var(--xy-minimap-node-stroke-color-props,
-      var(--xy-minimap-node-stroke-color, var(--xy-minimap-node-stroke-color-default)));
-  stroke-width: var(--xy-minimap-node-stroke-width-props,
-      var(--xy-minimap-node-stroke-width, var(--xy-minimap-node-stroke-width-default)));
+  fill: var(
+    --xy-minimap-node-background-color-props,
+    var(--xy-minimap-node-background-color, var(--xy-minimap-node-background-color-default))
+  );
+  stroke: var(
+    --xy-minimap-node-stroke-color-props,
+    var(--xy-minimap-node-stroke-color, var(--xy-minimap-node-stroke-color-default))
+  );
+  stroke-width: var(
+    --xy-minimap-node-stroke-width-props,
+    var(--xy-minimap-node-stroke-width, var(--xy-minimap-node-stroke-width-default))
+  );
 }
 
 .react-flow__background-pattern.dots {
-  fill: var(--xy-background-pattern-color-props,
-      var(--xy-background-pattern-color, var(--xy-background-pattern-dots-color-default)));
+  fill: var(
+    --xy-background-pattern-color-props,
+    var(--xy-background-pattern-color, var(--xy-background-pattern-dots-color-default))
+  );
 }
 
 .react-flow__background-pattern.lines {
-  stroke: var(--xy-background-pattern-color-props,
-      var(--xy-background-pattern-color, var(--xy-background-pattern-lines-color-default)));
+  stroke: var(
+    --xy-background-pattern-color-props,
+    var(--xy-background-pattern-color, var(--xy-background-pattern-lines-color-default))
+  );
 }
 
 .react-flow__background-pattern.cross {
-  stroke: var(--xy-background-pattern-color-props,
-      var(--xy-background-pattern-color, var(--xy-background-pattern-cross-color-default)));
+  stroke: var(
+    --xy-background-pattern-color-props,
+    var(--xy-background-pattern-color, var(--xy-background-pattern-cross-color-default))
+  );
 }
 
 .react-flow__controls {
@@ -633,11 +662,19 @@ svg.react-flow__connectionline {
   width: 26px;
   padding: 4px;
   border: none;
-  background: var(--xy-controls-button-background-color, var(--xy-controls-button-background-color-default));
-  border-bottom: 1px solid var(--xy-controls-button-border-color-props,
-      var(--xy-controls-button-border-color, var(--xy-controls-button-border-color-default)));
-  color: var(--xy-controls-button-color-props,
-      var(--xy-controls-button-color, var(--xy-controls-button-color-default)));
+  background: var(
+    --xy-controls-button-background-color,
+    var(--xy-controls-button-background-color-default)
+  );
+  border-bottom: 1px solid
+    var(
+      --xy-controls-button-border-color-props,
+      var(--xy-controls-button-border-color, var(--xy-controls-button-border-color-default))
+    );
+  color: var(
+    --xy-controls-button-color-props,
+    var(--xy-controls-button-color, var(--xy-controls-button-color-default))
+  );
   cursor: pointer;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -701,7 +738,10 @@ svg.react-flow__connectionline {
 }
 
 .react-flow__node-group {
-  background-color: var(--xy-node-group-background-color, var(--xy-node-group-background-color-default));
+  background-color: var(
+    --xy-node-group-background-color,
+    var(--xy-node-group-background-color-default)
+  );
 }
 
 .react-flow__nodesselection-rect,
@@ -718,10 +758,17 @@ svg.react-flow__connectionline {
 }
 
 .react-flow__controls-button:hover {
-  background: var(--xy-controls-button-background-color-hover-props,
-      var(--xy-controls-button-background-color-hover, var(--xy-controls-button-background-color-hover-default)));
-  color: var(--xy-controls-button-color-hover-props,
-      var(--xy-controls-button-color-hover, var(--xy-controls-button-color-hover-default)));
+  background: var(
+    --xy-controls-button-background-color-hover-props,
+    var(
+      --xy-controls-button-background-color-hover,
+      var(--xy-controls-button-background-color-hover-default)
+    )
+  );
+  color: var(
+    --xy-controls-button-color-hover-props,
+    var(--xy-controls-button-color-hover, var(--xy-controls-button-color-hover-default))
+  );
 }
 
 .react-flow__controls-button:disabled {
@@ -898,8 +945,10 @@ svg.react-flow__connectionline {
 
   &.react-flow__controls {
     --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+    --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color),
+      0 8px 10px -6px var(--tw-shadow-color);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow);
   }
 
   &.react-flow__controls {

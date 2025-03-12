@@ -1,6 +1,6 @@
-import { type Node, useReactFlow } from "@xyflow/react";
-import { animate, easeOut } from "popmotion";
-import { useCallback } from "react";
+import { type Node, useReactFlow } from '@xyflow/react';
+import { animate, easeOut } from 'popmotion';
+import { useCallback } from 'react';
 
 const NODE_MARGIN = 64;
 const NODE_PADDING = 16;
@@ -15,15 +15,12 @@ interface NodeCoordinates {
 
 interface OverlappingNode {
   directions: {
-    direction: "left" | "right" | "top" | "bottom";
+    direction: 'left' | 'right' | 'top' | 'bottom';
     distance: number;
   }[];
 }
 
-function doesNodeOverlap(
-  a: NodeCoordinates,
-  b: NodeCoordinates
-): OverlappingNode | false {
+function doesNodeOverlap(a: NodeCoordinates, b: NodeCoordinates): OverlappingNode | false {
   const aAdj = {
     x: a.x - NODE_PADDING,
     y: a.y - NODE_PADDING,
@@ -44,10 +41,7 @@ function doesNodeOverlap(
     aAdj.y + aAdj.h > bAdj.y;
   if (!doesOverlap) return false;
 
-  const position: Record<
-    OverlappingNode["directions"][number]["direction"],
-    number
-  > = {
+  const position: Record<OverlappingNode['directions'][number]['direction'], number> = {
     top: a.y - b.h - NODE_MARGIN,
     bottom: a.y + a.h + NODE_MARGIN,
     left: a.x - b.w - NODE_MARGIN,
@@ -55,10 +49,10 @@ function doesNodeOverlap(
   };
 
   const directions = [
-    { direction: "left", distance: Math.abs(b.x - position.left) },
-    { direction: "right", distance: Math.abs(b.x - position.right) },
-    { direction: "top", distance: Math.abs(b.y - position.top) },
-    { direction: "bottom", distance: Math.abs(b.y - position.bottom) },
+    { direction: 'left', distance: Math.abs(b.x - position.left) },
+    { direction: 'right', distance: Math.abs(b.x - position.right) },
+    { direction: 'top', distance: Math.abs(b.y - position.top) },
+    { direction: 'bottom', distance: Math.abs(b.y - position.bottom) },
   ];
 
   directions.sort((a, b) => a.distance - b.distance);
@@ -67,18 +61,21 @@ function doesNodeOverlap(
 }
 
 function getOverlappingNodes(node: NodeCoordinates, nodes: NodeCoordinates[]) {
-  return nodes.reduce((acc, n) => {
-    const overlap = doesNodeOverlap(node, n);
-    if (overlap) {
-      acc.push({ ...n, overlap });
-    }
-    return acc;
-  }, [] as (NodeCoordinates & { overlap: OverlappingNode })[]);
+  return nodes.reduce(
+    (acc, n) => {
+      const overlap = doesNodeOverlap(node, n);
+      if (overlap) {
+        acc.push({ ...n, overlap });
+      }
+      return acc;
+    },
+    [] as (NodeCoordinates & { overlap: OverlappingNode })[]
+  );
 }
 
 function moveNode(
   node: NodeCoordinates,
-  direction: OverlappingNode["directions"][number]["direction"],
+  direction: OverlappingNode['directions'][number]['direction'],
   distance: number
 ): NodeCoordinates {
   const moveByDirection: Record<string, (pos: number) => number> = {
@@ -90,21 +87,15 @@ function moveNode(
 
   return {
     id: node.id,
-    x:
-      direction === "left" || direction === "right"
-        ? moveByDirection[direction](node.x)
-        : node.x,
-    y:
-      direction === "top" || direction === "bottom"
-        ? moveByDirection[direction](node.y)
-        : node.y,
+    x: direction === 'left' || direction === 'right' ? moveByDirection[direction](node.x) : node.x,
+    y: direction === 'top' || direction === 'bottom' ? moveByDirection[direction](node.y) : node.y,
     w: node.w,
     h: node.h,
   };
 }
 
 interface BestMove {
-  direction: "left" | "right" | "top" | "bottom";
+  direction: 'left' | 'right' | 'top' | 'bottom';
   distance: number;
   count: number;
 }
@@ -112,14 +103,10 @@ interface BestMove {
 function getBestMove(
   overlapNode: ReturnType<typeof getOverlappingNodes>[number],
   allNodes: NodeCoordinates[]
-): OverlappingNode["directions"][number] & { count: number } {
+): OverlappingNode['directions'][number] & { count: number } {
   return overlapNode.overlap.directions.reduce<BestMove>(
     (best, direction) => {
-      const simulatedNode = moveNode(
-        overlapNode,
-        direction.direction,
-        direction.distance
-      );
+      const simulatedNode = moveNode(overlapNode, direction.direction, direction.distance);
       const newOverlappingNodes = getOverlappingNodes(
         simulatedNode,
         allNodes.filter((n) => n.id !== simulatedNode.id)
@@ -127,21 +114,17 @@ function getBestMove(
       const count = newOverlappingNodes.length;
       return count < best.count ? { ...direction, count } : best;
     },
-    { direction: "left", distance: 0, count: Infinity }
+    { direction: 'left', distance: 0, count: Infinity }
   );
 }
 
 function applyMove(
   overlapNode: ReturnType<typeof getOverlappingNodes>[number],
-  bestMove: OverlappingNode["directions"][number],
+  bestMove: OverlappingNode['directions'][number],
   allNodes: NodeCoordinates[],
   movedNodes: Map<string, NodeCoordinates>
 ) {
-  const movedNode = moveNode(
-    overlapNode,
-    bestMove.direction,
-    bestMove.distance
-  );
+  const movedNode = moveNode(overlapNode, bestMove.direction, bestMove.distance);
   allNodes.forEach((n, index) => {
     if (n.id === overlapNode.id) {
       allNodes[index] = movedNode;
@@ -182,10 +165,7 @@ function handleOverlaps(
   return hasOverlap;
 }
 
-function calculateCoordinates(
-  node: NodeCoordinates,
-  nodes: NodeCoordinates[]
-): NodeCoordinates[] {
+function calculateCoordinates(node: NodeCoordinates, nodes: NodeCoordinates[]): NodeCoordinates[] {
   const allNodes = [node, ...nodes];
   const movedNodes = new Map<string, NodeCoordinates>();
   const MAX_ITERATIONS = 10000;
@@ -198,7 +178,7 @@ function calculateCoordinates(
   }
 
   if (iterations >= MAX_ITERATIONS) {
-    console.warn("Max iterations reached, there may still be overlaps.");
+    console.warn('Max iterations reached, there may still be overlaps.');
   }
 
   return Array.from(movedNodes.values());
