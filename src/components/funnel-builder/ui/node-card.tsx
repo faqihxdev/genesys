@@ -1,0 +1,124 @@
+import * as React from 'react';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Icon } from '@iconify/react/dist/iconify.js';
+import { HeaderGradientColors } from '../blocks/types';
+import { HeaderWithIcon } from './header-with-icon';
+
+const NodeCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'w-72 border border-purple-300 rounded-xl bg-card/50 shadow-sm backdrop-blur-xl transition divide-y divide-card-foreground/10 data-[selected=true]:border-primary',
+        className
+      )}
+      {...props}
+    />
+  )
+);
+NodeCard.displayName = 'NodeCard';
+
+interface NodeCardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  icon: string;
+  title: string;
+  handleDeleteNode: () => void;
+  handleShowNodeProperties: () => void;
+  gradientColor?: keyof typeof HeaderGradientColors;
+}
+
+const NodeCardHeader = React.forwardRef<HTMLDivElement, NodeCardHeaderProps>(
+  (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    { className, icon, title, handleDeleteNode, handleShowNodeProperties, gradientColor, ...props },
+    ref
+  ) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'relative rounded-t-xl bg-card border-b border-card-foreground/10',
+          className
+        )}
+        {...props}
+      >
+        <div className='h-9 flex items-center justify-between gap-x-4 px-0.5 py-0.5'>
+          <div className='flex grow items-center pl-1'>
+            <HeaderWithIcon icon={icon} title={title} />
+          </div>
+
+          <div className='flex shrink-0 items-center gap-x-0.5 pr-0.5'>
+            <div className='mx-1 h-4 w-px bg-card-foreground/10' />
+
+            <Button
+              type='button'
+              size={'icon'}
+              variant={'ghost'}
+              className='size-7'
+              onClick={handleShowNodeProperties}
+            >
+              <Icon icon={'mynaui:cog-solid'} className={'size-4'} />
+            </Button>
+
+            <Button
+              type='button'
+              variant={'ghost'}
+              size={'icon'}
+              className='size-7'
+              onClick={handleDeleteNode}
+            >
+              <Icon icon={'basil:trash-solid'} className={'size-4 text-red-500'} />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+);
+NodeCardHeader.displayName = 'NodeCardHeader';
+
+interface NodeCardDescriptionProps extends React.HTMLAttributes<HTMLDivElement> {
+  description: string;
+  badges?: React.ReactNode;
+}
+
+const NodeCardDescription = React.forwardRef<HTMLDivElement, NodeCardDescriptionProps>(
+  ({ className, description, badges, ...props }, ref) => (
+    <div ref={ref} className={cn('px-4 py-2', className)} {...props}>
+      <div className='text-xs text-card-foreground'>{description}</div>
+      {badges && <div className='mt-1'>{badges}</div>}
+    </div>
+  )
+);
+NodeCardDescription.displayName = 'NodeCardDescription';
+
+const NodeCardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('flex flex-col divide-y divide-card-foreground/10', className)}
+      {...props}
+    />
+  )
+);
+NodeCardContent.displayName = 'NodeCardContent';
+
+interface NodeCardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  nodeId: string | number;
+}
+
+const NodeCardFooter = React.forwardRef<HTMLDivElement, NodeCardFooterProps>(
+  ({ className, nodeId, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={`bg-card-foreground/10 overflow-clip rounded-b-md px-4 py-2 text-[10px] text-card-foreground/50 ${className}`}
+      {...props}
+    >
+      Node: <span className='font-semibold'>#{nodeId}</span>
+    </div>
+  )
+);
+NodeCardFooter.displayName = 'NodeCardFooter';
+
+export { NodeCard, NodeCardContent, NodeCardDescription, NodeCardFooter, NodeCardHeader };

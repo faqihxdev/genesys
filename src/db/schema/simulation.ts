@@ -19,6 +19,18 @@ export const simulationStatusEnum = pgEnum('simulation_status', [
 ]);
 
 /**
+ * Simulation parameter interface
+ * Defines configuration options for a simulation
+ */
+export interface SimulationParameters {
+  maxPathsPerPersona?: number; // Maximum number of paths a persona can explore (for branching funnels)
+  detailedResponses?: boolean; // Whether to generate detailed responses or just proceed decisions
+  temperatureOverride?: number; // Optional override for OpenAI temperature setting
+  includeReasons?: boolean; // Whether to include detailed reasoning in responses
+  customPromptAdditions?: string; // Custom instructions to add to the prompt
+}
+
+/**
  * Simulations table schema
  * Represents a simulation run of personas through a funnel
  * completeCount: prevents calling the responses table to check progress
