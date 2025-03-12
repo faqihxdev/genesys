@@ -1,5 +1,4 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { animate, easeOut } from 'popmotion';
 import { useCallback } from 'react';
 
 const NODE_MARGIN = 64;
@@ -124,13 +123,21 @@ function applyMove(
   allNodes: NodeCoordinates[],
   movedNodes: Map<string, NodeCoordinates>
 ) {
-  const movedNode = moveNode(overlapNode, bestMove.direction, bestMove.distance);
-  allNodes.forEach((n, index) => {
-    if (n.id === overlapNode.id) {
-      allNodes[index] = movedNode;
+  try {
+    const movedNode = moveNode(overlapNode, bestMove.direction, bestMove.distance);
+
+    // Update the array without mutating the original elements
+    const nodeIndex = allNodes.findIndex((n) => n.id === overlapNode.id);
+    if (nodeIndex !== -1) {
+      // Replace the node at the index with the moved node
+      allNodes[nodeIndex] = { ...movedNode };
     }
-  });
-  movedNodes.set(overlapNode.id, movedNode);
+
+    // Store the moved node in the map
+    movedNodes.set(overlapNode.id, { ...movedNode });
+  } catch (error) {
+    console.error('Error in applyMove:', error);
+  }
 }
 
 function handleNodeOverlaps(
@@ -156,32 +163,43 @@ function handleOverlaps(
   allNodes: NodeCoordinates[],
   movedNodes: Map<string, NodeCoordinates>
 ): boolean {
-  let hasOverlap = false;
-  for (const currentNode of allNodes) {
-    if (handleNodeOverlaps(currentNode, allNodes, movedNodes)) {
-      hasOverlap = true;
+  try {
+    let hasOverlap = false;
+    for (const currentNode of allNodes) {
+      if (handleNodeOverlaps(currentNode, allNodes, movedNodes)) {
+        hasOverlap = true;
+      }
     }
+    return hasOverlap;
+  } catch (error) {
+    console.error('Error in handleOverlaps:', error);
+    return false; // Return false to break the loop in the calling function
   }
-  return hasOverlap;
 }
 
 function calculateCoordinates(node: NodeCoordinates, nodes: NodeCoordinates[]): NodeCoordinates[] {
-  const allNodes = [node, ...nodes];
-  const movedNodes = new Map<string, NodeCoordinates>();
-  const MAX_ITERATIONS = 10000;
-  let iterations = 0;
+  try {
+    // Create deep copies to avoid modifying frozen objects
+    const allNodes = [{ ...node }, ...nodes.map((n) => ({ ...n }))];
+    const movedNodes = new Map<string, NodeCoordinates>();
+    const MAX_ITERATIONS = 10000;
+    let iterations = 0;
 
-  let hasOverlap = true;
-  while (hasOverlap && iterations < MAX_ITERATIONS) {
-    hasOverlap = handleOverlaps(allNodes, movedNodes);
-    iterations++;
+    let hasOverlap = true;
+    while (hasOverlap && iterations < MAX_ITERATIONS) {
+      hasOverlap = handleOverlaps(allNodes, movedNodes);
+      iterations++;
+    }
+
+    if (iterations >= MAX_ITERATIONS) {
+      console.warn('Max iterations reached, there may still be overlaps.');
+    }
+
+    return Array.from(movedNodes.values());
+  } catch (error) {
+    console.error('Error in calculateCoordinates:', error);
+    return []; // Return empty array to avoid further errors
   }
-
-  if (iterations >= MAX_ITERATIONS) {
-    console.warn('Max iterations reached, there may still be overlaps.');
-  }
-
-  return Array.from(movedNodes.values());
 }
 
 export function useNodeAutoAdjust() {
@@ -189,44 +207,46 @@ export function useNodeAutoAdjust() {
 
   return useCallback(
     (node: Node) => {
-      const currentNodeCoordinates: NodeCoordinates = {
-        id: node.id,
-        x: node.position.x,
-        y: node.position.y,
-        w: node.measured?.width || 0,
-        h: node.measured?.height || 0,
-      };
+      try {
+        // Ensure we're working with a clean copy of the node, not a frozen object
+        const currentNodeCoordinates: NodeCoordinates = {
+          id: node.id,
+          x: node.position.x,
+          y: node.position.y,
+          w: node.measured?.width || 0,
+          h: node.measured?.height || 0,
+        };
 
-      const nodes = getNodes().reduce<NodeCoordinates[]>((acc, n) => {
-        if (n.id !== currentNodeCoordinates.id) {
-          acc.push({
-            id: n.id,
-            x: n.position.x,
-            y: n.position.y,
-            w: n.measured?.width || 0,
-            h: n.measured?.height || 0,
-          });
-        }
-        return acc;
-      }, []);
+        const nodes = getNodes().reduce<NodeCoordinates[]>((acc, n) => {
+          if (n.id !== currentNodeCoordinates.id) {
+            const nodeCoord = {
+              id: n.id,
+              x: n.position.x,
+              y: n.position.y,
+              w: n.measured?.width || 0,
+              h: n.measured?.height || 0,
+            };
+            acc.push(nodeCoord);
+          }
+          return acc;
+        }, []);
 
-      const adjustedNodes = calculateCoordinates(currentNodeCoordinates, nodes);
-      adjustedNodes.forEach(({ id, x, y }) => {
-        const _node = getNodes().find((n) => n.id === id);
+        const adjustedNodes = calculateCoordinates(currentNodeCoordinates, nodes);
 
-        animate({
-          from: {
-            x: _node?.position.x || 0,
-            y: _node?.position.y || 0,
-          },
-          to: { x, y },
-          duration: 200,
-          ease: easeOut,
-          onUpdate: ({ x, y }) => {
-            updateNode(id, { position: { x, y } });
-          },
+        adjustedNodes.forEach(({ id, x, y }) => {
+          const _node = getNodes().find((n) => n.id === id);
+
+          if (_node) {
+            // Skip using animate() which may cause issues with frozen objects
+            // Just update the position directly
+            updateNode(id, {
+              position: { x, y },
+            });
+          }
         });
-      });
+      } catch (error) {
+        console.error('Error in useNodeAutoAdjust:', error);
+      }
     },
     [getNodes, updateNode]
   );

@@ -20,9 +20,9 @@ export const FlowBuilderPage = ({
 
   return (
     <ReactFlowProvider>
-      <div className='flex flex-col h-dvh'>
-        <div className='flex grow divide-x divide-card-foreground/10'>
-          <div className='grow bg-card md:bg-transparent'>
+      <div className='flex flex-col h-[calc(100vh-7rem)]'>
+        <div className='flex grow divide-x divide-card-foreground/10 border border-border rounded-lg overflow-hidden'>
+          <div className='bg-card grow md:bg-transparent mb-20'>
             <FlowBuilder />
           </div>
           <SidebarModule />

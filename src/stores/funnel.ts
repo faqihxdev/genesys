@@ -9,6 +9,7 @@ import {
   EdgeChange,
   Node,
   NodeChange,
+  NodeDimensionChange,
 } from '@xyflow/react';
 import { atom } from 'jotai';
 import { nanoid } from 'nanoid';
@@ -52,7 +53,52 @@ export const setWorkflowAtom = atom(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const onNodesChangeAtom = atom(null, (get: any, set: any, changes: NodeChange[]) => {
-  set(nodesAtom, (prevNodes: Node[]) => applyNodeChanges(changes, prevNodes));
+  set(nodesAtom, (prevNodes: Node[]) => {
+    try {
+      // Separate dimension changes from other changes to handle them differently
+      const dimensionChanges: NodeDimensionChange[] = [];
+      const otherChanges: NodeChange[] = [];
+
+      changes.forEach((change) => {
+        if (change.type === 'dimensions') {
+          dimensionChanges.push(change as NodeDimensionChange);
+        } else {
+          otherChanges.push(change);
+        }
+      });
+
+      // First apply non-dimension changes using applyNodeChanges
+      let updatedNodes = prevNodes;
+      if (otherChanges.length > 0) {
+        updatedNodes = applyNodeChanges(otherChanges, prevNodes);
+      }
+
+      // Then manually apply dimension changes
+      if (dimensionChanges.length > 0) {
+        updatedNodes = updatedNodes.map((node) => {
+          // Find if there's a dimension change for this node
+          const dimensionChange = dimensionChanges.find((c) => c.id === node.id);
+
+          if (dimensionChange && dimensionChange.dimensions) {
+            // Create a complete new node object with the updated dimensions
+            return {
+              ...node,
+              measured: {
+                width: dimensionChange.dimensions.width,
+                height: dimensionChange.dimensions.height,
+              },
+            };
+          }
+          return node;
+        });
+      }
+
+      return updatedNodes;
+    } catch (error) {
+      console.error('Error processing node changes:', error);
+      return prevNodes;
+    }
+  });
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

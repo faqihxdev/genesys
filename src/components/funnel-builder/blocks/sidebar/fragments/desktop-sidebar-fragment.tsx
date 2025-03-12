@@ -88,8 +88,6 @@ export function DesktopSidebarFragment({
             <Icon icon='mynaui:grid' className='size-5' />
           </SidebarButtonItem>
 
-          <div className='mx-auto h-px w-4 bg-card-foreground/10' />
-
           <SidebarButtonItem
             active={activePanel === 'node-properties'}
             onClick={() => setActivePanel('node-properties')}

@@ -85,29 +85,39 @@ export const FlowBuilder = () => {
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const filteredChanges = changes.map((change) => {
-        if (change.type === 'select') {
-          const node = nodes.find((n) => n.id === change.id);
-          if (node && (node.type === BuilderNode.START || node.type === BuilderNode.END)) {
-            return { ...change, selected: false };
+      try {
+        const filteredChanges = changes.map((change) => {
+          if (change.type === 'select') {
+            const node = nodes.find((n) => n.id === change.id);
+            if (node && (node.type === BuilderNode.START || node.type === BuilderNode.END)) {
+              return { ...change, selected: false };
+            }
           }
-        }
-        return change;
-      });
+          return change;
+        });
 
-      filteredChanges.forEach((change) => {
-        if (change.type === 'dimensions') {
-          const node = getNodes().find((n) => n.id === change.id);
-          if (node) {
-            autoAdjustNode(node);
+        // For dimension changes, only queue them for auto-adjustment
+        // Don't try to modify node properties directly
+        filteredChanges.forEach((change) => {
+          if (change.type === 'dimensions') {
+            // Just trigger auto-adjust after dimensions are updated via onNodesChange
+            setTimeout(() => {
+              const node = getNodes().find((n) => n.id === change.id);
+              if (node && node.measured) {
+                autoAdjustNode(node);
+              }
+            }, 0);
           }
-        }
 
-        if (change.type === 'add') {
-          handleAutoAdjustNodeAfterNodeMeasured(change.item.id);
-        }
-      });
-      onNodesChange(filteredChanges);
+          if (change.type === 'add') {
+            handleAutoAdjustNodeAfterNodeMeasured(change.item.id);
+          }
+        });
+
+        onNodesChange(filteredChanges);
+      } catch (error) {
+        console.error('Error in handleNodesChange:', error);
+      }
     },
     [autoAdjustNode, getNodes, handleAutoAdjustNodeAfterNodeMeasured, onNodesChange, nodes]
   );
@@ -124,7 +134,7 @@ export const FlowBuilder = () => {
 
   return (
     <>
-      <Card className='h-14 border bg-card rounded-md mx-4 my-2 p-2 w-auto items-center flex justify-between shadow-sm'>
+      <Card className='h-14 bg-card rounded-none border-0 border-b border-border py-2 px-4 w-auto items-center flex justify-between shadow-sm'>
         <div className='inline-flex items-center gap-2'>
           <Button
             variant='ghost'
@@ -143,7 +153,7 @@ export const FlowBuilder = () => {
           </div>
         )}
       </Card>
-      <div className='relative w-full h-[94vh]'>
+      <div className='relative w-full h-full'>
         <FlowContextMenu>
           <ReactFlow
             proOptions={{ hideAttribution: true }}

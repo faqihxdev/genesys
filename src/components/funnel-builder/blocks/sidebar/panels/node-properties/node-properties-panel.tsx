@@ -6,7 +6,6 @@ import { useAtom } from 'jotai';
 import { useMemo } from 'react';
 import { TagsNodeData } from '../../../nodes/tags-node/tags.node';
 import { BuilderNode } from '../../../types';
-import SidebarPanelHeading from '../../_components/sidebar-panel-heading';
 import SidebarPanelWrapper from '../../_components/sidebar-panel-wrapper';
 import { NodeListItem } from './_components/node-list-item';
 import { NodePropertyPanel } from './_components/node-propery-panel';
@@ -42,9 +41,9 @@ export function NodePropertiesPanel() {
   return (
     <SidebarPanelWrapper>
       <div className='h-80 w-80 flex flex-col'>
-        <SidebarPanelHeading className='shrink-0'>
+        <div className='flex items-center text-sm h-10 px-4 border-b border-t-0 select-none shrink-0 border-card-foreground/10 bg-card/80 text-center text-card-foreground/60 gap-x-2 font-semibold'>
           <HeaderWithIcon icon='Layers' title='Stages in Funnel' />
-        </SidebarPanelHeading>
+        </div>
 
         <div className='flex w-full  flex-col gap-1 p-1.5 overflow-y-auto'>
           {nodeList.map((node) => (
@@ -71,9 +70,9 @@ export function NodePropertiesPanel() {
       </div>
 
       <div className='w-80 max-h-[360px] 2xl:max-h-[594px] flex flex-col'>
-        <SidebarPanelHeading className='shrink-0'>
+        <div className='flex items-center text-sm h-10 px-4 border-b border-t select-none shrink-0 border-card-foreground/10 bg-card/80 text-center text-card-foreground/60 gap-x-2 font-semibold'>
           <HeaderWithIcon icon='Settings' title='Stage Properties' />
-        </SidebarPanelHeading>
+        </div>
 
         <div className='flex w-full  flex-col  overflow-y-auto'>
           {selectedNode ? (

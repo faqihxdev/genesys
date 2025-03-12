@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -270,6 +271,11 @@ export default function TagsNodePropertyPanel({
           <DialogContent className='sm:max-w-md'>
             <DialogHeader>
               <DialogTitle>{editingOptionId ? 'Edit Option' : 'Add Stage Item'}</DialogTitle>
+              <DialogDescription>
+                {editingOptionId
+                  ? 'Edit the details of this stage item.'
+                  : 'Add a new item to this stage with details and content.'}
+              </DialogDescription>
             </DialogHeader>
             <div className='space-y-4 py-2 px-1'>
               <div className='space-y-2'>
