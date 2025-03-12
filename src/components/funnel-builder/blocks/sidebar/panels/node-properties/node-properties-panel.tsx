@@ -62,7 +62,6 @@ export function NodePropertiesPanel() {
               }
               icon={node.detail.icon}
               selected={selectedNode?.id === node.id}
-              pseudoSelected={node.selected}
               onClick={() => {
                 onNodeClick(node.id);
               }}
