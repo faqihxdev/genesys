@@ -17,10 +17,19 @@ export interface Workflow {
   };
 }
 
-export const getWorkflow = async (id: string): Promise<Workflow> => {
+/**
+ * @description Retrieves the workflow data for a funnel
+ * @param {string} funnelId - The ID of the funnel to retrieve workflow data for
+ * @returns {Promise<Workflow>} The workflow data or a default workflow if errors occur
+ */
+export const getWorkflow = async (funnelId: string): Promise<Workflow> => {
   try {
+    if (!funnelId) {
+      throw new Error('Funnel ID is required');
+    }
+
     // Get the funnel data from the database
-    const funnelResult = await getFunnelWithFullData({ funnelId: id });
+    const funnelResult = await getFunnelWithFullData({ funnelId });
 
     if (funnelResult.error) {
       console.error('Error fetching funnel:', funnelResult.error);
@@ -141,7 +150,7 @@ export const getWorkflow = async (id: string): Promise<Workflow> => {
 
     // Return a default workflow if there's an error
     return {
-      id: id || nanoid(),
+      id: funnelId || nanoid(),
       name: 'New Workflow',
       edges: [],
       nodes: [
