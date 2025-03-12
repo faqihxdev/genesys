@@ -1,8 +1,12 @@
 import { FlowBuilderPage } from '../_components/funnel-builder';
 import { getWorkflow } from '../_services/get-workflow';
 
-export default async function Workflow({ params }: { params: { id: string; funnelId: string } }) {
-  const resolvedParams = await Promise.resolve(params);
-  const workflow = await getWorkflow(resolvedParams.funnelId);
+interface WorkflowPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function Workflow({ searchParams }: WorkflowPageProps) {
+  const resolvedParams = await searchParams;
+  const workflow = await getWorkflow(resolvedParams.funnelId as string);
   return <FlowBuilderPage workflow={workflow} />;
 }
