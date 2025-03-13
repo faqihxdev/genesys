@@ -1,7 +1,6 @@
 'use client';
 import { PageTitle } from '@/components/custom/page-title';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogClose,
@@ -13,9 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKey } from '@/lib/query-keys';
-import { withQuery } from '@/lib/utils';
+import { cn, withQuery } from '@/lib/utils';
 import { deleteFunnel, getFunnelsWithFullData } from '@/server/funnel';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronRightIcon, ExternalLinkIcon, GitFork, Trash2Icon } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FunnelDialog } from './_funnel-dialog';
@@ -23,28 +23,9 @@ import SimulationControl from './components/simulation-control';
 
 /**
  * Funnels page component
- * @returns Funnels page with minimal UI showing raw funnel data
+ * @returns Funnels page with a modern UI showing funnel data
  */
 export default function FunnelsPage() {
-  // const isHydrated = useHydration();
-
-  // return (
-  //   <div className='flex h-full flex-col'>
-  //     <div className='flex-none space-y-4 mb-4'>
-  //       <div className='flex items-center justify-between'>
-  //         <h1 className='text-2xl font-semibold'>Marketing Funnels</h1>
-  //         <Button>
-  //           <GitFork className="mr-2 h-4 w-4" />
-  //           Create Funnel
-  //         </Button>
-  //       </div>
-  //       <p className='text-muted-foreground text-sm'>
-  //         Design and optimize your marketing funnels by analyzing how different personas interact with
-  //         each stage of your customer journey.
-  //       </p>
-  //     </div>
-  //     <div className='flex-grow'>
-  //       {isHydrated && <FunnelGrid />}
   const params = useParams();
   const projectId = params.id as string;
   const [expandedFunnelId, setExpandedFunnelId] = useState<string | null>(null);
@@ -89,7 +70,7 @@ export default function FunnelsPage() {
         console.error('Failed to delete funnel:', result.error);
       }
     } catch (error) {
-      console.error('Error deleting funnel:', error);
+      console.error('[FunnelsPage/handleDeleteFunnel]:', error);
     }
   };
 
@@ -97,29 +78,55 @@ export default function FunnelsPage() {
     return (
       <div className='space-y-4 p-4'>
         <Skeleton className='h-10 w-1/4' />
-        <Skeleton className='h-32 w-full' />
-        <Skeleton className='h-32 w-full' />
+        <div className='space-y-3'>
+          <Skeleton className='h-20 w-full' />
+          <Skeleton className='h-20 w-full' />
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className='p-4 text-destructive'>
-        <h2 className='text-xl font-bold'>Error loading funnels</h2>
-        <p>{(error as Error)?.message || 'An unknown error occurred'}</p>
+      <div className='p-3 rounded-lg bg-destructive/10 border border-destructive/20'>
+        <h2 className='text-lg font-bold text-destructive'>Error loading funnels</h2>
+        <p className='mt-1 text-sm'>{(error as Error)?.message || 'An unknown error occurred'}</p>
       </div>
     );
   }
 
   if (!funnels || funnels.length === 0) {
     return (
-      <div className='p-4'>
-        <div className='flex items-center justify-between mb-4'>
-          <h2 className='text-xl font-bold'>No funnels found</h2>
+      <div className='space-y-4'>
+        <div className='flex items-center justify-between'>
+          <PageTitle
+            title='Marketing Funnels'
+            description='Design and optimize your marketing funnels by analyzing how different personas interact with each stage of your customer journey.'
+          />
           <FunnelDialog projectId={projectId} />
         </div>
-        <p className='text-muted-foreground'>No funnels have been created for this project yet.</p>
+
+        <div className='flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8 text-center animate-in fade-in-50'>
+          <div className='rounded-full bg-primary/10 p-4'>
+            <GitFork className='h-8 w-8 text-primary' />
+          </div>
+          <div className='space-y-2'>
+            <h3 className='text-xl font-semibold tracking-tight'>No funnels found</h3>
+            <p className='text-sm text-muted-foreground max-w-[400px]'>
+              Create your first funnel to start analyzing customer behavior through your marketing
+              journey.
+            </p>
+          </div>
+          <FunnelDialog
+            projectId={projectId}
+            trigger={
+              <Button size='lg' className='mt-2'>
+                <GitFork className='mr-2 h-4 w-4' />
+                Create your first funnel
+              </Button>
+            }
+          />
+        </div>
       </div>
     );
   }
@@ -134,65 +141,86 @@ export default function FunnelsPage() {
         <FunnelDialog projectId={projectId} />
       </div>
 
-      <div className='space-y-4'>
+      <div className='space-y-3'>
         {funnels.map((funnel) => (
-          <Card
+          <div
             key={funnel.id}
-            className='overflow-hidden hover:border-primary/50 hover:shadow-md transition-all cursor-pointer'
-            onClick={() => router.push(`/project/${projectId}/funnels/${funnel.id}`)}
+            className='bg-background border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all'
           >
-            <CardHeader className='bg-muted/50 py-4'>
-              <CardTitle className='flex items-center justify-between'>
-                <span>{funnel.name || 'Unnamed Funnel'}</span>
-                <div className='flex space-x-2'>
-                  <SimulationControl funnelId={funnel.id} projectId={projectId} />
-                  <div className='flex flex-col space-y-1'>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click from triggering
-                        toggleFunnelExpansion(funnel.id);
-                      }}
-                    >
-                      {expandedFunnelId === funnel.id ? 'Collapse' : 'Expand'}
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='text-red-500 hover:text-red-700 hover:bg-red-100'
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click from triggering
-                        setFunnelToDelete({ id: funnel.id, name: funnel.name });
-                      }}
-                    >
-                      Delete
-                    </Button>
+            <div className='border-b bg-muted/20 px-4 py-3 flex items-center justify-between'>
+              <div className='flex items-center gap-2.5'>
+                <div
+                  className={cn(
+                    'rounded-full bg-primary/10 p-1.5 transition-colors',
+                    expandedFunnelId === funnel.id ? 'bg-primary/20' : ''
+                  )}
+                >
+                  <GitFork
+                    className={cn(
+                      'h-4 w-4 text-primary transition-transform',
+                      expandedFunnelId === funnel.id ? 'scale-110' : ''
+                    )}
+                  />
+                </div>
+                <h3 className='text-base font-medium'>{funnel.name || 'Unnamed Funnel'}</h3>
+              </div>
+              <div className='flex items-center space-x-1'>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={() => toggleFunnelExpansion(funnel.id)}
+                  className='h-7 w-7 p-0 text-muted-foreground hover:text-foreground'
+                >
+                  <ChevronRightIcon
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      expandedFunnelId === funnel.id ? 'rotate-90' : ''
+                    )}
+                  />
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='h-7 flex items-center gap-1'
+                  onClick={() => router.push(`/project/${projectId}/funnels/${funnel.id}`)}
+                >
+                  <ExternalLinkIcon className='h-3 w-3' />
+                  <span className='text-xs'>Open</span>
+                </Button>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='h-7 w-7 p-0 text-destructive hover:text-destructive/80 hover:bg-destructive/10'
+                  onClick={() => setFunnelToDelete({ id: funnel.id, name: funnel.name })}
+                >
+                  <Trash2Icon className='h-3.5 w-3.5' />
+                </Button>
+              </div>
+            </div>
+
+            <div className='px-4 py-3'>
+              <div className='flex flex-wrap md:flex-nowrap gap-2 justify-between'>
+                <p className='text-xs text-muted-foreground flex-grow'>
+                  {funnel.description || 'No description'}
+                </p>
+
+                <div className='flex flex-wrap gap-2 shrink-0'>
+                  <div className='bg-primary/5 text-primary rounded-md px-2 py-0.5 text-xs flex items-center'>
+                    <span className='font-medium'>{funnel.stages?.length || 0}</span>&nbsp;Stages
+                  </div>
+                  <div className='bg-primary/5 text-primary rounded-md px-2 py-0.5 text-xs flex items-center'>
+                    <span className='font-medium'>{funnel.stageLinks?.length || 0}</span>&nbsp;Links
                   </div>
                 </div>
-              </CardTitle>{' '}
-            </CardHeader>
-            <CardContent className='p-0'>
-              {expandedFunnelId === funnel.id ? (
-                <pre className='p-4 overflow-auto max-h-[500px] text-xs'>
-                  {JSON.stringify(funnel, null, 2)}
-                </pre>
-              ) : (
-                <div className='p-4'>
-                  <p className='text-sm text-muted-foreground'>
-                    {funnel.description || 'No description'}
-                  </p>
-                  <p className='text-sm mt-2'>
-                    <span className='font-medium'>Stages:</span> {funnel.stages?.length || 0}
-                  </p>
-                  <p className='text-sm mt-1'>
-                    <span className='font-medium'>Stage Links:</span>{' '}
-                    {funnel.stageLinks?.length || 0}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+
+            {expandedFunnelId === funnel.id && (
+              <div className='px-4 py-3 bg-muted/5 border-t'>
+                <SimulationControl funnelId={funnel.id} projectId={projectId} />
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

@@ -3,7 +3,6 @@
 import { PageTitle } from '@/components/custom/page-title';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChartContainer } from '@/components/ui/chart';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
@@ -12,7 +11,7 @@ import { getFunnelsWithFullData } from '@/server/funnel';
 import { getPersonaConfigsByProject } from '@/server/persona';
 import { getProjectById } from '@/server/projects';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowUpRight, BarChart, Calendar, Eye, LineChart, Settings, Users } from 'lucide-react';
+import { ArrowUpRight, BarChart, Calendar, Eye, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
@@ -95,15 +94,6 @@ export default function OverviewPage() {
   const lastSimulationDate = funnelsWithSimulations?.length
     ? new Date(Math.max(...funnelsWithSimulations.map((f) => new Date(f.lastSimulated).getTime())))
     : null;
-
-  // Mock data for charts (replace with real data when available)
-  const conversionData = [
-    { name: 'Landing', value: 100 },
-    { name: 'Product', value: 78 },
-    { name: 'Checkout', value: 52 },
-    { name: 'Payment', value: 37 },
-    { name: 'Confirm', value: 33 },
-  ];
 
   return (
     <div className='pb-8 space-y-6 animate-in fade-in-50'>
@@ -302,7 +292,7 @@ export default function OverviewPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant='outline' size='sm' asChild>
-                                  <Link href={`/project/${project.id}/funnel/${funnel.id}`}>
+                                  <Link href={`/project/${project.id}/funnels/${funnel.id}`}>
                                     <ArrowUpRight className='h-4 w-4' />
                                     View
                                   </Link>
@@ -385,48 +375,7 @@ export default function OverviewPage() {
       </div>
 
       {/* Data visualization section */}
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-        {/* Conversion Performance */}
-        <section className='border rounded-lg bg-card shadow-sm flex flex-col'>
-          <div className='p-6'>
-            <h2 className='text-lg font-semibold'>Conversion Performance</h2>
-            <p className='text-sm text-muted-foreground'>
-              Average funnel performance across simulations
-            </p>
-          </div>
-          <div className='p-6 pt-0 grow'>
-            {totalSimulations > 0 ? (
-              <ChartContainer
-                config={{
-                  conversion: {
-                    label: 'Conversion',
-                    theme: {
-                      light: 'hsl(var(--primary))',
-                      dark: 'hsl(var(--primary))',
-                    },
-                  },
-                }}
-              >
-                <div>
-                  {/* Using a div with recharts implementation would go here in a real scenario */}
-                  <div className='flex h-full w-full items-center justify-center text-muted-foreground'>
-                    Graph showing conversion decline from {conversionData[0].value}% to{' '}
-                    {conversionData[conversionData.length - 1].value}%
-                  </div>
-                </div>
-              </ChartContainer>
-            ) : (
-              <div className='flex h-full items-center justify-center'>
-                <div className='text-center text-muted-foreground'>
-                  <LineChart className='w-12 h-12 mx-auto mb-2 opacity-20' />
-                  <p>No conversion data available</p>
-                  <p className='text-sm'>Run simulations to see this chart</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
+      <div className='grid grid-cols-1 gap-4'>
         {/* Recent Simulations */}
         <section className='border rounded-lg bg-card shadow-sm flex flex-col'>
           <div className='p-6'>

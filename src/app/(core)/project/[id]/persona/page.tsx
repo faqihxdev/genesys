@@ -249,16 +249,18 @@ export default function PersonaPage() {
           <PersonaConfigSkeleton />
         </div>
       ) : personaConfigs && personaConfigs.length === 0 ? (
-        <div className='border rounded-xl bg-card p-12 text-center'>
-          <div className='mx-auto w-20 h-20 bg-muted/20 flex items-center justify-center rounded-full mb-6'>
-            <Users className='h-10 w-10 text-muted-foreground/50' />
+        <div className='flex min-h-[400px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8 text-center animate-in fade-in-50'>
+          <div className='rounded-full bg-primary/10 p-4'>
+            <Users className='h-8 w-8 text-primary' />
           </div>
-          <h3 className='text-xl font-medium mb-2'>No persona configurations yet</h3>
-          <p className='text-muted-foreground mb-6 max-w-md mx-auto'>
-            Create your first persona configuration to generate synthetic customer personas for your
-            project.
-          </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <div className='space-y-2'>
+            <h3 className='text-xl font-semibold tracking-tight'>No persona configurations yet</h3>
+            <p className='text-sm text-muted-foreground max-w-[400px]'>
+              Create your first persona configuration to generate synthetic customer personas for
+              your project.
+            </p>
+          </div>
+          <Button size='lg' className='mt-2' onClick={() => setCreateDialogOpen(true)}>
             <Plus className='mr-2 h-4 w-4' /> Create Persona Config
           </Button>
         </div>

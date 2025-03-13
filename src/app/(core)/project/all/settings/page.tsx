@@ -15,10 +15,10 @@ export default function ProjectSettingsPage() {
           <Settings className='h-8 w-8 text-primary' />
         </div>
         <div className='space-y-2'>
-          <h3 className='text-xl font-semibold tracking-tight'>Coming Soon</h3>
+          <h3 className='text-xl font-semibold tracking-tight'>Not Available in Demo</h3>
           <p className='text-sm text-muted-foreground max-w-[400px]'>
-            We&apos;re working on advanced project settings and management features to give you more
-            control over your Genesys experience. Stay tuned for updates!
+            Project settings for managing permissions, subscriptions, and billing are not included
+            in the demo version.
           </p>
         </div>
       </Card>
