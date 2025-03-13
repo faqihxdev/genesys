@@ -155,7 +155,7 @@ const AuthTabs = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Coming Soon</p>
+                <p>Not Available in Demo</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -240,7 +240,7 @@ const AuthTabs = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Coming Soon</p>
+                <p>Not Available in Demo</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

@@ -27,7 +27,7 @@ const features = [
     label: 'Simulation',
     title: 'AI-Powered Behavior Simulation',
     description: 'Create and analyze detailed customer journey simulations with precision.',
-    image: '/screenshots/simulation.png',
+    image: '/landing-simulation.png',
   },
   {
     id: 'per',
@@ -35,7 +35,7 @@ const features = [
     label: 'Persona',
     title: 'Synthetic Persona Generation',
     description: 'Generate realistic customer profiles with distinct behaviors and preferences.',
-    image: '/screenshots/persona.png',
+    image: '/landing-persona.png',
   },
   {
     id: 'ana',
@@ -43,7 +43,7 @@ const features = [
     label: 'Analysis',
     title: 'Behavioral Analysis',
     description: 'Extract valuable insights from simulated customer interactions.',
-    image: '/screenshots/analysis.png',
+    image: '/landing-analysis.png',
   },
 ] as const;
 
@@ -71,7 +71,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className='pt-32 pb-16'>
               <div className='mx-auto max-w-3xl text-center'>
                 <div className='flex flex-col md:flex-row items-center justify-center gap-2 mb-4 mt-4'>
-                  <div className='inline-flex items-center rounded-full border px-4 py-1.5'>
+                  <div className='inline-flex items-center rounded-full border px-4 py-1.5 bg-background/50'>
                     <span className='text-xs sm:text-sm'>
                       AI-Powered Customer Behavior Simulation
                     </span>
@@ -149,12 +149,17 @@ export default async function Home({ searchParams }: HomeProps) {
                   <div className='w-full max-w-5xl mx-auto'>
                     <div className='rounded-xl border bg-card p-2 sm:p-3 shadow-lg transition-all duration-300'>
                       <div className='aspect-video w-full rounded-lg bg-muted relative overflow-hidden'>
-                        {/* Placeholder - Replace with actual images */}
-                        <div className='absolute inset-0 flex items-center justify-center text-muted-foreground'>
-                          <p className='text-xs sm:text-sm'>
-                            Preview of {activeFeature.label} feature
-                          </p>
-                        </div>
+                        {/* Display the feature image using Next.js Image component */}
+                        <Image
+                          src={activeFeature.image}
+                          alt={`${activeFeature.title} feature preview`}
+                          fill
+                          sizes='(max-width: 768px) 100vw, 1200px'
+                          priority={activeFeature.id === 'sim'}
+                          className='object-cover object-center'
+                        />
+                        {/* Add a subtle gradient overlay for better text visibility if needed */}
+                        {/* <div className='absolute inset-0 bg-gradient-to-t from-background/40 to-transparent'></div> */}
                       </div>
                     </div>
                   </div>
@@ -233,9 +238,15 @@ export default async function Home({ searchParams }: HomeProps) {
                     ))}
                   </div>
                 </div>
-                <div className='rounded-xl border bg-card p-4 aspect-[4/3] relative overflow-hidden'>
-                  <div className='absolute inset-0 flex items-center justify-center text-muted-foreground'>
-                    <p className='text-sm'>Platform Interface Preview</p>
+                <div className='rounded-xl border bg-muted/50 p-4 aspect-[4/3] relative overflow-hidden'>
+                  <div className='relative w-full h-full p-2'>
+                    <Image
+                      src='/build-fast.png'
+                      alt='Platform Interface Preview'
+                      fill
+                      sizes='(max-width: 768px) 100vw, 600px'
+                      className='object-contain object-center w-fit h-full rounded-lg overflow-hidden'
+                    />
                   </div>
                 </div>
               </div>
@@ -283,6 +294,7 @@ export default async function Home({ searchParams }: HomeProps) {
             </div>
 
             {/* Customer Showcase Section */}
+            {/* Commenting out the Customer Showcase Section
             <div id='customers' className='py-24 border-t scroll-mt-16'>
               <div className='text-center mb-16'>
                 <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>
@@ -293,7 +305,6 @@ export default async function Home({ searchParams }: HomeProps) {
                 </p>
               </div>
 
-              {/* Logo Carousel */}
               <div className='max-w-5xl mx-auto px-4'>
                 <div className='w-full overflow-hidden relative'>
                   <div className='flex gap-8 animate-scroll'>
@@ -322,6 +333,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
               </div>
             </div>
+            */}
 
             {/* Pricing Section */}
             <div id='pricing' className='py-24 border-t scroll-mt-16'>
@@ -493,20 +505,35 @@ export default async function Home({ searchParams }: HomeProps) {
             {/* CTA Section */}
             <div className='py-24 border-t'>
               <div className='max-w-4xl mx-auto text-center'>
-                <div className='bg-primary/5 rounded-3xl px-6 py-16 sm:px-12 sm:py-20 border'>
-                  <h2 className='text-3xl sm:text-4xl md:text-5xl font-bold mb-6'>
-                    Ready to transform your customer insights?
-                  </h2>
-                  <p className='text-muted-foreground text-base sm:text-lg mb-8 max-w-2xl mx-auto'>
-                    Start generating synthetic personas and optimize your customer journey today.
-                  </p>
-                  <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
-                    <Button size='lg' className='w-full sm:w-[200px]'>
-                      Get started for free
-                    </Button>
-                    <Button size='lg' variant='outline' className='w-full sm:w-[200px]'>
-                      Schedule a demo
-                    </Button>
+                <div className='rounded-3xl px-6 py-16 sm:px-12 sm:py-20 border relative overflow-hidden'>
+                  {/* Background image with overlay */}
+                  <div className='absolute inset-0 z-0'>
+                    <Image
+                      src='/landing-analysis.png'
+                      alt='Background'
+                      fill
+                      sizes='(max-width: 1024px) 100vw, 1024px'
+                      className='object-cover object-center'
+                    />
+                    <div className='absolute inset-0 bg-background/90 backdrop-blur-sm'></div>
+                  </div>
+
+                  {/* Content */}
+                  <div className='relative z-10'>
+                    <h2 className='text-3xl sm:text-4xl md:text-5xl font-bold mb-6'>
+                      Ready to transform your customer insights?
+                    </h2>
+                    <p className='text-muted-foreground text-base sm:text-lg mb-8 max-w-2xl mx-auto'>
+                      Start generating synthetic personas and optimize your customer journey today.
+                    </p>
+                    <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
+                      <Button size='lg' className='w-full sm:w-[200px]'>
+                        Get started for free
+                      </Button>
+                      <Button size='lg' variant='outline' className='w-full sm:w-[200px]'>
+                        Watch Demo
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
