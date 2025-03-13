@@ -31,12 +31,6 @@ interface SimulationChunkMessage {
   retry?: number;
 }
 
-interface SimulationErrorDetails {
-  message: string;
-  stack?: string;
-  time: string;
-}
-
 // Interface for persona's response to a funnel item
 interface ItemResponse {
   itemId: string;
@@ -86,9 +80,9 @@ async function processTask(task: any): Promise<void> {
       );
     }
 
-    // Mark task as processing to prevent other workers from picking it up (5 minute visibility timeout)
+    // Mark task as processing to prevent other workers from picking it up (1 minute visibility timeout)
     const visibleAfter = new Date();
-    visibleAfter.setMinutes(visibleAfter.getMinutes() + 5);
+    visibleAfter.setMinutes(visibleAfter.getMinutes() + 1);
     const { error: updateError } = await supabase
       .from('queue_tasks')
       .update({
@@ -158,6 +152,14 @@ Deno.serve(async (req) => {
   // Process up to 100 tasks concurrently in the background.
   (async () => {
     const startTime = performance.now();
+
+    // First, always check for and cleanup stale tasks (including resetting stuck processing tasks)
+    const cleanupResult = await cleanupStaleTasks();
+    if (cleanupResult.cleanedUp) {
+      console.log(`✅ Cleanup completed | ${cleanupResult.count} tasks processed during cleanup`);
+    }
+
+    // Then, query for pending tasks to process
     const { data: tasks, error: queryError } = await supabase
       .from('queue_tasks')
       .select('*')
@@ -172,15 +174,6 @@ Deno.serve(async (req) => {
 
     if (!tasks || tasks.length === 0) {
       console.log('No tasks in queue to process');
-
-      // If no tasks to process, try to clean up stale tasks
-      const cleanupResult = await cleanupStaleTasks();
-      if (cleanupResult.cleanedUp) {
-        console.log(`✅ Cleanup completed | ${cleanupResult.count} stale tasks cleaned up`);
-      } else {
-        console.log('No task to clean up');
-      }
-
       return;
     }
 
@@ -217,7 +210,33 @@ async function cleanupStaleTasks(): Promise<{ cleanedUp: boolean; count: number 
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    // First, delete completed or cancelled tasks
+    // Calculate threshold for stale processing tasks (1 minute ago)
+    // This is shorter than the 5-minute visibility timeout but gives some buffer for normal task completion
+    const staleProcessingThreshold = new Date();
+    staleProcessingThreshold.setMinutes(staleProcessingThreshold.getMinutes() - 1);
+
+    // 1. Reset stale processing tasks to pending
+    const { error: staleError, data: updatedTasks } = await supabase
+      .from('queue_tasks')
+      .update({
+        queue_task_status: 'pending',
+        visible_after: new Date().toISOString(), // Make immediately visible
+        processing_started_at: null, // Clear the processing timestamp
+      })
+      .eq('queue_name', 'simulation_tasks')
+      .eq('queue_task_status', 'processing')
+      .lt('processing_started_at', staleProcessingThreshold.toISOString())
+      .select();
+
+    const staleCount = updatedTasks?.length || 0;
+
+    if (staleError) {
+      console.error('[cleanupStaleTasks] Error resetting stale processing tasks:', staleError);
+    } else if (staleCount > 0) {
+      console.log(`Reset ${staleCount} stale processing tasks to pending`);
+    }
+
+    // 2. Delete completed or cancelled tasks
     const { error: completedError, count: completedCount } = await supabase
       .from('queue_tasks')
       .delete({ count: 'exact' })
@@ -230,7 +249,7 @@ async function cleanupStaleTasks(): Promise<{ cleanedUp: boolean; count: number 
       );
     }
 
-    // Then, delete any tasks older than 1 day regardless of status
+    // 3. Delete any tasks older than 1 day regardless of status
     const { error: oldTasksError, count: oldTasksCount } = await supabase
       .from('queue_tasks')
       .delete({ count: 'exact' })
@@ -240,12 +259,12 @@ async function cleanupStaleTasks(): Promise<{ cleanedUp: boolean; count: number 
       console.error('[cleanupStaleTasks] Error deleting old tasks:', oldTasksError);
     }
 
-    // Calculate total count of deleted tasks
-    const totalDeleted = (completedCount || 0) + (oldTasksCount || 0);
+    // Calculate total count of affected tasks
+    const totalProcessed = staleCount + (completedCount || 0) + (oldTasksCount || 0);
 
     return {
-      cleanedUp: totalDeleted > 0,
-      count: totalDeleted,
+      cleanedUp: totalProcessed > 0,
+      count: totalProcessed,
     };
   } catch (error) {
     console.error('Error cleaning up tasks:', error);
