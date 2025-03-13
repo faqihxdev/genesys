@@ -193,8 +193,8 @@ export default async function Home({ searchParams }: HomeProps) {
                   },
                   {
                     icon: LucideUsers,
-                    label: 'Active Users',
-                    value: '500+',
+                    label: 'Supported Scenarios',
+                    value: 'Unlimited',
                   },
                   {
                     icon: LucideTimer,

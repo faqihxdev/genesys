@@ -487,7 +487,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               Upgrade Now
             </Button>
           </div>
-          {/* Icon only state */}
           <div className='hidden group-data-[collapsible=icon]:block'>
             <div className='flex flex-col items-center text-center'>
               <Button
