@@ -69,7 +69,7 @@ export function NodePropertiesPanel() {
         </div>
       </div>
 
-      <div className='w-80 max-h-[360px] 2xl:max-h-[594px] flex flex-col'>
+      <div className='w-80 flex flex-col'>
         <div className='flex items-center text-sm h-10 px-4 border-b border-t select-none shrink-0 border-card-foreground/10 bg-card/80 text-center text-card-foreground/60 gap-x-2 font-semibold'>
           <HeaderWithIcon icon='Settings' title='Stage Properties' />
         </div>

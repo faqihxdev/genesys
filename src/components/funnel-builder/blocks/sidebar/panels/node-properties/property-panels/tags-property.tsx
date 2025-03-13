@@ -228,7 +228,7 @@ export default function TagsNodePropertyPanel({
         </div>
       </div>
 
-      <div className='flex flex-col'>
+      <div className='flex flex-col mt-4'>
         <div className='text-xs text-card-foreground/60 font-semibold'>Description</div>
 
         <div className='mt-2 my-3 flex'>
