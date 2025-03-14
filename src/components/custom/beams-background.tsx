@@ -175,7 +175,7 @@ export function BeamsBackground({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [intensity, animationsEnabled]); // Added animationsEnabled to dependencies
+  }, [intensity, animationsEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
