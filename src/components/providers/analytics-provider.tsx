@@ -1,30 +1,18 @@
 /**
  * @description Umami Analytics provider component for visitor tracking
  * This component adds the Umami Analytics script to track page views and user metrics
- * while respecting privacy regulations. It uses a data-website-id and src from env variables.
+ * while respecting privacy regulations.
  */
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
 import Script from 'next/script';
-import { useEffect } from 'react';
 
 export interface AnalyticsProviderProps {
   children: React.ReactNode;
 }
 
+// Main provider just adds the script and renders children
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  // Track page views when the route changes
-  useEffect(() => {
-    if (typeof window.umami !== 'undefined') {
-      // Send page view to Umami when route changes
-      window.umami.trackView(pathname);
-    }
-  }, [pathname, searchParams]);
-
   return (
     <>
       <Script
@@ -35,7 +23,36 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
         data-domains='genesys-theta.vercel.app'
       />
       {children}
+      <AnalyticsTracker />
     </>
+  );
+}
+
+// Separate component to handle page view tracking with proper hydration
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+
+// This is a separate component that will be wrapped in Suspense
+function SearchParamsTracker() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (typeof window.umami !== 'undefined') {
+      // Send page view to Umami when route changes
+      window.umami.trackView(pathname);
+    }
+  }, [pathname, searchParams]);
+
+  return null;
+}
+
+// This component wraps the tracker in Suspense to handle the CSR bailout
+function AnalyticsTracker() {
+  return (
+    <Suspense fallback={null}>
+      <SearchParamsTracker />
+    </Suspense>
   );
 }
 
