@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { cn, withQuery } from '@/lib/utils';
 import { deleteFunnel, getFunnelsWithFullData } from '@/server/funnel';
@@ -32,6 +34,8 @@ export default function FunnelsPage() {
   const [funnelToDelete, setFunnelToDelete] = useState<{ id: string; name: string } | null>(null);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isDemoUser } = useAuth();
+  const { toast } = useToast();
 
   // Fetch funnels data directly in the component
   const {
@@ -47,6 +51,14 @@ export default function FunnelsPage() {
   });
 
   const toggleFunnelExpansion = (funnelId: string) => {
+    if (isDemoUser) {
+      toast({
+        title: 'Feature restricted',
+        description: 'Simulations are not available in the demo version',
+        variant: 'destructive',
+      });
+      return;
+    }
     setExpandedFunnelId(expandedFunnelId === funnelId ? null : funnelId);
   };
 
@@ -169,8 +181,9 @@ export default function FunnelsPage() {
                   variant='ghost'
                   size='sm'
                   onClick={() => toggleFunnelExpansion(funnel.id)}
-                  className='h-7 w-7 p-0 text-muted-foreground hover:text-foreground'
+                  className='h-7 px-2 text-muted-foreground hover:text-foreground flex items-center gap-1'
                 >
+                  <span className='text-xs'>Setup Simulation</span>
                   <ChevronRightIcon
                     className={cn(
                       'h-4 w-4 transition-transform',
@@ -215,7 +228,7 @@ export default function FunnelsPage() {
               </div>
             </div>
 
-            {expandedFunnelId === funnel.id && (
+            {expandedFunnelId === funnel.id && !isDemoUser && (
               <div className='px-4 py-3 bg-muted/5 border-t'>
                 <SimulationControl funnelId={funnel.id} projectId={projectId} />
               </div>

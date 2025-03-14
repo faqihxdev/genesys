@@ -34,11 +34,7 @@ export const createPersonaConfig = createAction({
     name: z.string().min(1, 'Name is required'),
     description: z.string().optional(),
     type: z.enum(['preset', 'custom']).default('custom'),
-    size: z
-      .number()
-      .int()
-      .min(1, 'Size must be at least 1')
-      .max(10000, 'Size cannot exceed 10,000'),
+    size: z.number().int().min(1, 'Size must be at least 1').max(100, 'Size cannot exceed 100'),
     constraints: z.string().default(''),
     traitsConfig: TraitsConfigSchema,
   }),

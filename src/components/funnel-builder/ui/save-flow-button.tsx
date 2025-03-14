@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 import { useFlowValidator } from '@/hooks/use-flow-validator';
 import { useToast } from '@/hooks/use-toast';
 import { saveFlow } from '@/server/funnel';
@@ -13,8 +14,19 @@ export const SaveFlowButton = () => {
   const [funnelId] = useAtom(workflowIdAtom);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { isDemoUser } = useAuth();
 
   const [isValidating, validateFlow] = useFlowValidator(async (isValid) => {
+    // Check if it's a demo user first
+    if (isDemoUser) {
+      toast({
+        title: 'Feature restricted',
+        description: 'Saving flows is not available in the demo version',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (isValid) {
       try {
         setIsSaving(true);

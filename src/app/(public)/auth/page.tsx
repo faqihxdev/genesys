@@ -3,6 +3,7 @@
 import { Button } from '@/components/custom/button';
 import { FloatingInput } from '@/components/custom/floating-input';
 import Google from '@/components/icons/google';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
@@ -14,9 +15,10 @@ import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/aut
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { useMutation } from '@tanstack/react-query';
+import { ChevronDownIcon, ChevronUpIcon, InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -255,6 +257,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const authCheckHasShownToast = useRef(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Show toast if already authenticated
   useEffect(() => {
@@ -369,6 +372,56 @@ export default function AuthPage() {
         <div className='flex flex-col space-y-1 text-center'>
           <h1 className='text-2xl font-semibold tracking-tight'>Welcome to Genesys</h1>
           <p className='text-sm text-muted-foreground'>Sign in or create an account to continue</p>
+        </div>
+
+        <div className='w-full rounded-md border border-blue-200/20 bg-blue-50 text-blue-800 px-4 py-3 shadow-sm dark:border-blue-800/20 dark:bg-blue-950/50 dark:text-blue-300'>
+          <div className='space-y-2 w-full'>
+            <div className='flex items-start'>
+              <InfoIcon className='h-4 w-4 mr-2 mt-0.5 flex-shrink-0' />
+              <p className='text-xs leading-normal'>
+                Demo prototype version. Report issues in the{' '}
+                <Link
+                  href='/account/feedback'
+                  className='font-medium underline underline-offset-2 hover:text-primary'
+                >
+                  feedback page
+                </Link>{' '}
+                (sign in required).
+              </p>
+            </div>
+
+            <Collapsible open={isOpen} onOpenChange={setIsOpen} className='w-full mt-3'>
+              <div
+                className={`flex items-center justify-between bg-blue-100/80 dark:bg-blue-900/30 rounded-md px-3 py-2 ${!isOpen ? 'rounded-b-md' : 'rounded-b-none'}`}
+              >
+                <p className='text-xs font-medium'>Sign in to the demo account</p>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='h-6 w-6 p-0 text-blue-800 hover:text-blue-900 hover:bg-blue-100 dark:text-blue-300 dark:hover:text-blue-200 dark:hover:bg-blue-900/50'
+                  >
+                    {isOpen ? (
+                      <ChevronUpIcon className='h-3 w-3' />
+                    ) : (
+                      <ChevronDownIcon className='h-3 w-3' />
+                    )}
+                    <span className='sr-only'>Toggle demo credentials</span>
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className='overflow-hidden bg-blue-100/80 dark:bg-blue-900/30 rounded-b-md'>
+                <div className='text-xs space-y-1 pt-0 pb-2 px-3'>
+                  <p>
+                    <span className='font-medium'>Email:</span> demo@user.com
+                  </p>
+                  <p>
+                    <span className='font-medium'>Password:</span> demouser
+                  </p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         </div>
 
         <Suspense fallback={<div>Loading...</div>}>
