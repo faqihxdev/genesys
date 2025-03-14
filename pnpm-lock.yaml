@@ -179,6 +179,9 @@ importers:
       next-themes:
         specifier: ^0.4.3
         version: 0.4.4(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      obscenity:
+        specifier: ^0.4.3
+        version: 0.4.3
       openai:
         specifier: ^4.85.1
         version: 4.85.1(ws@8.18.0)(zod@3.24.1)
@@ -3269,6 +3272,10 @@ packages:
   object.values@1.2.1:
     resolution: {integrity: sha512-gXah6aZrcUxjWg2zR2MwouP2eHlCBzdV4pygudehaKXSGW4v2AsRQUK+lwwXhii6KFZcunEnmSUoYp5CXibxtA==}
     engines: {node: '>= 0.4'}
+
+  obscenity@0.4.3:
+    resolution: {integrity: sha512-DZKM0xUEksY5dVGaZoyC5VmIRMSbI6O0Gyb/07L+77d4zWJKKf5tQZrhlT0aiVYD6prTmnxiS3RhN0sfh5Q95Q==}
+    engines: {node: '>=14.0.0'}
 
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
@@ -7165,6 +7172,8 @@ snapshots:
       call-bound: 1.0.3
       define-properties: 1.2.1
       es-object-atoms: 1.1.1
+
+  obscenity@0.4.3: {}
 
   once@1.4.0:
     dependencies:

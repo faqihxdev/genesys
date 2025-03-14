@@ -18,7 +18,7 @@ import {
 import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createAction, fail } from './_utils';
+import { createAction, createProfanityRefinement, fail } from './_utils';
 
 /**
  * Get all funnels for a project with complete nested data
@@ -312,8 +312,16 @@ export const createFunnel = createAction({
   name: 'createFunnel',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
-    name: z.string().min(1, 'Funnel name is required').max(256, 'Funnel name is too long'),
-    description: z.string().max(1000, 'Description is too long').optional(),
+    name: z
+      .string()
+      .min(1, 'Funnel name is required')
+      .max(256, 'Funnel name is too long')
+      .refine(...createProfanityRefinement('Funnel name contains inappropriate language')),
+    description: z
+      .string()
+      .max(1000, 'Description is too long')
+      .optional()
+      .refine(...createProfanityRefinement('Funnel description contains inappropriate language')),
   }),
   requireAuth: false,
   actionFn: async ({ input }) => {

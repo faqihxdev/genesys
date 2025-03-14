@@ -421,7 +421,6 @@ export default function PersonaConfigForm({
 
           // Check if the result is an error response
           if (result.error) {
-            console.error('[PersonaConfigForm]: Error creating config:', result.error);
             toast({
               variant: 'destructive',
               title: 'Error',

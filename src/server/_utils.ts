@@ -1,6 +1,7 @@
 import env from '@/env';
 import { getCurrentUser } from '@/server/auth';
 import type { User } from '@supabase/supabase-js';
+import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
 import { z } from 'zod';
 
 /**
@@ -134,7 +135,7 @@ export function createAction<TInput, TOutput>(config: {
       }
 
       if (config.validator) {
-        const validatedInput = config.validator.parse(input);
+        const validatedInput = await config.validator.parseAsync(input);
         if (config.requireAuth) {
           const params: { input: TInput; currentUser: User } = {
             input: validatedInput,
@@ -177,10 +178,12 @@ export function createAction<TInput, TOutput>(config: {
       console.error('[createAction error]:', error);
       const isProd = env.NODE_ENV === 'production';
       if (error instanceof z.ZodError) {
+        // Get the first error message for a more specific error
+        const firstErrorMessage = error.errors[0]?.message || 'Validation failed';
         return {
           data: null,
           error: {
-            message: 'Validation failed',
+            message: firstErrorMessage,
             status: 400,
             errors: error.errors,
           },
@@ -214,3 +217,34 @@ export function createAction<TInput, TOutput>(config: {
     }
   };
 }
+
+/* ----------------------------------------------------------------------------
+   Profanity Utilities
+---------------------------------------------------------------------------- */
+
+/**
+ * Initialize the obscenity matcher with English dataset and recommended transformers
+ */
+const profanityMatcher = new RegExpMatcher({
+  ...englishDataset.build(),
+  ...englishRecommendedTransformers,
+});
+
+/**
+ * @description Checks text for profanity
+ * @param text - The text to check
+ * @returns Whether the text contains profanity
+ */
+export const containsProfanity = (text: string | undefined): boolean => {
+  if (!text) return false;
+  return profanityMatcher.hasMatch(text);
+};
+
+/**
+ * @description Creates a Zod refinement function for profanity checking
+ * @param errorMessage - Custom error message to display
+ * @returns A Zod refinement function with error message
+ */
+export const createProfanityRefinement = (errorMessage: string) => {
+  return [async (value: string | undefined) => !containsProfanity(value), errorMessage] as const;
+};

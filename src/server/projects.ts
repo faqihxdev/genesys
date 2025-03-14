@@ -4,7 +4,7 @@ import { db } from '@/db';
 import { projectUsers, projects } from '@/db/schema';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
-import { createAction, fail } from './_utils';
+import { createAction, createProfanityRefinement, fail } from './_utils';
 
 // ==================================================
 // CREATE
@@ -18,8 +18,14 @@ import { createAction, fail } from './_utils';
 export const createProject = createAction({
   name: 'createProject',
   validator: z.object({
-    name: z.string().min(3, 'Project name must be at least 3 characters'),
-    description: z.string().optional(),
+    name: z
+      .string()
+      .min(3, 'Project name must be at least 3 characters')
+      .refine(...createProfanityRefinement('Project name contains inappropriate language')),
+    description: z
+      .string()
+      .optional()
+      .refine(...createProfanityRefinement('Project description contains inappropriate language')),
     isDefault: z.boolean().optional(),
   }),
   requireAuth: true,

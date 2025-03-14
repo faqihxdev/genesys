@@ -20,7 +20,7 @@ import { generatePersonaTraitsFromConfig } from '@/lib/persona-utils';
 import { count, eq, inArray } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { createAction, fail } from './_utils';
+import { createAction, createProfanityRefinement, fail } from './_utils';
 
 /**
  * Create a new persona configuration
@@ -31,8 +31,20 @@ export const createPersonaConfig = createAction({
   name: 'createPersonaConfig',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
-    name: z.string().min(1, 'Name is required'),
-    description: z.string().optional(),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .refine(
+        ...createProfanityRefinement('Persona configuration name contains inappropriate language')
+      ),
+    description: z
+      .string()
+      .optional()
+      .refine(
+        ...createProfanityRefinement(
+          'Persona configuration description contains inappropriate language'
+        )
+      ),
     type: z.enum(['preset', 'custom']).default('custom'),
     size: z.number().int().min(1, 'Size must be at least 1').max(100, 'Size cannot exceed 100'),
     constraints: z.string().default(''),
@@ -614,8 +626,13 @@ export const updatePersona = createAction({
   name: 'updatePersona',
   validator: z.object({
     id: z.string().min(1, 'Persona ID is required'),
-    name: z.string().min(1, 'Name is required'),
-    description: z.string(),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .refine(...createProfanityRefinement('Persona name contains inappropriate language')),
+    description: z
+      .string()
+      .refine(...createProfanityRefinement('Persona description contains inappropriate language')),
   }),
   requireAuth: true,
   actionFn: async ({ input }) => {
