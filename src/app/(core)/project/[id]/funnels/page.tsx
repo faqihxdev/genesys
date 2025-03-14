@@ -23,6 +23,8 @@ import { useState } from 'react';
 import { FunnelDialog } from './_funnel-dialog';
 import SimulationControl from './components/simulation-control';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Funnels page component
  * @returns Funnels page with a modern UI showing funnel data

@@ -15,6 +15,8 @@ import { ArrowUpRight, BarChart, Calendar, Eye, Settings, Users } from 'lucide-r
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Project overview page
  * Shows project details and key metrics

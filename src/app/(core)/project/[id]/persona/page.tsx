@@ -37,6 +37,8 @@ import { useParams } from 'next/navigation';
 import React, { useState } from 'react';
 import PersonaConfigForm from './_config-form';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * @description Persona configuration page that allows viewing and creating persona configs
  * @returns The persona configuration page component

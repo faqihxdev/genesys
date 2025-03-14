@@ -38,6 +38,8 @@ import { StageDetails } from './_components/stage-details';
 import { useAnalysisUrlState } from './_hooks/use-analysis-url-state';
 import { FunnelAnalysis, KeyMetric, SimulationOption, StageAnalysis } from './types';
 
+export const dynamic = 'force-dynamic';
+
 // Add type for error
 interface ApiError {
   message: string;

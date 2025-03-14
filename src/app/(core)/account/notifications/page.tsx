@@ -34,6 +34,8 @@ import { Bell, Check, Clock, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * @description Notifications page with filtering and management
  */
