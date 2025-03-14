@@ -1,5 +1,6 @@
 'use client';
 
+import useHydration from '@/hooks/use-hydration';
 import { cn } from '@/lib/utils';
 import { animationsEnabledAtom } from '@/stores/animation-store';
 import { useAtom } from 'jotai';
@@ -70,6 +71,7 @@ export function BeamsBackground({
   const MINIMUM_BEAMS = 20;
   const [animationsEnabled] = useAtom(animationsEnabledAtom);
   const { resolvedTheme } = useTheme();
+  const isHydrated = useHydration();
   const isDarkMode = resolvedTheme === 'dark';
 
   const opacityMap = {
@@ -166,7 +168,7 @@ export function BeamsBackground({
     }
 
     // Only run animation if animations are enabled
-    if (animationsEnabled) {
+    if (animationsEnabled && isHydrated) {
       animate();
     } else {
       // If animations are disabled, clear the canvas
@@ -179,7 +181,14 @@ export function BeamsBackground({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [intensity, animationsEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [intensity, animationsEnabled, isHydrated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show a simple placeholder during server rendering to avoid hydration mismatch
+  if (!isHydrated) {
+    return (
+      <div className={cn('relative w-full h-full overflow-hidden bg-background', className)} />
+    );
+  }
 
   // Determine which background image to use based on the theme
   const backgroundImage = isDarkMode ? '/landing-background.png' : '/landing-background-light.png';
