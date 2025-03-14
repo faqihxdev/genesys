@@ -6,5 +6,6 @@ import { atomWithStorage } from 'jotai/utils';
 /**
  * @description Atom that tracks whether background animations are enabled
  * Uses localStorage to persist the user's preference across sessions
+ * Default is now set to false to prioritize performance
  */
-export const animationsEnabledAtom = atomWithStorage('genesys-animations-enabled', true);
+export const animationsEnabledAtom = atomWithStorage('genesys-animations-enabled', false);

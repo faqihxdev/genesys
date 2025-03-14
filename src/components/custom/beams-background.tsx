@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { animationsEnabledAtom } from '@/stores/animation-store';
 import { useAtom } from 'jotai';
 import { motion } from 'motion/react';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 
 interface AnimatedGradientBackgroundProps {
@@ -67,6 +69,8 @@ export function BeamsBackground({
   const animationFrameRef = useRef<number>(0);
   const MINIMUM_BEAMS = 20;
   const [animationsEnabled] = useAtom(animationsEnabledAtom);
+  const { resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === 'dark';
 
   const opacityMap = {
     subtle: 0.5,
@@ -177,6 +181,9 @@ export function BeamsBackground({
     };
   }, [intensity, animationsEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Determine which background image to use based on the theme
+  const backgroundImage = isDarkMode ? '/landing-background.png' : '/landing-background-light.png';
+
   return (
     <div
       className={cn(
@@ -184,15 +191,32 @@ export function BeamsBackground({
         className
       )}
     >
-      {/* Canvas with negative margin to extend beyond container */}
-      <canvas
-        ref={canvasRef}
-        className='absolute -left-[100px] top-0'
-        style={{
-          filter: 'blur(15px)',
-          width: 'calc(100% + 200px)',
-        }}
-      />
+      {/* Static background image shown when animations are disabled */}
+      {!animationsEnabled && (
+        <div className='absolute inset-0 z-0'>
+          <Image
+            src={backgroundImage}
+            alt='Static Background'
+            fill
+            sizes='100vw'
+            priority
+            className='object-cover object-center'
+          />
+          <div className='absolute inset-0 bg-background/30 dark:bg-background/50 backdrop-blur-sm'></div>
+        </div>
+      )}
+
+      {/* Canvas for animated beams - only visible when animations are enabled */}
+      {animationsEnabled && (
+        <canvas
+          ref={canvasRef}
+          className='absolute -left-[100px] top-0'
+          style={{
+            filter: 'blur(15px)',
+            width: 'calc(100% + 200px)',
+          }}
+        />
+      )}
 
       {animationsEnabled ? (
         <motion.div
@@ -213,7 +237,7 @@ export function BeamsBackground({
         <div
           className='absolute inset-0 bg-background/10 dark:bg-neutral-950/10'
           style={{
-            backdropFilter: 'blur(50px)',
+            backdropFilter: 'blur(10px)',
           }}
         />
       )}
