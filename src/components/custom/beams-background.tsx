@@ -1,6 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { animationsEnabledAtom } from '@/stores/animation-store';
+import { useAtom } from 'jotai';
 import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 
@@ -64,6 +66,7 @@ export function BeamsBackground({
   const beamsRef = useRef<Beam[]>([]);
   const animationFrameRef = useRef<number>(0);
   const MINIMUM_BEAMS = 20;
+  const [animationsEnabled] = useAtom(animationsEnabledAtom);
 
   const opacityMap = {
     subtle: 0.5,
@@ -158,7 +161,13 @@ export function BeamsBackground({
       animationFrameRef.current = requestAnimationFrame(animate);
     }
 
-    animate();
+    // Only run animation if animations are enabled
+    if (animationsEnabled) {
+      animate();
+    } else {
+      // If animations are disabled, clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
     return () => {
       window.removeEventListener('resize', updateCanvasSize);
@@ -166,7 +175,7 @@ export function BeamsBackground({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [intensity]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [intensity, animationsEnabled]); // Added animationsEnabled to dependencies
 
   return (
     <div
@@ -185,20 +194,29 @@ export function BeamsBackground({
         }}
       />
 
-      <motion.div
-        className='absolute inset-0 bg-background/5 dark:bg-neutral-950/5'
-        animate={{
-          opacity: [0.05, 0.15, 0.05],
-        }}
-        transition={{
-          duration: 10,
-          ease: 'easeInOut',
-          repeat: Number.POSITIVE_INFINITY,
-        }}
-        style={{
-          backdropFilter: 'blur(50px)',
-        }}
-      />
+      {animationsEnabled ? (
+        <motion.div
+          className='absolute inset-0 bg-background/5 dark:bg-neutral-950/5'
+          animate={{
+            opacity: [0.05, 0.15, 0.05],
+          }}
+          transition={{
+            duration: 10,
+            ease: 'easeInOut',
+            repeat: Number.POSITIVE_INFINITY,
+          }}
+          style={{
+            backdropFilter: 'blur(50px)',
+          }}
+        />
+      ) : (
+        <div
+          className='absolute inset-0 bg-background/10 dark:bg-neutral-950/10'
+          style={{
+            backdropFilter: 'blur(50px)',
+          }}
+        />
+      )}
 
       {/* Gradient fade-out at the bottom - now fading from beam to background */}
       <div className='absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-b from-transparent to-background dark:to-background z-10'></div>

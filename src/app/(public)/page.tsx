@@ -1,5 +1,6 @@
+import { AnimationToggle } from '@/components/custom/animation-toggle';
 import { BeamsBackground } from '@/components/custom/beams-background';
-import { Button } from '@/components/custom/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   LucideBarChart2,
@@ -63,6 +64,11 @@ export default async function Home({ searchParams }: HomeProps) {
         <BeamsBackground intensity='medium' className='opacity-80' />
       </div>
 
+      {/* Animation Toggle - Fixed position in bottom-right corner */}
+      <div className='fixed bottom-6 right-6 z-50'>
+        <AnimationToggle />
+      </div>
+
       {/* Content Container */}
       <div className='relative z-10 min-h-screen w-full'>
         {/* Hero Section */}
@@ -89,14 +95,20 @@ export default async function Home({ searchParams }: HomeProps) {
                   conversion funnel.
                 </p>
                 <div className='flex flex-wrap items-center justify-center gap-4'>
-                  <Link href='/auth?tab=signup'>
+                  <Link href='/auth?tab=signin'>
                     <Button size='lg' className='w-full max-w-[160px]'>
-                      Start For Free
+                      Try it for free
                     </Button>
                   </Link>
-                  <Button size='lg' variant='outline' className='w-full max-w-[160px]'>
-                    Watch Demo
-                  </Button>
+                  <Link
+                    href='https://youtu.be/UImOEvPzvRo'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    <Button size='lg' variant='outline' className='w-full max-w-[160px]'>
+                      Watch Demo
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -384,9 +396,11 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
 
                   <div className='mt-auto pt-8'>
-                    <Button size='lg' variant='outline' className='w-full'>
-                      Get started
-                    </Button>
+                    <Link href='/auth?tab=signup'>
+                      <Button size='lg' variant='outline' className='w-full'>
+                        Get started
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
@@ -437,9 +451,11 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
 
                   <div className='mt-auto pt-8'>
-                    <Button size='lg' className='w-full'>
-                      Get started
-                    </Button>
+                    <Link href='/auth?tab=signup'>
+                      <Button size='lg' className='w-full'>
+                        Get started now
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
@@ -488,9 +504,11 @@ export default async function Home({ searchParams }: HomeProps) {
                   </div>
 
                   <div className='mt-auto pt-8'>
-                    <Button size='lg' variant='outline' className='w-full'>
-                      Contact Us
-                    </Button>
+                    <Link href='#stay-in-touch'>
+                      <Button size='lg' variant='outline' className='w-full'>
+                        Contact Us
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -527,12 +545,20 @@ export default async function Home({ searchParams }: HomeProps) {
                       Start generating synthetic personas and optimize your customer journey today.
                     </p>
                     <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
-                      <Button size='lg' className='w-full sm:w-[200px]'>
-                        Get started for free
-                      </Button>
-                      <Button size='lg' variant='outline' className='w-full sm:w-[200px]'>
-                        Watch Demo
-                      </Button>
+                      <Link href='/auth?tab=signin'>
+                        <Button size='lg' className='w-full sm:w-[200px]'>
+                          Try it for free
+                        </Button>
+                      </Link>
+                      <Link
+                        href='https://youtu.be/UImOEvPzvRo'
+                        target='_blank'
+                        rel='noopener noreferrer'
+                      >
+                        <Button size='lg' variant='outline' className='w-full sm:w-[200px]'>
+                          Watch Demo
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -547,7 +573,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
 
         {/* Email Updates Section */}
-        <div className='border-t'>
+        <div id='stay-in-touch' className='border-t scroll-mt-24'>
           <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24'>
             <div className='max-w-3xl mx-auto text-center'>
               <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>Stay in the loop</h2>
