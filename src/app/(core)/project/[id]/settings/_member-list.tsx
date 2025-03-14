@@ -84,7 +84,7 @@ export function MemberList({ projectId }: MemberListProps) {
   });
 
   // Create a map of user IDs to emails for easy lookup
-  const userEmailMap = new Map(users?.map((u) => [u.id, u.email]));
+  const userEmailMap = new Map(users && users.length > 0 ? users.map((u) => [u.id, u.email]) : []);
 
   // Mutation to remove member
   const { mutate: removeMember } = useMutation({
@@ -252,7 +252,9 @@ export function MemberList({ projectId }: MemberListProps) {
 
         {/* Pending Invites */}
         {isOwner &&
-          invites?.map((invite) => (
+          invites &&
+          invites.length > 0 &&
+          invites.map((invite) => (
             <div
               key={invite.id}
               className='grid grid-cols-[2fr,1fr,1fr,0.5fr] gap-4 items-center py-3 px-3 bg-accent/20 hover:bg-muted/50 rounded-lg text-sm'
@@ -260,10 +262,10 @@ export function MemberList({ projectId }: MemberListProps) {
               <div className='flex items-center gap-2'>
                 <Avatar className='h-8 w-8'>
                   <AvatarFallback>
-                    {invite.email.split('@')[0].slice(0, 2).toUpperCase()}
+                    {invite.email ? invite.email.split('@')[0].slice(0, 2).toUpperCase() : 'IN'}
                   </AvatarFallback>
                 </Avatar>
-                <span>{invite.email}</span>
+                <span>{invite.email || 'No email'}</span>
               </div>
 
               <div className='flex items-center'>

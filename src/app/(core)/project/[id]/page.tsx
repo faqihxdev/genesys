@@ -368,7 +368,7 @@ export default function OverviewPage() {
                   Create your first persona set to start simulations
                 </p>
                 <Button asChild>
-                  <Link href={`/project/${project.id}/persona/new`}>Create Personas</Link>
+                  <Link href={`/project/${project.id}/persona`}>Create Personas</Link>
                 </Button>
               </div>
             )}
