@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { generateBreadcrumbs } from '@/lib/utils';
 import { getCurrentUser } from '@/server/auth';
+import { AlertTriangle } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { Fragment, ReactNode, Suspense } from 'react';
 import { AppSidebar } from './_sidebar';
@@ -67,6 +68,12 @@ export default async function CoreLayout({ children, params }: CoreLayoutProps) 
                   ))}
                 </BreadcrumbList>
               </Breadcrumb>
+              <div className='ml-3 flex items-center'>
+                <span className='inline-flex items-center gap-1 rounded-md bg-yellow-50 px-2 py-1 text-xs font-light text-yellow-800 ring-1 ring-inset ring-yellow-600/10 dark:bg-yellow-900/30 dark:text-yellow-200 dark:ring-yellow-500/10'>
+                  <AlertTriangle size={12} className='mr-0.5' />
+                  Prototype Demo: Expect Slower Performance
+                </span>
+              </div>
             </div>
             <div className='flex items-center gap-4'>
               <NotificationBell />

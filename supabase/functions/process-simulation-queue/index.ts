@@ -149,7 +149,7 @@ async function processTask(task: any): Promise<void> {
 // Main Deno serve function to handle HTTP requests
 Deno.serve(async (req) => {
   // IMPORTANT! DANGER: This will call openai in parallel for each persona
-  // Process up to 100 tasks concurrently in the background.
+  // Process up to 20 tasks concurrently in the background.
   (async () => {
     const startTime = performance.now();
 
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
       .eq('queue_name', 'simulation_tasks')
       .eq('queue_task_status', 'pending')
       .lt('visible_after', new Date().toISOString())
-      .limit(100);
+      .limit(20);
 
     if (queryError) {
       throw new Error(`Failed to query pending tasks: ${queryError.message}`);
