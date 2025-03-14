@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { createDefaultTraitsConfigTemplate, TraitsConfig } from '@/db/schema/persona';
+import { useAuth } from '@/hooks/use-auth';
 import useHydration from '@/hooks/use-hydration';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
@@ -28,6 +29,7 @@ interface PersonaConfigFormProps {
   configId?: string; // Optional - if provided, we're editing an existing config
   onSuccess: (configId: string, needsRegeneration: boolean) => void;
   onCancel: () => void;
+  isProtected?: boolean; // Whether this config is protected for demo users
 }
 
 // Form skeleton loader component
@@ -89,6 +91,7 @@ export default function PersonaConfigForm({
   configId,
   onSuccess,
   onCancel,
+  isProtected = false,
 }: PersonaConfigFormProps) {
   const { control, handleSubmit, watch, setValue, reset } = useForm<FormData>({
     defaultValues: {
@@ -102,6 +105,7 @@ export default function PersonaConfigForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isHydrated = useHydration();
+  const { isDemoUser } = useAuth();
 
   const [defaultTraitsConfig, setDefaultTraitsConfig] = useState<TraitsConfig | null>(null);
   const [formProcessed, setFormProcessed] = useState(false);
@@ -334,6 +338,16 @@ export default function PersonaConfigForm({
   };
 
   const onSubmit = (data: FormData) => {
+    // Prevent demo users from saving changes to protected configurations
+    if (isDemoUser && isProtected) {
+      toast({
+        variant: 'destructive',
+        title: 'Feature restricted',
+        description: 'Demo users cannot modify default persona configurations',
+      });
+      return;
+    }
+
     if (!defaultTraitsConfig) {
       toast({
         variant: 'destructive',
@@ -787,7 +801,15 @@ export default function PersonaConfigForm({
           <Button type='button' variant='outline' onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type='submit' disabled={isSubmitting}>
+          <Button
+            type='submit'
+            disabled={isSubmitting || (isDemoUser && isProtected)}
+            title={
+              isDemoUser && isProtected
+                ? 'Demo users cannot modify default configurations'
+                : undefined
+            }
+          >
             {isSubmitting ? (
               <>
                 <Spinner size='sm' />

@@ -26,8 +26,14 @@ export const getUserById = createAction({
   requireAuth: true,
   actionFn: async ({ input }) => {
     const { data: userData, error } = await supabaseAdmin.auth.admin.getUserById(input.userId);
-    if (error) return fail({ message: error.message, status: 500 });
-    if (!userData.user || !userData.user.email) {
+
+    if (error) {
+      console.error('[getUserById]: Supabase error', error);
+      return fail({ message: error.message, status: 500 });
+    }
+
+    if (!userData?.user || !userData.user.email) {
+      console.error('[getUserById]: User not found or missing email', { userId: input.userId });
       return fail({ message: 'User not found', status: 404 });
     }
 
@@ -69,16 +75,27 @@ export const getUsersByIds = createAction({
     const users: UserData[] = [];
     for (const batch of batches) {
       const promises = batch.map((id: string) => supabaseAdmin.auth.admin.getUserById(id));
-      const results = await Promise.all(promises);
 
-      for (const { data, error } of results) {
-        if (error) continue;
-        if (data.user && data.user.email) {
-          users.push({
-            id: data.user.id,
-            email: data.user.email,
-          });
+      // We still need try/catch here specifically to handle Promise.all failures
+      // without failing the entire batch process
+      try {
+        const results = await Promise.all(promises);
+
+        for (const { data, error } of results) {
+          if (error) {
+            console.error('[getUsersByIds]: Error fetching user', { error });
+            continue;
+          }
+          if (data?.user && data.user.email) {
+            users.push({
+              id: data.user.id,
+              email: data.user.email,
+            });
+          }
         }
+      } catch (batchError) {
+        console.error('[getUsersByIds]: Batch processing error', batchError);
+        // Continue with next batch instead of failing completely
       }
     }
 
@@ -103,7 +120,10 @@ export const searchUsersByEmail = createAction({
       p_email: input.email.toLowerCase(),
     });
 
-    if (error) return fail({ message: error.message, status: 500 });
+    if (error) {
+      console.error('[searchUsersByEmail]: Supabase error', error);
+      return fail({ message: error.message, status: 500 });
+    }
 
     // Since RPC returns a single row or nothing, we can simplify this
     const foundUser = Array.isArray(data) && data.length > 0 ? data[0] : null;

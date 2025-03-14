@@ -25,6 +25,9 @@ import SimulationControl from './components/simulation-control';
 
 export const dynamic = 'force-dynamic';
 
+// Protected funnel IDs that demo users cannot delete
+const PROTECTED_FUNNEL_IDS = ['fnl-2a8m-4q7f', 'fnl-nh7f-zkwf', 'fnl-wkev-pbgs'];
+
 /**
  * Funnels page component
  * @returns Funnels page with a modern UI showing funnel data
@@ -67,6 +70,17 @@ export default function FunnelsPage() {
   const handleDeleteFunnel = async () => {
     if (!funnelToDelete) return;
 
+    // Prevent demo users from deleting protected funnels
+    if (isDemoUser && PROTECTED_FUNNEL_IDS.includes(funnelToDelete.id)) {
+      toast({
+        title: 'Feature restricted',
+        description: 'Demo users cannot delete default funnels',
+        variant: 'destructive',
+      });
+      setFunnelToDelete(null);
+      return;
+    }
+
     try {
       const result = await deleteFunnel({
         funnelId: funnelToDelete.id,
@@ -86,6 +100,11 @@ export default function FunnelsPage() {
     } catch (error) {
       console.error('[FunnelsPage/handleDeleteFunnel]:', error);
     }
+  };
+
+  // Helper function to check if funnel is protected
+  const isFunnelProtected = (funnelId: string) => {
+    return isDemoUser && PROTECTED_FUNNEL_IDS.includes(funnelId);
   };
 
   if (isLoading) {
@@ -207,6 +226,12 @@ export default function FunnelsPage() {
                   size='sm'
                   className='h-7 w-7 p-0 text-destructive hover:text-destructive/80 hover:bg-destructive/10'
                   onClick={() => setFunnelToDelete({ id: funnel.id, name: funnel.name })}
+                  disabled={isFunnelProtected(funnel.id)}
+                  title={
+                    isFunnelProtected(funnel.id)
+                      ? 'Demo users cannot delete default funnels'
+                      : 'Delete funnel'
+                  }
                 >
                   <Trash2Icon className='h-3.5 w-3.5' />
                 </Button>
