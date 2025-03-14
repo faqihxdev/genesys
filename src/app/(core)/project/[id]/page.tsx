@@ -319,7 +319,7 @@ export default function OverviewPage() {
                   Create your first marketing funnel to start analyzing
                 </p>
                 <Button asChild>
-                  <Link href={`/project/${project.id}/funnel`}>Create Funnel</Link>
+                  <Link href={`/project/${project.id}/funnels`}>Create Funnel</Link>
                 </Button>
               </div>
             )}
