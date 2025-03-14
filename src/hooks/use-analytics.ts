@@ -4,6 +4,18 @@
  * with Umami Analytics
  */
 
+// Umami type definitions for different API versions
+type UmamiV1 = {
+  trackView: (url: string) => void;
+  trackEvent: (eventName: string, eventData?: Record<string, unknown>) => void;
+};
+
+type UmamiV2 = {
+  track: (type: string, data?: Record<string, unknown>) => void;
+};
+
+type UmamiFunction = (event: string, data?: Record<string, unknown>) => void;
+
 /**
  * Event data type for analytics tracking
  */
@@ -20,12 +32,23 @@ export function useAnalytics() {
    * @param eventData - Optional data to associate with the event
    */
   const trackEvent = (eventName: string, eventData?: AnalyticsEventData) => {
-    if (typeof window !== 'undefined' && window.umami) {
-      try {
-        window.umami.trackEvent(eventName, eventData);
-      } catch (error) {
-        console.error('[useAnalytics/trackEvent]:', error);
+    if (typeof window === 'undefined' || !window.umami) return;
+
+    try {
+      // Check if umami is a function (direct call style)
+      if (typeof window.umami === 'function') {
+        (window.umami as UmamiFunction)(eventName, eventData);
       }
+      // Modern v2 API
+      else if (typeof (window.umami as UmamiV2).track === 'function') {
+        (window.umami as UmamiV2).track(eventName, eventData);
+      }
+      // Older v1 API
+      else if (typeof (window.umami as UmamiV1).trackEvent === 'function') {
+        (window.umami as UmamiV1).trackEvent(eventName, eventData);
+      }
+    } catch (error) {
+      console.error('[useAnalytics/trackEvent]:', error);
     }
   };
 
@@ -34,12 +57,23 @@ export function useAnalytics() {
    * @param url - The URL to track
    */
   const trackPageView = (url: string) => {
-    if (typeof window !== 'undefined' && window.umami) {
-      try {
-        window.umami.trackView(url);
-      } catch (error) {
-        console.error('[useAnalytics/trackPageView]:', error);
+    if (typeof window === 'undefined' || !window.umami) return;
+
+    try {
+      // Check if umami is a function (direct call style)
+      if (typeof window.umami === 'function') {
+        (window.umami as UmamiFunction)('pageview');
       }
+      // Modern v2 API
+      else if (typeof (window.umami as UmamiV2).track === 'function') {
+        (window.umami as UmamiV2).track('pageview', { url });
+      }
+      // Older v1 API
+      else if (typeof (window.umami as UmamiV1).trackView === 'function') {
+        (window.umami as UmamiV1).trackView(url);
+      }
+    } catch (error) {
+      console.error('[useAnalytics/trackPageView]:', error);
     }
   };
 

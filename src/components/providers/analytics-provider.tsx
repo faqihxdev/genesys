@@ -32,16 +32,55 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 
+// Umami type definitions for different API versions
+type UmamiV1 = {
+  trackView: (url: string) => void;
+  trackEvent: (eventName: string, eventData?: Record<string, unknown>) => void;
+};
+
+type UmamiV2 = {
+  track: (type: string, data?: Record<string, unknown>) => void;
+};
+
+type UmamiFunction = (event: string, data?: Record<string, unknown>) => void;
+
 // This is a separate component that will be wrapped in Suspense
 function SearchParamsTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (typeof window.umami !== 'undefined') {
-      // Send page view to Umami when route changes
-      window.umami.trackView(pathname);
-    }
+    // Handle page view tracking when route changes
+    const trackPageView = () => {
+      if (typeof window === 'undefined') return;
+
+      // Check if umami exists on the window
+      if (window.umami === undefined) return;
+
+      try {
+        // Check if umami is a function (direct call style)
+        if (typeof window.umami === 'function') {
+          (window.umami as UmamiFunction)('pageview');
+        }
+        // Check for modern v2 API
+        else if (typeof (window.umami as UmamiV2).track === 'function') {
+          (window.umami as UmamiV2).track('pageview');
+        }
+        // Check for older v1 API
+        else if (typeof (window.umami as UmamiV1).trackView === 'function') {
+          (window.umami as UmamiV1).trackView(pathname);
+        }
+      } catch (error) {
+        console.error('[AnalyticsProvider/trackPageView]:', error);
+      }
+    };
+
+    // Execute tracking after a short delay to ensure Umami is fully loaded
+    const timer = setTimeout(() => {
+      trackPageView();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [pathname, searchParams]);
 
   return null;
@@ -56,12 +95,9 @@ function AnalyticsTracker() {
   );
 }
 
-// Extend the Window interface to include Umami
+// Extend the Window interface to include Umami with different API versions
 declare global {
   interface Window {
-    umami?: {
-      trackView: (url: string) => void;
-      trackEvent: (eventName: string, eventData?: Record<string, unknown>) => void;
-    };
+    umami?: UmamiV1 | UmamiV2 | UmamiFunction;
   }
 }
