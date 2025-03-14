@@ -408,6 +408,19 @@ export default function PersonaConfigForm({
           });
 
           console.log('[PersonaConfigForm]: Update result:', result);
+
+          // Check if the result is an error response
+          if (result.error) {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: result.error.message || 'Failed to update persona configuration',
+            });
+            return;
+          }
+
+          // Extract the actual config data from the response
+          result = result.data;
         } else {
           // Create new config
           isCreate = true;
@@ -501,10 +514,19 @@ export default function PersonaConfigForm({
         onSuccess(newConfigId, needsRegeneration);
       } catch (error) {
         console.error('[PersonaConfigForm]: Failed to save persona configuration:', error);
+
+        // Try to extract a specific error message if available
+        let errorMessage = 'Failed to save persona configuration';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null && 'message' in error) {
+          errorMessage = (error as { message: string }).message;
+        }
+
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Failed to save persona configuration',
+          description: errorMessage,
         });
       } finally {
         setIsSubmitting(false);
@@ -684,14 +706,6 @@ export default function PersonaConfigForm({
                     required: 'Size is required',
                     min: { value: 1, message: 'Must generate at least 1 persona' },
                     max: { value: 100, message: 'Cannot generate more than 100 personas' },
-                    validate: {
-                      warning: (value) => {
-                        if (value > 50) {
-                          return 'Generating a large number of personas may take several minutes';
-                        }
-                        return true;
-                      },
-                    },
                   }}
                   render={({ field, fieldState }) => (
                     <>

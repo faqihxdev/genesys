@@ -123,8 +123,15 @@ export const updateProject = createAction({
   name: 'updateProject',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
-    name: z.string().min(3, 'Project name must be at least 3 characters').optional(),
-    description: z.string().optional(),
+    name: z
+      .string()
+      .min(3, 'Project name must be at least 3 characters')
+      .refine(...createProfanityRefinement('Project name contains inappropriate language'))
+      .optional(),
+    description: z
+      .string()
+      .refine(...createProfanityRefinement('Project description contains inappropriate language'))
+      .optional(),
     isDefault: z.boolean().optional(),
   }),
   requireAuth: true,

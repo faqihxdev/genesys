@@ -197,8 +197,21 @@ export const updatePersonaConfig = createAction({
   name: 'updatePersonaConfig',
   validator: z.object({
     id: z.string().min(1, 'Persona config ID is required'),
-    name: z.string().min(1, 'Name is required').optional(),
-    description: z.string().optional(),
+    name: z
+      .string()
+      .min(1, 'Name is required')
+      .refine(
+        ...createProfanityRefinement('Persona configuration name contains inappropriate language')
+      )
+      .optional(),
+    description: z
+      .string()
+      .refine(
+        ...createProfanityRefinement(
+          'Persona configuration description contains inappropriate language'
+        )
+      )
+      .optional(),
     size: z
       .number()
       .int()
