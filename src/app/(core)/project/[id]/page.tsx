@@ -282,7 +282,8 @@ export default function OverviewPage() {
                         <div>
                           <h4 className='text-sm font-medium'>{funnel.name}</h4>
                           <p className='text-xs text-muted-foreground'>
-                            {funnel.stages.length} stage{funnel.stages.length !== 1 ? 's' : ''}
+                            {funnel.stages?.length || 0} stage
+                            {(funnel.stages?.length || 0) !== 1 ? 's' : ''}
                             {simulationCount > 0 &&
                               ` • ${simulationCount} simulation${simulationCount !== 1 ? 's' : ''}`}
                           </p>

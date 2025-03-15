@@ -67,7 +67,7 @@ export default function AnalysisPage() {
     isLoading: isFunnelsLoading,
     error: funnelsError,
   } = useQuery({
-    queryKey: ['funnels', projectId],
+    queryKey: ['analysis-funnels', projectId],
     queryFn: () => withQuery(getProjectFunnelsWithSimulations)({ projectId: projectId as string }),
     enabled: !!projectId,
   });
