@@ -199,11 +199,6 @@ export default async function Home({ searchParams }: HomeProps) {
                     value: '50K+',
                   },
                   {
-                    icon: LucideTarget,
-                    label: 'Accuracy Rate',
-                    value: '95%',
-                  },
-                  {
                     icon: LucideUsers,
                     label: 'Supported Scenarios',
                     value: 'Unlimited',
@@ -212,6 +207,11 @@ export default async function Home({ searchParams }: HomeProps) {
                     icon: LucideTimer,
                     label: 'Response Time',
                     value: '<100ms',
+                  },
+                  {
+                    icon: LucideTarget,
+                    label: 'Platform Uptime',
+                    value: '99.99%',
                   },
                 ].map((stat) => (
                   <div key={stat.label} className='text-center p-6 rounded-lg border bg-card'>
