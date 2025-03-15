@@ -608,31 +608,15 @@ export default async function Home({ searchParams }: HomeProps) {
               {[
                 {
                   title: 'Product',
-                  links: [
-                    'Features',
-                    'Security',
-                    'Team',
-                    'Enterprise',
-                    'Customer stories',
-                    'Pricing',
-                    'Resources',
-                  ],
+                  links: ['Features', 'Security', 'Pricing', 'Resources'],
                 },
                 {
                   title: 'Platform & Support',
-                  links: [
-                    'Developer API',
-                    'Partners',
-                    'Integrations',
-                    'Documentation',
-                    'Help Center',
-                    'Status',
-                    'Contact us',
-                  ],
+                  links: ['Developer API', 'Documentation', 'Help Center', 'Contact us'],
                 },
                 {
                   title: 'Company',
-                  links: ['About us', 'Blog', 'Careers', 'Press', 'Contact', 'Terms', 'Privacy'],
+                  links: ['About us', 'Blog', 'Terms', 'Privacy'],
                 },
               ].map((section) => (
                 <div key={section.title}>
