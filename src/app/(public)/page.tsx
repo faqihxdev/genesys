@@ -183,7 +183,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className='py-24 border-t'>
               <div className='text-center mb-16'>
                 <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>
-                  The system of action for the next generation
+                  AI-Driven Simulation At Scale
                 </h2>
                 <p className='text-muted-foreground text-base sm:text-lg'>
                   Our platform efficiently processes thousands of synthetic personas with
