@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import {
   LucideBarChart2,
   LucideDatabase,
-  LucideMoveUpRight,
   LucideTarget,
   LucideTimer,
   LucideUsers,
@@ -110,38 +109,6 @@ export default async function Home({ searchParams }: HomeProps) {
                       Watch Demo
                     </Button>
                   </Link>
-                </div>
-              </div>
-
-              {/* Promotional Voting Contest Banner */}
-              <div className='mt-10 mb-6 mx-auto max-w-3xl'>
-                <div className='rounded-lg border-2 border-primary/20 bg-primary/10 p-6 sm:p-7 shadow-lg hover:shadow-xl transition-all duration-300'>
-                  <div className='flex flex-col sm:flex-row items-center sm:items-start gap-4'>
-                    <div className='rounded-full bg-primary p-2.5 flex-shrink-0'>
-                      <LucideZap className='h-5 w-5 text-primary-foreground' />
-                    </div>
-                    <div className='space-y-3 text-center sm:text-left'>
-                      <h3 className='font-bold text-lg sm:text-xl tracking-tight'>
-                        Win a $100 Grab Voucher!
-                      </h3>
-                      <p className='text-sm sm:text-base'>
-                        Hey! Be the lucky 50 to stand a chance to win by voting for our team
-                        (&ldquo;Genesys&rdquo;). Voting period: 15–18 Mar, ends 11:59pm. Thanks for
-                        your support! 🙌
-                      </p>
-                      <div className='pt-2 flex justify-center sm:justify-start'>
-                        <Link
-                          href='https://forms.gle/fMfVbWT2Veodj1qD8'
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-2.5 rounded-full transition-all duration-200 shadow-sm hover:shadow'
-                        >
-                          Vote for us
-                          <LucideMoveUpRight className='h-4 w-4' />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
