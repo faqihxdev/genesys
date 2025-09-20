@@ -680,11 +680,25 @@ export const getSimulationAnalysis = createAction({
     const analysisStages: StageAnalysisWithMetrics[] = simulationWithStages.funnel.stages.map(
       (stage) => {
         const stageSummary = stageSummaries.find((s) => s.stageId === stage.id);
-        if (!stageSummary) throw new Error(`Stage summary not found for stage ${stage.id}`);
+        if (!stageSummary) {
+          console.error(
+            `[getStageAnalysis]: Stage summary not found for stage ${stage.id}. Simulation may not be processed yet.`
+          );
+          throw new Error(
+            `Stage summary not found for stage ${stage.id}. Please ensure the simulation has been processed.`
+          );
+        }
 
         const stageItems = stage.items.map((item) => {
           const itemSummary = stageItemSummaries.find((s) => s.stageItemId === item.id);
-          if (!itemSummary) throw new Error(`Item summary not found for item ${item.id}`);
+          if (!itemSummary) {
+            console.error(
+              `[getStageAnalysis]: Item summary not found for item ${item.id}. Simulation may not be processed yet.`
+            );
+            throw new Error(
+              `Item summary not found for item ${item.id}. Please ensure the simulation has been processed.`
+            );
+          }
 
           return {
             ...itemSummary,
