@@ -354,8 +354,8 @@ export default async function Home({ searchParams }: HomeProps) {
                   NUS Guru Network AI Innovation Project
                 </h2>
                 <p className='text-muted-foreground text-base sm:text-lg'>
-                  Genesys was developed from January to May 2025 to explore how generative AI can
-                  support synthetic customer research and journey simulation.
+                  Developed from January to May 2025, Genesys applies generative AI to synthetic
+                  customer research and journey simulation.
                 </p>
                 <div className='mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row'>
                   <Link href='/auth?tab=signup'>

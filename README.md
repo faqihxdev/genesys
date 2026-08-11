@@ -4,10 +4,6 @@ Genesys is a generative-AI system for creating synthetic customer personas, runn
 branching marketing funnels, and surfacing conversion friction and behavioral patterns. It was
 developed for the NUS Guru Network AI Innovation Project from January to May 2025.
 
-> [!NOTE]
-> This repository contains the project's public source release. Billing is not connected, no public
-> demo credentials are included, and AI-generated findings require human review.
-
 ![Genesys analysis dashboard](public/landing-analysis.png)
 
 ## Core capabilities
@@ -54,7 +50,7 @@ credentials; service-role credentials are never exposed to the browser.
 
 ### Prerequisites
 
-- Node.js 22 or newer
+- Node.js 24.15 or newer (24.x)
 - pnpm 11 (the repository pins the package-manager version)
 - A Supabase project or compatible local PostgreSQL instance
 - An OpenAI API key for persona generation and analysis
@@ -99,9 +95,8 @@ schema changes; `pnpm db:push` is intended for deliberate development use.
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Full simulation processing additionally requires the queue and Edge
-Function described in `docs/custom-queue-system.md`; the rest of the application can be reviewed
-without deploying those resources.
+Open `http://localhost:3000`. Simulation processing uses the queue and Edge Function described in
+`docs/custom-queue-system.md`.
 
 ## Verification
 
@@ -114,7 +109,7 @@ pnpm audit --prod --audit-level high
 pnpm build
 ```
 
-Pull requests run the same checks in a read-only, least-privilege GitHub Actions workflow.
+GitHub Actions runs the same checks in a read-only, least-privilege workflow.
 
 ## Project structure
 
@@ -146,6 +141,11 @@ Additional design notes are available in `docs/`.
 
 If you find a vulnerability, avoid including credentials or personal data in a public issue. Contact
 the repository owner privately through their GitHub profile.
+
+## Contributions
+
+Development is managed by the project maintainers. External contributions and pull requests are not
+accepted.
 
 ## License
 

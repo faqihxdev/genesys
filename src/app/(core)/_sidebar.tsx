@@ -30,11 +30,9 @@ import { currentProjectIdAtom, lastValidProjectIdAtom } from '@/stores/project';
 import { useQuery } from '@tanstack/react-query';
 import { useAtom } from 'jotai';
 import {
-  ArrowRightCircle,
   BarChart,
   Bell,
   ChevronsUpDown,
-  CircleDollarSign,
   Filter,
   FolderGit2,
   LayoutDashboard,
@@ -68,11 +66,6 @@ const getProjectNavItems = (projectId: string) => [
     icon: Filter,
   },
   {
-    title: 'Single Step',
-    url: `/project/${projectId}/single-step`,
-    icon: ArrowRightCircle,
-  },
-  {
     title: 'Analysis',
     url: `/project/${projectId}/analysis`,
     icon: BarChart,
@@ -90,11 +83,6 @@ const platformNavItems = [
     url: '/project/all',
     icon: FolderGit2,
   },
-  {
-    title: 'Settings',
-    url: '/project/all/settings',
-    icon: Settings2,
-  },
 ];
 
 const profileNavItems = [
@@ -107,11 +95,6 @@ const profileNavItems = [
     title: 'Notifications',
     url: '/account/notifications',
     icon: Bell,
-  },
-  {
-    title: 'Billing',
-    url: '/account/billing',
-    icon: CircleDollarSign,
   },
   {
     title: 'Support',
@@ -203,15 +186,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     // For platform routes
     if (itemUrl === '/project/all') {
-      // Active for all-projects page and its children except settings
-      return (
-        pathname === '/project/all' ||
-        (pathname.startsWith('/project/all/') && pathname !== '/project/all/settings')
-      );
-    }
-    if (itemUrl === '/project/all/settings') {
-      // Exact match for settings page
-      return pathname === '/project/all/settings';
+      return pathname.startsWith('/project/all');
     }
 
     // For specific project routes

@@ -7,9 +7,8 @@ export default function TermsPage() {
         <h1 className='text-4xl font-bold tracking-tight text-foreground'>Terms of Service</h1>
         <p className='text-sm'>Last updated: August 11, 2026</p>
         <p>
-          Genesys was developed for the NUS Guru Network AI Innovation Project to explore synthetic
-          customer personas and marketing funnel simulations. It is not a marketing, legal,
-          financial, or business decision service.
+          Genesys was developed for the NUS Guru Network AI Innovation Project and provides
+          AI-assisted synthetic customer persona and marketing funnel simulation workflows.
         </p>
         <h2 className='text-2xl font-semibold text-foreground'>Acceptable use</h2>
         <p>
@@ -18,13 +17,13 @@ export default function TermsPage() {
         </p>
         <h2 className='text-2xl font-semibold text-foreground'>AI-generated output</h2>
         <p>
-          Generated personas, responses, and recommendations may be incomplete or inaccurate. Review
-          all output independently before relying on it.
+          Generated personas, responses, and recommendations support analysis and should be applied
+          with appropriate professional judgment.
         </p>
-        <h2 className='text-2xl font-semibold text-foreground'>Availability and warranties</h2>
+        <h2 className='text-2xl font-semibold text-foreground'>License</h2>
         <p>
-          The software is provided &quot;as is&quot; without warranties. Features may change or
-          become unavailable without notice.
+          The Genesys source code is released under the MIT License. The license terms govern use,
+          modification, and distribution.
         </p>
         <h2 className='text-2xl font-semibold text-foreground'>Contact</h2>
         <p>

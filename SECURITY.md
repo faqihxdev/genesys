@@ -2,8 +2,7 @@
 
 ## Supported version
 
-Security fixes are applied to the latest commit on `main`. This project does not publish long-term
-support releases.
+Security fixes are applied to the latest commit on `main`.
 
 ## Reporting a vulnerability
 

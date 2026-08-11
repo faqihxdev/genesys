@@ -64,7 +64,7 @@ type NewPasswordForm = z.infer<typeof newPasswordSchema>;
 export default function AccountPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, signOut: handleSignOut, isDemoUser } = useAuth();
+  const { user, signOut: handleSignOut } = useAuth();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetStep, setResetStep] = useState<'request' | 'update'>('request');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,20 +137,6 @@ export default function AccountPage() {
 
   // Listen for auth state changes and URL parameters
   useEffect(() => {
-    // Don't process password reset for demo user
-    if (isDemoUser) {
-      // Clear any reset code from URL for demo users
-      if (window.location.search.includes('code=')) {
-        window.history.replaceState({}, '', '/account');
-        toast({
-          title: 'Feature restricted',
-          description: 'Password reset is not available for the demo account',
-          variant: 'destructive',
-        });
-      }
-      return;
-    }
-
     // Check for password reset code in URL
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -172,7 +158,7 @@ export default function AccountPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [isDemoUser, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabase.auth]);
 
   const handleLogout = async () => {
     setIsSigningOut(true);
@@ -197,17 +183,6 @@ export default function AccountPage() {
   };
 
   const onRequestReset = async (data: ResetPasswordForm) => {
-    // Prevent demo users from resetting password
-    if (isDemoUser) {
-      toast({
-        title: 'Feature restricted',
-        description: 'Password reset is not available for the demo account',
-        variant: 'destructive',
-      });
-      setIsResetDialogOpen(false);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await withQuery(resetPassword)({ email: data.email });
@@ -231,17 +206,6 @@ export default function AccountPage() {
   };
 
   const onUpdatePassword = async (data: NewPasswordForm) => {
-    // Prevent demo users from updating password
-    if (isDemoUser) {
-      toast({
-        title: 'Feature restricted',
-        description: 'Password update is not available for the demo account',
-        variant: 'destructive',
-      });
-      setIsResetDialogOpen(false);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await updatePassword({ password: data.password });
@@ -275,14 +239,6 @@ export default function AccountPage() {
 
   // Handle password reset attempt
   const handlePasswordResetClick = () => {
-    if (isDemoUser) {
-      toast({
-        title: 'Feature restricted',
-        description: 'Password reset is not available for the demo account',
-        variant: 'destructive',
-      });
-      return;
-    }
     setIsResetDialogOpen(true);
   };
 
@@ -353,13 +309,7 @@ export default function AccountPage() {
                   Update your password to keep your account secure
                 </div>
               </div>
-              <Button
-                onClick={handlePasswordResetClick}
-                disabled={isDemoUser}
-                title={isDemoUser ? 'Not available for demo accounts' : undefined}
-              >
-                Change Password
-              </Button>
+              <Button onClick={handlePasswordResetClick}>Change Password</Button>
             </div>
 
             <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border'>

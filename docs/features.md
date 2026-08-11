@@ -134,9 +134,6 @@ Genesys is a powerful AI-driven platform that helps businesses optimize their ma
 - Notification System:
   - In-app notifications
   - Read and archive controls
-- Billing:
-  - Informational billing page
-  - No payment collection or subscription processing
 
 ## AI Integration
 
@@ -148,4 +145,4 @@ Genesys is a powerful AI-driven platform that helps businesses optimize their ma
 
 ---
 
-_Note: This document describes the public source release of the NUS Guru Network AI Innovation Project._
+_Genesys was developed for the NUS Guru Network AI Innovation Project._

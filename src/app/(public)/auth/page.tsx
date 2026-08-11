@@ -12,7 +12,6 @@ import { withQuery } from '@/lib/utils';
 import { signIn, signUp } from '@/server/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef } from 'react';
@@ -260,24 +259,6 @@ export default function AuthPage() {
         <div className='flex flex-col space-y-1 text-center'>
           <h1 className='text-2xl font-semibold tracking-tight'>Welcome to Genesys</h1>
           <p className='text-sm text-muted-foreground'>Sign in or create an account to continue</p>
-        </div>
-
-        <div className='w-full rounded-md border border-blue-200/20 bg-blue-50 text-blue-800 px-4 py-3 shadow-sm dark:border-blue-800/20 dark:bg-blue-950/50 dark:text-blue-300'>
-          <div className='space-y-2 w-full'>
-            <div className='flex items-start'>
-              <InfoIcon className='h-4 w-4 mr-2 mt-0.5 flex-shrink-0' />
-              <p className='text-xs leading-normal'>
-                AI Innovation Project release. Report issues in the{' '}
-                <Link
-                  href='/account/feedback'
-                  className='font-medium underline underline-offset-2 hover:text-primary'
-                >
-                  feedback page
-                </Link>{' '}
-                (sign in required).
-              </p>
-            </div>
-          </div>
         </div>
 
         <Suspense fallback={<div>Loading...</div>}>

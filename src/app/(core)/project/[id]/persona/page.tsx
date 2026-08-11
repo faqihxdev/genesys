@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PersonaConfigWithCount, TraitsConfig } from '@/db/schema/persona';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
@@ -40,9 +39,6 @@ import PersonaConfigForm from './_config-form';
 
 export const dynamic = 'force-dynamic';
 
-// Protected persona configuration IDs that demo users cannot delete
-const PROTECTED_PERSONA_IDS = ['pcg-69r2-hxti', 'pcg-scxe-6sdd', 'pcg-w9nn-jqhm'];
-
 /**
  * @description Persona configuration page that allows viewing and creating persona configs
  * @returns The persona configuration page component
@@ -55,7 +51,6 @@ export default function PersonaPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [generatingForConfigId, setGeneratingForConfigId] = useState<string | null>(null);
-  const { isDemoUser } = useAuth();
 
   // Fetch persona configs
   const { data: personaConfigs, isLoading } = useQuery({
@@ -64,16 +59,6 @@ export default function PersonaPage() {
   });
 
   const handleDelete = async (id: string) => {
-    // Prevent demo users from deleting specific protected persona configurations
-    if (isDemoUser && PROTECTED_PERSONA_IDS.includes(id)) {
-      toast({
-        variant: 'destructive',
-        title: 'Feature restricted',
-        description: 'Demo users cannot delete default persona configurations',
-      });
-      return;
-    }
-
     try {
       const result = await deletePersonaConfig({ id });
       if ('error' in result && result.error) {
@@ -119,16 +104,6 @@ export default function PersonaPage() {
   };
 
   const handleGeneratePersonas = async (configId: string) => {
-    // Prevent demo users from regenerating protected persona configurations
-    if (isDemoUser && PROTECTED_PERSONA_IDS.includes(configId)) {
-      toast({
-        variant: 'destructive',
-        title: 'Feature restricted',
-        description: 'Demo users cannot modify default persona configurations',
-      });
-      return;
-    }
-
     try {
       setGeneratingForConfigId(configId);
 
@@ -262,7 +237,6 @@ export default function PersonaPage() {
                 configId={editConfigId}
                 onSuccess={handleFormSuccess}
                 onCancel={handleCancel}
-                isProtected={isDemoUser && PROTECTED_PERSONA_IDS.includes(editConfigId)}
               />
             </div>
           </DialogContent>
@@ -302,7 +276,6 @@ export default function PersonaPage() {
               onEdit={() => handleEdit(config.id)}
               isGenerating={generatingForConfigId === config.id}
               onRegenerate={() => handleGeneratePersonas(config.id)}
-              isProtected={isDemoUser && PROTECTED_PERSONA_IDS.includes(config.id)}
             />
           ))}
         </div>
@@ -325,31 +298,19 @@ function PersonaConfigItem({
   onEdit,
   isGenerating,
   onRegenerate,
-  isProtected,
 }: {
   config: PersonaConfigWithCount;
   onDelete: () => void;
   onEdit: () => void;
   isGenerating: boolean;
   onRegenerate: () => void;
-  isProtected: boolean;
 }): React.ReactNode {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (isProtected) {
-      toast({
-        variant: 'destructive',
-        title: 'Feature restricted',
-        description: 'Demo users cannot delete default persona configurations',
-      });
-      return;
-    }
 
     setIsDeleteDialogOpen(true);
   };
@@ -367,15 +328,6 @@ function PersonaConfigItem({
   const handleRegeneratePersonas = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (isProtected) {
-      toast({
-        variant: 'destructive',
-        title: 'Feature restricted',
-        description: 'Demo users cannot modify default persona configurations',
-      });
-      return;
-    }
 
     onRegenerate();
   };
@@ -489,12 +441,8 @@ function PersonaConfigItem({
                 size='icon'
                 className='h-8 w-8 border-muted'
                 onClick={handleRegeneratePersonas}
-                disabled={isGenerating || isProtected}
-                title={
-                  isProtected
-                    ? 'Demo users cannot modify default configurations'
-                    : 'Regenerate Personas'
-                }
+                disabled={isGenerating}
+                title='Regenerate Personas'
               >
                 <RefreshCw className='h-4 w-4' />
               </Button>
@@ -507,9 +455,7 @@ function PersonaConfigItem({
                   e.stopPropagation();
                   onEdit();
                 }}
-                title={
-                  isProtected ? 'Demo users can view but not save changes' : 'Edit Configuration'
-                }
+                title='Edit Configuration'
               >
                 <Edit className='h-4 w-4' />
               </Button>
@@ -518,12 +464,8 @@ function PersonaConfigItem({
                 size='icon'
                 className='h-8 w-8 border-muted hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive'
                 onClick={handleDeleteClick}
-                disabled={isDeleting || isProtected}
-                title={
-                  isProtected
-                    ? 'Demo users cannot delete default configurations'
-                    : 'Delete Configuration'
-                }
+                disabled={isDeleting}
+                title='Delete Configuration'
               >
                 <Trash2 className='h-4 w-4' />
               </Button>

@@ -81,11 +81,6 @@ export function generateBreadcrumbs(pathSegments: string[] = []): BreadcrumbItem
   if (filteredSegments[0] === 'project') {
     if (filteredSegments[1] === 'all') {
       breadcrumbs.push({ label: 'All Projects', href: '/project/all' });
-
-      // Add settings if present
-      if (filteredSegments[2] === 'settings') {
-        breadcrumbs.push({ label: 'System Settings', href: '/project/all/settings' });
-      }
     } else if (filteredSegments[1]) {
       breadcrumbs.push({ label: 'All Projects', href: '/project/all' });
 

@@ -59,18 +59,11 @@ export function useAuth() {
     }
   };
 
-  /**
-   * @description Check if current user is the demo account
-   * @returns {boolean} True if user email is demo@user.com
-   */
-  const isDemoUser = !!user && user.email === 'demo@user.com';
-
   return {
     isLoading,
     isAuthenticated: !!user,
     user,
     signOut,
     isSigningOut,
-    isDemoUser,
   };
 }
