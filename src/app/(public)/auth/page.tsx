@@ -2,23 +2,20 @@
 
 import { Button } from '@/components/custom/button';
 import { FloatingInput } from '@/components/custom/floating-input';
-import Google from '@/components/icons/google';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
+import { getSafeRedirectPath } from '@/lib/redirect';
 import { withQuery } from '@/lib/utils';
-import { signIn, signInWithGoogle, signUp, verifyInviteCode } from '@/server/auth';
+import { signIn, signUp } from '@/server/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { TooltipProvider } from '@radix-ui/react-tooltip';
 import { useMutation } from '@tanstack/react-query';
-import { ChevronDownIcon, ChevronUpIcon, InfoIcon } from 'lucide-react';
+import { InfoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -31,7 +28,7 @@ const signUpSchema = z
   .object({
     email: z.string().email('Please enter a valid email'),
     inviteCode: z.string().min(6, 'Please enter a valid invite code'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -46,19 +43,13 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 const AuthTabs = ({
   onSignInSubmit,
   onSignUpSubmit,
-  // handleGoogleSignIn,
   isSignInLoading,
   isSignUpLoading,
-  isGoogleLoading,
-  verifyInviteCode,
 }: {
   onSignInSubmit: (data: SignInFormData) => void;
   onSignUpSubmit: (data: SignUpFormData) => void;
-  handleGoogleSignIn: () => void;
   isSignInLoading: boolean;
   isSignUpLoading: boolean;
-  isGoogleLoading: boolean;
-  verifyInviteCode: (params: { code: string }) => void;
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,14 +76,6 @@ const AuthTabs = ({
 
   const handleTabChange = (value: string) => {
     router.push(`/auth?tab=${value}`);
-  };
-
-  // Handle invite code blur
-  const handleInviteCodeBlur = () => {
-    const inviteCode = signUpForm.getValues('inviteCode');
-    if (inviteCode && inviteCode.length >= 6) {
-      verifyInviteCode({ code: inviteCode });
-    }
   };
 
   return (
@@ -134,33 +117,6 @@ const AuthTabs = ({
               </Button>
             </div>
           </form>
-          <div className='relative'>
-            <div className='absolute inset-0 flex items-center'>
-              <span className='w-full border-t' />
-            </div>
-            <div className='relative flex justify-center text-xs uppercase'>
-              <span className='bg-background px-2 text-muted-foreground'>Or continue with</span>
-            </div>
-          </div>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant='outline'
-                  isLoading={isGoogleLoading}
-                  // onClick={handleGoogleSignIn}
-                  loadingText='Signing in...'
-                  className='gap-2 bg-white cursor-default hover:bg-gray-50 dark:hover:bg-white/90'
-                >
-                  <Google className='h-4 w-4' />
-                  <span className='text-black'>Sign in with Google</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Not Available in Demo</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
       </TabsContent>
 
@@ -176,9 +132,7 @@ const AuthTabs = ({
                   disabled={isSignUpLoading}
                   placeholder='Enter your invite code'
                   error={signUpForm.formState.errors.inviteCode?.message}
-                  {...signUpForm.register('inviteCode', {
-                    onBlur: handleInviteCodeBlur,
-                  })}
+                  {...signUpForm.register('inviteCode')}
                 />
               </div>
               <div>
@@ -219,33 +173,6 @@ const AuthTabs = ({
               </Button>
             </div>
           </form>
-          <div className='relative'>
-            <div className='absolute inset-0 flex items-center'>
-              <span className='w-full border-t' />
-            </div>
-            <div className='relative flex justify-center text-xs uppercase'>
-              <span className='bg-background px-2 text-muted-foreground'>Or continue with</span>
-            </div>
-          </div>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant='outline'
-                  isLoading={isGoogleLoading}
-                  // onClick={handleGoogleSignIn}
-                  loadingText='Signing in...'
-                  className='gap-2 bg-white cursor-default hover:bg-gray-50 dark:hover:bg-white/90'
-                >
-                  <Google className='h-4 w-4' />
-                  <span className='text-black'>Sign in with Google</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Not Available in Demo</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </div>
       </TabsContent>
     </Tabs>
@@ -257,7 +184,6 @@ export default function AuthPage() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const authCheckHasShownToast = useRef(false);
-  const [isOpen, setIsOpen] = useState(false);
 
   // Show toast if already authenticated
   useEffect(() => {
@@ -280,7 +206,11 @@ export default function AuthPage() {
         description: 'Signed in successfully',
         variant: 'success',
       });
-      router.replace('/project/all');
+      const nextPath = getSafeRedirectPath(
+        new URLSearchParams(window.location.search).get('next'),
+        '/project/all'
+      );
+      router.replace(nextPath);
     },
     onError: (error) => {
       toast({
@@ -311,55 +241,13 @@ export default function AuthPage() {
     },
   });
 
-  // Google sign in mutation
-  const { mutate: signInWithGoogleMutation, isPending: isGoogleLoading } = useMutation({
-    mutationFn: withQuery(signInWithGoogle),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKey.auth.getCurrentUser() });
-      router.replace('/project/all');
-    },
-    onError: (error) => {
-      toast({
-        title: 'Google Sign In Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Verify invite code mutation
-  const { mutate: verifyInviteCodeMutation } = useMutation({
-    mutationFn: withQuery(verifyInviteCode),
-    onSuccess: (isValid) => {
-      if (!isValid) {
-        toast({
-          title: 'Invalid Code',
-          description: 'The invite code you entered is invalid',
-          variant: 'destructive',
-        });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: 'Verification Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
   const onSignInSubmit = (data: SignInFormData) => {
-    console.log('[Auth/onSignInSubmit]:', data);
     signInMutation(data);
   };
 
   const onSignUpSubmit = (data: SignUpFormData) => {
     const { email, password, inviteCode } = data;
     signUpMutation({ email, password, inviteCode });
-  };
-
-  const handleGoogleSignIn = () => {
-    signInWithGoogleMutation(undefined);
   };
 
   if (isLoading) {
@@ -379,7 +267,7 @@ export default function AuthPage() {
             <div className='flex items-start'>
               <InfoIcon className='h-4 w-4 mr-2 mt-0.5 flex-shrink-0' />
               <p className='text-xs leading-normal'>
-                Demo prototype version. Report issues in the{' '}
+                AI Innovation Project release. Report issues in the{' '}
                 <Link
                   href='/account/feedback'
                   className='font-medium underline underline-offset-2 hover:text-primary'
@@ -389,38 +277,6 @@ export default function AuthPage() {
                 (sign in required).
               </p>
             </div>
-
-            <Collapsible open={isOpen} onOpenChange={setIsOpen} className='w-full mt-3'>
-              <div
-                className={`flex items-center justify-between bg-blue-100/80 dark:bg-blue-900/30 rounded-md px-3 py-2 ${!isOpen ? 'rounded-b-md' : 'rounded-b-none'}`}
-              >
-                <p className='text-xs font-medium'>Sign in to the demo account</p>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='h-6 w-6 p-0 text-blue-800 hover:text-blue-900 hover:bg-blue-100 dark:text-blue-300 dark:hover:text-blue-200 dark:hover:bg-blue-900/50'
-                  >
-                    {isOpen ? (
-                      <ChevronUpIcon className='h-3 w-3' />
-                    ) : (
-                      <ChevronDownIcon className='h-3 w-3' />
-                    )}
-                    <span className='sr-only'>Toggle demo credentials</span>
-                  </Button>
-                </CollapsibleTrigger>
-              </div>
-              <CollapsibleContent className='overflow-hidden bg-blue-100/80 dark:bg-blue-900/30 rounded-b-md'>
-                <div className='text-xs space-y-1 pt-0 pb-2 px-3'>
-                  <p>
-                    <span className='font-medium'>Email:</span> demo@user.com
-                  </p>
-                  <p>
-                    <span className='font-medium'>Password:</span> demouser
-                  </p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
           </div>
         </div>
 
@@ -428,11 +284,8 @@ export default function AuthPage() {
           <AuthTabs
             onSignInSubmit={onSignInSubmit}
             onSignUpSubmit={onSignUpSubmit}
-            handleGoogleSignIn={handleGoogleSignIn}
             isSignInLoading={isSignInLoading}
             isSignUpLoading={isSignUpLoading}
-            isGoogleLoading={isGoogleLoading}
-            verifyInviteCode={verifyInviteCodeMutation}
           />
         </Suspense>
 

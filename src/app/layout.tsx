@@ -8,8 +8,14 @@ import { ThemeProvider } from '../components/providers/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Genesys',
-  description: 'Genesys',
+  title: {
+    default: 'Genesys',
+    template: '%s | Genesys',
+  },
+  description:
+    'Generate synthetic customer personas, simulate marketing funnels, and identify conversion friction.',
+  applicationName: 'Genesys',
+  keywords: ['synthetic personas', 'funnel simulation', 'generative AI', 'marketing research'],
 };
 
 export default function RootLayout({

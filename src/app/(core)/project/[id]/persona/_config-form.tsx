@@ -390,8 +390,6 @@ export default function PersonaConfigForm({
                 },
               });
 
-              console.log('[PersonaConfigForm]: shouldRegenResult:', shouldRegenResult);
-
               // Handle the ActionResponse structure
               if (shouldRegenResult.error) {
                 console.error(
@@ -402,7 +400,6 @@ export default function PersonaConfigForm({
               } else {
                 // Access the actual boolean result from the data property
                 needsRegeneration = Boolean(shouldRegenResult.data);
-                console.log('[PersonaConfigForm]: Regeneration needed:', needsRegeneration);
               }
             } catch (error) {
               console.error('[PersonaConfigForm]: Error checking regeneration status:', error);
@@ -420,8 +417,6 @@ export default function PersonaConfigForm({
             constraints: configData.constraints,
             traitsConfig: configData.traitsConfig,
           });
-
-          console.log('[PersonaConfigForm]: Update result:', result);
 
           // Check if the result is an error response
           if (result.error) {
@@ -443,8 +438,6 @@ export default function PersonaConfigForm({
             type: 'custom' as const,
             ...configData,
           });
-
-          console.log('[PersonaConfigForm]: Create result:', result);
 
           // Check if the result is an error response
           if (result.error) {
@@ -519,11 +512,6 @@ export default function PersonaConfigForm({
           return;
         }
 
-        console.log(
-          '[PersonaConfigForm]: Success - calling onSuccess with:',
-          newConfigId,
-          needsRegeneration
-        );
         // Let the parent component know if persona generation is needed
         onSuccess(newConfigId, needsRegeneration);
       } catch (error) {

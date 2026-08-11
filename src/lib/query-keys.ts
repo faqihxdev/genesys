@@ -11,8 +11,7 @@ export const queryKey = {
     getProjectById: ({ projectId }: { projectId: string }) =>
       ['projects', 'detail', projectId] as const,
     getCurrentUserProjects: () => ['projects', 'user'] as const,
-    isProjectOwner: ({ projectId, userId }: { projectId: string; userId: string }) =>
-      ['project-owner', projectId, userId] as const,
+    isProjectOwner: ({ projectId }: { projectId: string }) => ['project-owner', projectId] as const,
     getDefaultProjectCandidates: ({ excludeProjectId }: { excludeProjectId?: string }) =>
       ['projects', 'candidates', excludeProjectId] as const,
   },
@@ -22,7 +21,8 @@ export const queryKey = {
   },
   users: {
     getUserById: ({ userId }: { userId: string }) => ['users', userId] as const,
-    getUsersByIds: ({ userIds }: { userIds: string[] }) => ['users', 'batch', userIds] as const,
+    getUsersByIds: ({ projectId, userIds }: { projectId: string; userIds: string[] }) =>
+      ['users', 'batch', projectId, userIds] as const,
   },
   invites: {
     getProjectInvites: ({ projectId }: { projectId: string }) =>

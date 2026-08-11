@@ -8,7 +8,7 @@
   "useTabs": false,
   "bracketSpacing": true,
   "arrowParens": "always",
-  "endOfLine": "auto",
+  "endOfLine": "lf",
   "bracketSameLine": false,
   "tailwindConfig": "./tailwind.config.js",
   "plugins": ["prettier-plugin-tailwindcss", "prettier-plugin-organize-imports"]

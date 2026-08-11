@@ -1,13 +1,15 @@
 'use server';
 
-import supabaseAdmin from '@/lib/supabase/admin-client';
+import { db } from '@/db';
+import { projectUsers } from '@/db/schema';
+import {
+  getUserDirectoryEntries,
+  getUserDirectoryEntryByEmail,
+} from '@/lib/supabase/user-directory';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
-
-export interface UserData {
-  id: string;
-  email: string;
-}
+import { requireProjectAccess } from './authorization';
 
 // ==================================================
 // READ
@@ -24,23 +26,18 @@ export const getUserById = createAction({
     userId: z.string().min(1, 'User ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
-    const { data: userData, error } = await supabaseAdmin.auth.admin.getUserById(input.userId);
-
-    if (error) {
-      console.error('[getUserById]: Supabase error', error);
-      return fail({ message: error.message, status: 500 });
+  actionFn: async ({ input, currentUser }) => {
+    if (input.userId !== currentUser.id) {
+      return fail({ message: 'Access denied', status: 403 });
     }
 
-    if (!userData?.user || !userData.user.email) {
-      console.error('[getUserById]: User not found or missing email', { userId: input.userId });
+    const [user] = await getUserDirectoryEntries([input.userId]);
+
+    if (!user) {
       return fail({ message: 'User not found', status: 404 });
     }
 
-    return {
-      id: userData.user.id,
-      email: userData.user.email,
-    };
+    return user;
   },
 });
 
@@ -52,54 +49,34 @@ export const getUserById = createAction({
 export const getUsersByIds = createAction({
   name: 'getUsersByIds',
   validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
     userIds: z.array(z.string().min(1, 'User ID is required')),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     // Early return if no userIds provided
     if (input.userIds.length === 0) {
       return [];
     }
 
-    // Remove duplicates
-    const uniqueIds = [...new Set(input.userIds)];
+    const requestedUserIds = [...new Set(input.userIds)];
+    const projectMemberIds = await db
+      .select({ userId: projectUsers.userId })
+      .from(projectUsers)
+      .where(
+        and(
+          eq(projectUsers.projectId, input.projectId),
+          inArray(projectUsers.userId, requestedUserIds)
+        )
+      );
+    const uniqueIds = projectMemberIds.map(({ userId }) => userId);
 
-    // Get users in batches of 10 to avoid rate limiting
-    const batchSize = 10;
-    const batches = [];
-    for (let i = 0; i < uniqueIds.length; i += batchSize) {
-      const batch = uniqueIds.slice(i, i + batchSize);
-      batches.push(batch);
-    }
-
-    const users: UserData[] = [];
-    for (const batch of batches) {
-      const promises = batch.map((id: string) => supabaseAdmin.auth.admin.getUserById(id));
-
-      // We still need try/catch here specifically to handle Promise.all failures
-      // without failing the entire batch process
-      try {
-        const results = await Promise.all(promises);
-
-        for (const { data, error } of results) {
-          if (error) {
-            console.error('[getUsersByIds]: Error fetching user', { error });
-            continue;
-          }
-          if (data?.user && data.user.email) {
-            users.push({
-              id: data.user.id,
-              email: data.user.email,
-            });
-          }
-        }
-      } catch (batchError) {
-        console.error('[getUsersByIds]: Batch processing error', batchError);
-        // Continue with next batch instead of failing completely
-      }
-    }
-
-    return users;
+    return getUserDirectoryEntries(uniqueIds);
   },
 });
 
@@ -111,28 +88,21 @@ export const getUsersByIds = createAction({
 export const searchUsersByEmail = createAction({
   name: 'searchUsersByEmail',
   validator: z.object({
+    projectId: z.string().min(1, 'Project ID is required'),
     email: z.string().email('Invalid email format'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
-    // Call the RPC function to search user by exact email match
-    const { data, error } = await supabaseAdmin.rpc('get_user_by_email', {
-      p_email: input.email.toLowerCase(),
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+      allowedRoles: ['owner'],
     });
 
-    if (error) {
-      console.error('[searchUsersByEmail]: Supabase error', error);
-      return fail({ message: error.message, status: 500 });
+    try {
+      return await getUserDirectoryEntryByEmail(input.email);
+    } catch {
+      return fail({ message: 'Failed to search users', status: 500 });
     }
-
-    // Since RPC returns a single row or nothing, we can simplify this
-    const foundUser = Array.isArray(data) && data.length > 0 ? data[0] : null;
-
-    return foundUser
-      ? {
-          id: foundUser.id,
-          email: foundUser.email,
-        }
-      : null;
   },
 });

@@ -57,11 +57,22 @@ export const addTicketResponse = createAction({
   validator: z.object({
     ticketId: z.string().min(1, 'Ticket ID is required'),
     message: z.string().min(1, 'Message is required'),
-    isFromSupport: z.boolean().optional(),
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
     return await db.transaction(async (tx) => {
+      const [ticket] = await tx
+        .select({ id: supportTickets.id })
+        .from(supportTickets)
+        .where(
+          and(eq(supportTickets.id, input.ticketId), eq(supportTickets.userId, currentUser.id))
+        )
+        .limit(1);
+
+      if (!ticket) {
+        return fail({ message: 'Ticket not found', status: 404 });
+      }
+
       // Create the response
       const [response] = await tx
         .insert(ticketResponses)
@@ -69,7 +80,7 @@ export const addTicketResponse = createAction({
           ticketId: input.ticketId,
           userId: currentUser.id,
           message: input.message,
-          isFromSupport: input.isFromSupport || false,
+          isFromSupport: false,
         })
         .returning();
 

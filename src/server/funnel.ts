@@ -19,6 +19,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
+import { requireProjectAccess } from './authorization';
 
 /**
  * Get all funnels for a project with complete nested data
@@ -30,8 +31,13 @@ export const getFunnelsWithFullData = createAction({
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     try {
       // Get all funnels for the project
       const funnelList = await db.query.funnels.findMany({
@@ -146,8 +152,13 @@ export const getFunnelWithFullData = createAction({
   validator: z.object({
     funnelId: z.string().min(1, 'Funnel ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     try {
       // Get the funnel
       const funnel = await db.query.funnels.findFirst({
@@ -224,8 +235,13 @@ export const getFunnelWithFullDataOriginal = createAction({
   validator: z.object({
     funnelId: z.string().min(1, 'Funnel ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     try {
       // Get the funnel
       const funnel = await db.query.funnels.findFirst({
@@ -323,8 +339,13 @@ export const createFunnel = createAction({
       .optional()
       .refine(...createProfanityRefinement('Funnel description contains inappropriate language')),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     try {
       // Create the funnel
       const [newFunnel] = await db
@@ -359,8 +380,13 @@ export const saveFlow = createAction({
     nodes: z.array(z.any()).min(1, 'At least one node is required'),
     edges: z.array(z.any()),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     try {
       // Get existing funnel
       const existingFunnel = await db.query.funnels.findFirst({
@@ -550,8 +576,13 @@ export const deleteFunnel = createAction({
   validator: z.object({
     funnelId: z.string(),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     try {
       // Get existing funnel to retrieve projectId for path revalidation
       const existingFunnel = await db.query.funnels.findFirst({

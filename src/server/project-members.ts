@@ -5,6 +5,7 @@ import { projectUsers } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
+import { requireProjectAccess } from './authorization';
 import { _isProjectOwner } from './projects';
 
 // ==================================================
@@ -76,7 +77,12 @@ export const getProjectMembers = createAction({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     const members = await db
       .select()
       .from(projectUsers)
@@ -119,7 +125,11 @@ export const updateProjectMemberRole = createAction({
         .from(projectUsers)
         .where(and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.role, 'owner')));
 
-      if (owners.length <= 1 && owners[0].userId === input.userId) {
+      if (owners.length === 0) {
+        return fail({ message: 'Project ownership data is invalid', status: 409 });
+      }
+
+      if (owners.length === 1 && owners[0]?.userId === input.userId) {
         return fail({ message: 'Cannot demote the last owner of the project', status: 400 });
       }
     }
@@ -132,6 +142,10 @@ export const updateProjectMemberRole = createAction({
         and(eq(projectUsers.projectId, input.projectId), eq(projectUsers.userId, input.userId))
       )
       .returning();
+
+    if (!updatedMember) {
+      return fail({ message: 'Project member not found', status: 404 });
+    }
 
     return updatedMember;
   },

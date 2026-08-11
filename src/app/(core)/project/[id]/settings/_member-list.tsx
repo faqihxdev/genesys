@@ -58,8 +58,8 @@ export function MemberList({ projectId }: MemberListProps) {
 
   // Query to check if current user is owner
   const { data: isOwner } = useQuery({
-    queryKey: queryKey.projects.isProjectOwner({ projectId, userId: user?.id ?? '' }),
-    queryFn: () => withQuery(isProjectOwner)({ projectId, userId: user?.id ?? '' }),
+    queryKey: queryKey.projects.isProjectOwner({ projectId }),
+    queryFn: () => withQuery(isProjectOwner)({ projectId }),
     enabled: !!user?.id,
   });
 
@@ -78,8 +78,15 @@ export function MemberList({ projectId }: MemberListProps) {
 
   // Query to get user data for all members
   const { data: users, isLoading: isUsersLoading } = useQuery({
-    queryKey: queryKey.users.getUsersByIds({ userIds: members?.map((m) => m.userId) || [] }),
-    queryFn: () => withQuery(getUsersByIds)({ userIds: members?.map((m) => m.userId) || [] }),
+    queryKey: queryKey.users.getUsersByIds({
+      projectId,
+      userIds: members?.map((m) => m.userId) || [],
+    }),
+    queryFn: () =>
+      withQuery(getUsersByIds)({
+        projectId,
+        userIds: members?.map((m) => m.userId) || [],
+      }),
     enabled: !!members?.length,
   });
 

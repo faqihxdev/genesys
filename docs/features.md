@@ -128,30 +128,24 @@ Genesys is a powerful AI-driven platform that helps businesses optimize their ma
 ### 5. Account Management
 
 - User Profile Management:
-  - Personal information settings
-  - Role and permission controls
-  - Team collaboration preferences
-  - API access management
+  - Authentication and password reset
+  - Project owner and member roles
+  - Team member invitations
 - Notification System:
-  - Custom alert settings
-  - Performance threshold notifications
-  - Team collaboration updates
-  - System status alerts
-- Billing and Subscription:
-  - Plan management
-  - Usage tracking
-  - Invoice history
-  - Payment method management
+  - In-app notifications
+  - Read and archive controls
+- Billing:
+  - Informational billing page
+  - No payment collection or subscription processing
 
 ## AI Integration
 
 - Automated persona generation based on market research
-- Behavioral prediction modeling
-- Pattern recognition in customer journeys
-- Smart optimization recommendations
+- Synthetic behavior simulation across customer journeys
+- Structured analysis of simulated journey outcomes
 - Automated insight generation
-- Predictive analytics for conversion rates
+- Conversion summaries derived from simulation output
 
 ---
 
-_Note: This is the second pass of feature discovery. Features are continuously being updated and enhanced._
+_Note: This document describes the public source release of the NUS Guru Network AI Innovation Project._

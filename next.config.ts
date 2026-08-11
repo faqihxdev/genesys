@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    reactCompiler: true,
-  },
   // Vercel specific optimizations
   compress: true,
   poweredByHeader: false,

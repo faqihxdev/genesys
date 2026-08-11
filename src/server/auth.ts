@@ -3,8 +3,21 @@
 import type { User } from '@/db/schema';
 import env from '@/env';
 import { createClient } from '@/lib/supabase/server';
+import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
+
+/**
+ * @description Compares a submitted invite code without leaking matching-prefix timing.
+ * @param code - Submitted invite code
+ * @returns Whether the code matches the configured invite code
+ */
+function isInviteCodeValid(code: string): boolean {
+  const expected = Buffer.from(env.INVITE_CODE);
+  const submitted = Buffer.from(code);
+
+  return expected.length === submitted.length && timingSafeEqual(expected, submitted);
+}
 
 // ==================================================
 // CREATE
@@ -26,10 +39,7 @@ export const signUp = createAction({
     const supabase = await createClient();
     const { email, password, inviteCode } = input;
 
-    // Verify invite code first
-    const { data: isValid, error: verifyError } = await verifyInviteCode({ code: inviteCode });
-    if (verifyError) return fail(verifyError);
-    if (!isValid) {
+    if (!isInviteCodeValid(inviteCode)) {
       return fail({ message: 'Invalid invite code', status: 400 });
     }
 
@@ -81,31 +91,6 @@ export const signIn = createAction({
 });
 
 /**
- * @description Sign in a user with Google OAuth
- */
-export const signInWithGoogle = createAction({
-  name: 'signInWithGoogle',
-  validator: null,
-  requireAuth: false,
-  actionFn: async () => {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      console.error('[Auth/signInWithGoogle]:', error);
-      return fail({ message: error.message, status: 401 });
-    }
-
-    return null;
-  },
-});
-
-/**
  * @description Sign out the current user
  */
 export const signOut = createAction({
@@ -149,28 +134,6 @@ export const getCurrentUser = createAction({
     }
 
     return user as User;
-  },
-});
-
-/**
- * @description Verify if the invite code is valid
- * @param code - The invite code to verify
- */
-export const verifyInviteCode = createAction({
-  name: 'verifyInviteCode',
-  validator: z.object({
-    code: z.string().min(1, 'Invite code is required'),
-  }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
-    const inviteCode = env.INVITE_CODE;
-
-    if (!inviteCode) {
-      console.error('[Auth/verifyInviteCode]: INVITE_CODE not set in environment variables');
-      return fail({ message: 'Server configuration error', status: 500 });
-    }
-
-    return input.code === inviteCode;
   },
 });
 
@@ -227,14 +190,11 @@ export const resetPassword = createAction({
   name: 'resetPassword',
   validator: z.object({
     email: z.string().email('Invalid email format'),
-    redirectTo: z.string().min(1, 'Redirect URL is required'),
   }),
   requireAuth: false,
   actionFn: async ({ input }) => {
     const supabase = await createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(input.email, {
-      redirectTo: input.redirectTo,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(input.email);
 
     if (error) {
       console.error('[Auth/resetPassword]:', error);

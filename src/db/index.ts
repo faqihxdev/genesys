@@ -1,3 +1,5 @@
+import 'server-only';
+
 import env from '@/env';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -15,7 +17,7 @@ const connectionOptions = {
   ssl:
     env.NODE_ENV === 'production'
       ? {
-          rejectUnauthorized: false, // Allow self-signed certificates in production
+          rejectUnauthorized: true, // Verify the managed database certificate in production
         }
       : false,
   connection: {
@@ -35,6 +37,6 @@ export type DbClient = typeof db;
 // Handle cleanup on app termination
 process.on('SIGTERM', () => {
   client.end().catch((err) => {
-    console.error('Error closing database connections:', err);
+    console.error('[Database/SIGTERM]: ', err);
   });
 });

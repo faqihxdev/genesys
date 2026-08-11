@@ -12,8 +12,7 @@ export default function CustomDeletableEdge(props: EdgeProps) {
 
   const { setEdges } = useReactFlow();
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, labelX, labelY] = getBezierPath({
+  const [, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
     sourcePosition,

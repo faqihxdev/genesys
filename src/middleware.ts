@@ -1,58 +1,35 @@
 import { updateSession } from '@/lib/supabase/middleware';
-import { NextResponse, type NextRequest } from 'next/server';
-import { createClient } from './lib/supabase/client';
+import { type NextRequest } from 'next/server';
 
 const publicRoutes = ['/', '/auth', '/terms', '/privacy'];
 
-const supabase = createClient();
-
 /**
- * Middleware to handle authentication and project route validation
+ * @description Handles session refresh, authentication, and project membership validation.
+ * @param request - Incoming Next.js request
+ * @returns A response that preserves any refreshed authentication cookies
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isPublicRoute =
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/api/public/');
 
-  // Handle public routes
-  if (publicRoutes.includes(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Handle project routes
   if (pathname.startsWith('/project/')) {
     const projectIdMatch = pathname.match(/^\/project\/([^/]+)/);
-    const projectId = projectIdMatch?.[1];
+    const routeProjectId = projectIdMatch?.[1];
 
-    // Skip validation for /project/all routes
-    if (projectId === 'all') {
-      return await updateSession(request);
-    }
-
-    // Validate project ID format
-    if (!projectId || !/^prj-[a-z0-9]+-[a-z0-9]+$/.test(projectId)) {
-      // Rewrite to the not-found page while maintaining the URL
-      return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
-    }
-
-    // Check if project exists using edge-compatible Supabase client
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('id', projectId)
-        .limit(1)
-        .single();
-
-      if (error || !data) {
-        return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
-      }
-    } catch (error) {
-      console.error('[Middleware Project Check]:', error);
-      return NextResponse.rewrite(new URL('/project/[id]/not-found', request.url));
+    if (routeProjectId !== 'all' && !routeProjectId?.match(/^prj-[a-z0-9]+-[a-z0-9]+$/)) {
+      return updateSession(request, {
+        projectId: routeProjectId ?? 'invalid',
+        invalidProjectId: true,
+      });
     }
   }
 
-  // Handle authentication for all other routes
-  return await updateSession(request);
+  return updateSession(request, {
+    allowAnonymous: isPublicRoute,
+  });
 }
 
 export const config = {

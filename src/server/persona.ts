@@ -21,6 +21,7 @@ import { count, eq, inArray } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
+import { requireProjectAccess } from './authorization';
 
 /**
  * Create a new persona configuration
@@ -51,7 +52,12 @@ export const createPersonaConfig = createAction({
     traitsConfig: TraitsConfigSchema,
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     try {
       // Create the persona config in the database
       const [newConfig] = await db
@@ -97,7 +103,12 @@ export const getPersonaConfigById = createAction({
     id: z.string().min(1, 'Persona config ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona-config', id: input.id },
+    });
+
     try {
       // Get the persona config from the database
       const config = await db
@@ -141,7 +152,12 @@ export const getPersonaConfigsByProject = createAction({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     try {
       // Get all configs for the project
       const configs = await db
@@ -222,7 +238,12 @@ export const updatePersonaConfig = createAction({
     traitsConfig: TraitsConfigSchema.optional(),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona-config', id: input.id },
+    });
+
     try {
       // Check if the persona config exists
       const existingConfig = await db
@@ -280,7 +301,12 @@ export const deletePersonaConfig = createAction({
     id: z.string().min(1, 'Persona config ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona-config', id: input.id },
+    });
+
     try {
       // Check if the persona config exists
       const existingConfig = await db
@@ -324,22 +350,17 @@ const openai = new OpenAI({
 const hasTraitsConfigChanged = (oldConfig: PersonaConfig, newConfig: PersonaConfig): boolean => {
   // Compare size (number of personas)
   if (oldConfig.size !== newConfig.size) {
-    console.log(
-      `[hasTraitsConfigChanged]: Size changed from ${oldConfig.size} to ${newConfig.size}`
-    );
     return true;
   }
 
   // Compare constraints
   if (oldConfig.constraints !== newConfig.constraints) {
-    console.log('[hasTraitsConfigChanged]: Constraints changed');
     return true;
   }
 
   // Compare traits configuration - deep comparison needed
   if (!oldConfig.traitsConfig || !newConfig.traitsConfig) {
     // If either is missing, consider it a change
-    console.log('[hasTraitsConfigChanged]: One of the configs is missing traitsConfig');
     return true;
   }
 
@@ -352,16 +373,10 @@ const hasTraitsConfigChanged = (oldConfig: PersonaConfig, newConfig: PersonaConf
     const oldConfigStr = JSON.stringify(oldTraitsConfig, Object.keys(oldTraitsConfig).sort());
     const newConfigStr = JSON.stringify(newTraitsConfig, Object.keys(newTraitsConfig).sort());
 
-    const hasChanged = oldConfigStr !== newConfigStr;
-
-    if (hasChanged) {
-      console.log('[hasTraitsConfigChanged]: Traits configuration has changed');
-    }
-
-    return hasChanged;
+    return oldConfigStr !== newConfigStr;
   } catch (error) {
     // If comparison fails for any reason, consider it a change to be safe
-    console.error('[hasTraitsConfigChanged]: Error comparing traits configs:', error);
+    console.error('[Persona/hasTraitsConfigChanged]: ', error);
     return true;
   }
 };
@@ -446,7 +461,7 @@ async function generatePersonaNameAndDescription(
 
         // Get the first tool call from the response
         const toolCall = completion.choices[0].message.tool_calls?.[0];
-        if (!toolCall) {
+        if (!toolCall || toolCall.type !== 'function') {
           continue; // Try again if no tool call
         }
 
@@ -494,7 +509,12 @@ export const generatePersonas = createAction({
     personaConfigId: z.string().min(1, 'Persona config ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona-config', id: input.personaConfigId },
+    });
+
     try {
       // Get the persona config
       const configResult = await db
@@ -515,41 +535,52 @@ export const generatePersonas = createAction({
         // Delete existing personas for this config
         await tx.delete(personas).where(eq(personas.personaConfigId, input.personaConfigId));
 
-        // Generate new personas concurrently for maximum speed
+        // Generate personas in bounded batches to avoid rate-limit and connection spikes.
         const targetCount = config.size;
+        const generationBatchSize = 5;
+        const allResults: Array<{
+          personaConfigId: string;
+          name: string;
+          description: string;
+          traits: Traits;
+          createdAt: Date;
+          updatedAt: Date;
+        } | null> = [];
 
-        // Create an array of generation promises without any delays for fastest execution
-        const personaPromises = Array.from({ length: targetCount }).map(async (_, index) => {
-          try {
-            // 1. Generate traits
-            const traits = generatePersonaTraitsFromConfig(traitsConfig);
+        for (let batchStart = 0; batchStart < targetCount; batchStart += generationBatchSize) {
+          const batchSize = Math.min(generationBatchSize, targetCount - batchStart);
+          const batchResults = await Promise.all(
+            Array.from({ length: batchSize }).map(async (_, batchIndex) => {
+              const personaIndex = batchStart + batchIndex;
 
-            // 2. Generate name and description using OpenAI
-            const { name, description } = await generatePersonaNameAndDescription(
-              traits,
-              config.constraints
-            );
+              try {
+                const traits = generatePersonaTraitsFromConfig(traitsConfig);
+                const { name, description } = await generatePersonaNameAndDescription(
+                  traits,
+                  config.constraints
+                );
 
-            return {
-              personaConfigId: input.personaConfigId,
-              name,
-              description,
-              traits,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-          } catch (error) {
-            console.error(
-              `[generatePersonas]: Error generating persona ${index + 1}/${targetCount}:`,
-              error
-            );
-            return null; // Return null for failed generations
-          }
-        });
+                return {
+                  personaConfigId: input.personaConfigId,
+                  name,
+                  description,
+                  traits,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                };
+              } catch (error) {
+                console.error(
+                  `[Persona/generatePersonas]: Failed persona ${personaIndex + 1}/${targetCount}: `,
+                  error
+                );
+                return null;
+              }
+            })
+          );
 
-        // IMPORTANT! DANGER: This will call openai in parallel for each persona
-        // Wait for all persona generation promises to resolve concurrently
-        const allResults = await Promise.all(personaPromises);
+          allResults.push(...batchResults);
+        }
+
         // Filter out null values and ensure proper typing for database insertion
         const validResults = allResults.filter(
           (
@@ -600,7 +631,12 @@ export const shouldRegeneratePersonas = createAction({
     }),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona-config', id: input.oldConfigId },
+    });
+
     try {
       // Get the old persona config
       const oldConfigResult = await db
@@ -648,7 +684,12 @@ export const updatePersona = createAction({
       .refine(...createProfanityRefinement('Persona description contains inappropriate language')),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'persona', id: input.id },
+    });
+
     try {
       // Check if the persona exists
       const existingPersona = await db

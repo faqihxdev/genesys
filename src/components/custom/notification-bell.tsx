@@ -29,7 +29,7 @@ import { Fragment, useEffect, useRef } from 'react';
  */
 export function NotificationBell() {
   const { toast } = useToast();
-  const previousCount = useRef<number>();
+  const previousCount = useRef<number | undefined>(undefined);
 
   // Query for unread count
   const { data: unreadCount, isLoading: isLoadingCount } = useQuery({

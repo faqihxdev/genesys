@@ -4,12 +4,12 @@ This document outlines the analytics implementation for the Genesys project usin
 
 ## Overview
 
-Genesys uses [Umami Analytics](https://umami.is/) to track user metrics and behavior. Umami is a privacy-focused, GDPR-compliant, open-source analytics platform that provides insights without compromising user privacy.
+Genesys optionally supports [Umami Analytics](https://umami.is/) for aggregate usage metrics. Analytics is disabled unless the required public environment variable is configured.
 
 ## Key Features
 
 - **Privacy-first**: No cookies are used, and all data is anonymized
-- **GDPR-compliant**: Respects user privacy and provides necessary compliance
+- **Privacy-focused**: Supports analytics without application-set tracking cookies
 - **Lightweight**: Minimal impact on page load performance
 - **Easy to use**: Simple API for tracking custom events and page views
 - **Self-hostable**: Option to self-host for complete data ownership
@@ -17,15 +17,16 @@ Genesys uses [Umami Analytics](https://umami.is/) to track user metrics and beha
 - **Real-time data**: See user activity as it happens
 - **Free tier available**: Perfect for startups and small to medium projects
 
-## Setup Information
+## Setup
 
-The Umami Analytics is already fully configured in the application with the following hardcoded settings:
+Set these optional values in `.env`:
 
-- **Website ID**: `caf3880a-bef1-4e0a-821a-80171eecf8cd`
-- **Script URL**: `https://cloud.umami.is/script.js`
-- **Domain**: `genesys-theta.vercel.app`
+```dotenv
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=your-umami-website-id
+NEXT_PUBLIC_UMAMI_DOMAINS=your-domain.example
+```
 
-No additional configuration is needed - analytics will automatically track page views and user metrics.
+The provider uses Umami Cloud's script URL. When no website ID is configured, it renders no analytics script. Review your analytics and consent obligations before enabling it.
 
 ## Usage
 
@@ -42,11 +43,11 @@ import { useAnalytics } from '@/hooks/use-analytics';
 
 export function YourComponent() {
   const { trackEvent } = useAnalytics();
-  
+
   const handleAction = () => {
     trackEvent('button_clicked', {
       buttonName: 'signup_button',
-      page: 'homepage'
+      page: 'homepage',
     });
   };
 
@@ -81,8 +82,8 @@ Access your analytics at: https://cloud.umami.is/
 
 If you're not seeing analytics data:
 
-1. Check if you're accessing the site from the correct domain (`genesys-theta.vercel.app`)
-2. Verify the website ID is correct in the AnalyticsProvider component
+1. Check that the current hostname matches `NEXT_PUBLIC_UMAMI_DOMAINS`
+2. Verify `NEXT_PUBLIC_UMAMI_WEBSITE_ID` is a valid Umami website UUID
 3. Check that the script URL is accessible
 4. Check for any script blocking extensions in your browser
 5. Verify the Analytics Provider is correctly added to your layout
@@ -90,9 +91,10 @@ If you're not seeing analytics data:
 ## Privacy Considerations
 
 Umami is designed to be privacy-focused:
+
 - No cookies used
 - No persistent storage on the client
 - No personally identifiable information collected
-- Compliant with GDPR, CCPA, and PECR
+- Your deployment and configuration remain responsible for applicable privacy requirements
 
-This makes it an excellent choice for projects that need analytics while respecting user privacy.
+Review Umami's current documentation and your legal requirements before enabling analytics.

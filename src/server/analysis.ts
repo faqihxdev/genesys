@@ -23,6 +23,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
+import { requireProjectAccess } from './authorization';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -166,7 +167,7 @@ async function generateOpenAISummary(data: {
 
     // Get the first tool call from the response
     const toolCall = completion.choices[0].message.tool_calls?.[0];
-    if (!toolCall) {
+    if (!toolCall || toolCall.type !== 'function') {
       throw new Error('No tool call found in response');
     }
 
@@ -189,7 +190,12 @@ export const generateSimulationSummary = createAction({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'simulation', id: input.simulationId },
+    });
+
     // Start a transaction for atomic operations
     return await db.transaction(async (tx) => {
       // Check if summaries already exist
@@ -488,9 +494,17 @@ interface SimulationQueryResult {
   parametersJson: string | null;
   error: string | null;
   createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  personaConfigId: string;
   funnel: {
     id: string;
     name: string;
+    description: string | null;
+    projectId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | null;
     stages: Array<{
       id: string;
       name: string;
@@ -547,7 +561,12 @@ export const getSimulationAnalysis = createAction({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'simulation', id: input.simulationId },
+    });
+
     // Get simulation with funnel details
     const simulationResult = await db
       .select({
@@ -559,9 +578,17 @@ export const getSimulationAnalysis = createAction({
         parametersJson: simulations.parametersJson,
         error: simulations.error,
         createdAt: simulations.createdAt,
+        updatedAt: simulations.updatedAt,
+        deletedAt: simulations.deletedAt,
+        personaConfigId: simulations.personaConfigId,
         funnel: {
           id: funnels.id,
           name: funnels.name,
+          description: funnels.description,
+          projectId: funnels.projectId,
+          createdAt: funnels.createdAt,
+          updatedAt: funnels.updatedAt,
+          deletedAt: funnels.deletedAt,
         },
       })
       .from(simulations)
@@ -861,20 +888,20 @@ export const getSimulationAnalysis = createAction({
       parametersJson: simulation.parametersJson,
       error: simulation.error,
       createdAt: simulation.createdAt,
-      updatedAt: new Date(),
-      deletedAt: null,
-      personaConfigId: '',
+      updatedAt: simulation.updatedAt,
+      deletedAt: simulation.deletedAt,
+      personaConfigId: simulation.personaConfigId,
     };
 
     // Create the complete funnel object with all required properties
     const completeFunnel = {
       id: simulationWithStages.funnel.id,
       name: simulationWithStages.funnel.name,
-      description: null,
-      projectId: 'default',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null,
+      description: simulationWithStages.funnel.description,
+      projectId: simulationWithStages.funnel.projectId,
+      createdAt: simulationWithStages.funnel.createdAt,
+      updatedAt: simulationWithStages.funnel.updatedAt,
+      deletedAt: simulationWithStages.funnel.deletedAt,
     };
 
     const analysis: FunnelAnalysis = {
@@ -902,7 +929,12 @@ export const getProjectFunnelsWithSimulations = createAction({
     projectId: z.string().min(1, 'Project ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+    });
+
     // Single optimized query combining project check and funnel data
     const funnelsWithSimulations = await db
       .select({
@@ -941,7 +973,12 @@ export const getFunnelSimulations = createAction({
     funnelId: z.string().min(1, 'Funnel ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     // First check if funnel exists
     const funnel = await db.select().from(funnels).where(eq(funnels.id, input.funnelId)).limit(1);
 

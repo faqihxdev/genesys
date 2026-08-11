@@ -6,7 +6,7 @@
  */
 
 import { db } from '@/db';
-import { funnels } from '@/db/schema/funnel';
+import { funnels, stageLinks } from '@/db/schema/funnel';
 import { personaConfigs, personas } from '@/db/schema/persona';
 import { SimulationTaskPayload } from '@/db/schema/queue';
 import {
@@ -20,7 +20,7 @@ import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
-import { getFunnelWithFullData } from './funnel';
+import { AuthorizationError, requireProjectAccess } from './authorization';
 
 /**
  * Create a new simulation
@@ -33,8 +33,25 @@ export const createSimulation = createAction({
     funnelId: z.string().min(1, 'Funnel ID is required'),
     personaConfigId: z.string().min(1, 'Persona Config ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    const [funnelMembership, personaMembership] = await Promise.all([
+      requireProjectAccess({
+        userId: currentUser.id,
+        resource: { kind: 'funnel', id: input.funnelId },
+      }),
+      requireProjectAccess({
+        userId: currentUser.id,
+        resource: { kind: 'persona-config', id: input.personaConfigId },
+      }),
+    ]);
+
+    if (funnelMembership.projectId !== personaMembership.projectId) {
+      throw new AuthorizationError(
+        'Funnel and persona configuration must belong to the same project'
+      );
+    }
+
     try {
       // Get the funnel with all its stages
       const funnel = await db.query.funnels.findFirst({
@@ -112,7 +129,21 @@ export const createSimulation = createAction({
       await db.insert(simulationStages).values(simulationStagesValues);
 
       // Queue the simulation for processing
-      await queueSimulationInitialChunks(createdSimulation.id);
+      const queued = await queueSimulationInitialChunks(createdSimulation.id);
+      if (!queued) {
+        await db
+          .update(simulations)
+          .set({
+            status: 'error',
+            error: 'Failed to queue all simulation tasks',
+          })
+          .where(eq(simulations.id, createdSimulation.id));
+
+        return fail({
+          message: 'Failed to queue simulation tasks',
+          status: 500,
+        });
+      }
 
       return {
         ...createdSimulation,
@@ -138,8 +169,13 @@ export const getSimulationStatus = createAction({
   validator: z.object({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'simulation', id: input.simulationId },
+    });
+
     try {
       // Get the simulation with its stages
       const simulation = await db.query.simulations.findFirst({
@@ -197,8 +233,13 @@ export const cancelSimulation = createAction({
   validator: z.object({
     simulationId: z.string().min(1, 'Simulation ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'simulation', id: input.simulationId },
+    });
+
     try {
       // Get the simulation
       const simulation = await db.query.simulations.findFirst({
@@ -268,7 +309,9 @@ async function queueSimulationInitialChunks(simulationId: string): Promise<boole
     });
 
     if (!simulation) {
-      console.error(`[queueSimulationInitialChunks] Simulation ${simulationId} not found`);
+      console.error(
+        `[Simulation/queueSimulationInitialChunks]: Simulation ${simulationId} not found`
+      );
       return false;
     }
 
@@ -279,28 +322,36 @@ async function queueSimulationInitialChunks(simulationId: string): Promise<boole
 
     if (personaList.length === 0) {
       console.error(
-        `[queueSimulationInitialChunks] No personas found for simulation ${simulationId}`
+        `[Simulation/queueSimulationInitialChunks]: No personas found for simulation ${simulationId}`
       );
       return false;
     }
 
-    // Get the funnel with all its data
-    const funnel = await withQuery(getFunnelWithFullData)({ funnelId: simulation.funnelId });
+    const [funnel, funnelStageLinks] = await Promise.all([
+      db.query.funnels.findFirst({
+        where: eq(funnels.id, simulation.funnelId),
+        with: {
+          stages: true,
+        },
+      }),
+      db.select().from(stageLinks).where(eq(stageLinks.funnelId, simulation.funnelId)),
+    ]);
+
     if (!funnel || funnel.stages.length === 0) {
       console.error(
-        `[queueSimulationInitialChunks] Funnel data invalid for simulation ${simulationId}`
+        `[Simulation/queueSimulationInitialChunks]: Funnel data invalid for simulation ${simulationId}`
       );
       return false;
     }
 
     // Find all starting stages (those with no incoming links)
     const allStageIds = funnel.stages.map((stage) => stage.id);
-    const linkedToStageIds = funnel.stageLinks.map((link) => link.toStageId);
+    const linkedToStageIds = funnelStageLinks.map((link) => link.toStageId);
     const startingStageIds = allStageIds.filter((id) => !linkedToStageIds.includes(id));
 
     if (startingStageIds.length === 0) {
       console.error(
-        `[queueSimulationInitialChunks] No starting stages found for funnel ${simulation.funnelId}`
+        `[Simulation/queueSimulationInitialChunks]: No starting stages found for funnel ${simulation.funnelId}`
       );
       return false;
     }
@@ -324,26 +375,26 @@ async function queueSimulationInitialChunks(simulationId: string): Promise<boole
       }
     }
 
+    const expectedTaskCount = personaList.length * startingStageIds.length;
+    if (queuedCount !== expectedTaskCount) {
+      console.error(
+        `[Simulation/queueSimulationInitialChunks]: Queued ${queuedCount}/${expectedTaskCount} tasks`
+      );
+      return false;
+    }
+
     // Update the simulation status to processing
     await db
       .update(simulations)
       .set({ status: 'processing' })
       .where(eq(simulations.id, simulationId));
 
-    console.log(
-      `[queueSimulationInitialChunks] Queued ${queuedCount} chunks for simulation ${simulationId}`
-    );
     return true;
   } catch (error) {
-    console.error('[queueSimulationInitialChunks]:', error);
+    console.error('[Simulation/queueSimulationInitialChunks]: ', error);
     return false;
   }
 }
-
-/**
- * Helper function to run withQuery from utils
- */
-import { withQuery } from '@/lib/utils';
 
 /**
  * Get any active simulations for a funnel
@@ -355,8 +406,13 @@ export const getActiveFunnelSimulation = createAction({
   validator: z.object({
     funnelId: z.string().min(1, 'Funnel ID is required'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'funnel', id: input.funnelId },
+    });
+
     try {
       // Find any simulation for this funnel that is not complete, cancelled, or errored
       const activeSimulation = await db.query.simulations.findFirst({

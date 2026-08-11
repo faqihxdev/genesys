@@ -103,16 +103,7 @@ export function InviteMemberDialog({ projectId }: InviteMemberDialogProps) {
     try {
       setIsSearching(true);
       // Search for existing user
-      const { data: existingUser, error } = await searchUsersByEmail({ email });
-
-      if (error) {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to check user existence',
-          variant: 'destructive',
-        });
-        return;
-      }
+      const existingUser = await withQuery(searchUsersByEmail)({ projectId, email });
 
       setInviteList((current) => [
         ...current,

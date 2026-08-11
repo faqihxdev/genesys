@@ -1,7 +1,10 @@
 import { timestamp } from 'drizzle-orm/pg-core';
+import { customAlphabet } from 'nanoid';
 
 export const ID_LENGTH = 13;
 export const SUPABASE_USER_ID_LENGTH = 36;
+const ID_ALPHABET = 'abcdefghijkmnopqrstuvwxyz23456789';
+const generateRandomIdSegment = customAlphabet(ID_ALPHABET);
 
 export const timestamps = {
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -10,7 +13,7 @@ export const timestamps = {
 };
 
 /**
- * Generates a unique ID with configurable total length (including prefix)
+ * @description Generates a cryptographically random ID with a configurable total length.
  * @param options Configuration options for ID generation
  * @returns A string in the format '[prefix]xxxx-xxxx' with total specified length
  * @example
@@ -18,18 +21,22 @@ export const timestamps = {
  * generateId({ length: 8 }) // => 'k3m5-n2p'
  */
 export const generateId = ({ length = 10, prefix = '' }) => {
-  if (prefix && (length < prefix.length || !/^[a-z0-9_-]+$/.test(prefix))) throw Error('invalid');
-  const c = 'abcdefghijkmnopqrstuvwxyz23456789',
-    g = 4,
+  if (
+    !Number.isInteger(length) ||
+    length < prefix.length + 1 ||
+    (prefix && !/^[a-z0-9_-]+$/.test(prefix))
+  ) {
+    throw new Error('ID length or prefix is invalid');
+  }
+
+  const g = 4,
     p = prefix ? prefix.length : 0,
     R = length - p;
   let u = 0;
   const a = [];
   while (u < R) {
     const L = u + g >= R ? R - u : g;
-    let s = '';
-    for (let i = 0; i < L; i++) s += c[(Math.random() * c.length) | 0];
-    a.push(s);
+    a.push(generateRandomIdSegment(L));
     u += L + (u + g >= R ? 0 : 1);
   }
   return (prefix || '') + a.join('-');

@@ -3,16 +3,17 @@
  * This function will be deployed to Supabase Edge Functions and triggered by a cron job
  */
 
-// @ts-ignore
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-// @ts-ignore
-import OpenAI from 'https://esm.sh/openai@4.17.0';
+import { createClient } from 'npm:@supabase/supabase-js@2.112.2';
+import OpenAI from 'npm:openai@7.4.0';
 
 // Environment variables will be injected by Supabase
-// @ts-ignore
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''; // @ts-ignore
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''; // @ts-ignore
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+
+if (!supabaseUrl || !supabaseServiceKey || !openaiApiKey) {
+  throw new Error('SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and OPENAI_API_KEY are required');
+}
 
 // Create Supabase client with default schema
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -571,7 +572,7 @@ async function generatePersonaResponse(
         });
         openaiCallCount++;
         const toolCall = completion.choices[0].message.tool_calls?.[0];
-        if (!toolCall) {
+        if (!toolCall || toolCall.type !== 'function') {
           throw new Error('No tool call in response');
         }
         const args = JSON.parse(toolCall.function.arguments);
@@ -868,7 +869,7 @@ Select the stage that best matches your preferences and explain your choice.`;
         });
         openaiCallCount++;
         const toolCall = completion.choices[0].message.tool_calls?.[0];
-        if (!toolCall) {
+        if (!toolCall || toolCall.type !== 'function') {
           throw new Error('No tool call in response');
         }
         const args = JSON.parse(toolCall.function.arguments);

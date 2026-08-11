@@ -2,11 +2,14 @@
 
 import { db } from '@/db';
 import { projectInvites, projectUsers } from '@/db/schema';
+import {
+  getUserDirectoryEntries,
+  getUserDirectoryEntryByEmail,
+} from '@/lib/supabase/user-directory';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
-import { isProjectOwner } from './projects';
-import { getUsersByIds, searchUsersByEmail } from './users';
+import { _isProjectOwner } from './projects';
 
 // ==================================================
 // CREATE
@@ -25,22 +28,12 @@ export const createProjectInvite = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner({
-      projectId: input.projectId,
-      userId: currentUser.id,
-    });
-    if (ownerError) return fail(ownerError);
+    const isOwner = await _isProjectOwner(input.projectId, currentUser.id);
     if (!isOwner) {
       return fail({ message: 'Only project owners can invite members', status: 403 });
     }
 
-    // Search for user by email
-    const { data: invitedUser, error: searchError } = await searchUsersByEmail({
-      email: input.email,
-    });
-
-    if (searchError) return fail(searchError);
+    const invitedUser = await getUserDirectoryEntryByEmail(input.email);
     if (!invitedUser) {
       return fail({ message: 'User not found', status: 404 });
     }
@@ -105,13 +98,7 @@ export const getProjectInvites = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user is project owner
-    const { data: isOwner, error: ownerError } = await isProjectOwner({
-      projectId: input.projectId,
-      userId: currentUser.id,
-    });
-    if (ownerError) return fail(ownerError);
-
+    const isOwner = await _isProjectOwner(input.projectId, currentUser.id);
     if (!isOwner) {
       return fail({ message: 'Only project owners can view invites', status: 403 });
     }
@@ -130,7 +117,7 @@ export const getProjectInvites = createAction({
     // Get user emails for the invites
     const userIds = [...new Set(invites.map((i) => [i.invitedUserId, i.inviterUserId]).flat())];
 
-    const { data: users } = await getUsersByIds({ userIds });
+    const users = await getUserDirectoryEntries(userIds);
     const userMap = new Map(users?.map((u) => [u.id, u.email]) || []);
 
     return invites.map((invite) => ({
@@ -168,16 +155,16 @@ export const getUserInvites = createAction({
     const projectIds = invites.map((i) => i.projectId);
     const inviterIds = invites.map((i) => i.inviterUserId);
 
-    const [projects, { data: users }] = await Promise.all([
+    const [projects, users] = await Promise.all([
       db.query.projects.findMany({
         where: (projects, { inArray }) => inArray(projects.id, projectIds),
         columns: { id: true, name: true },
       }),
-      getUsersByIds({ userIds: inviterIds }),
+      getUserDirectoryEntries(inviterIds),
     ]);
 
     const projectMap = new Map(projects.map((p) => [p.id, p.name]));
-    const userMap = new Map(users?.map((u) => [u.id, u.email]) || []);
+    const userMap = new Map(users.map((user) => [user.id, user.email]));
 
     return invites.map((invite) => ({
       id: invite.id,
@@ -293,12 +280,7 @@ export const removeProjectInvite = createAction({
         return fail({ message: 'Invite not found', status: 404 });
       }
 
-      // Check if user is project owner
-      const { data: isOwner, error: ownerError } = await isProjectOwner({
-        projectId: invite.projectId,
-        userId: currentUser.id,
-      });
-      if (ownerError) return fail(ownerError);
+      const isOwner = await _isProjectOwner(invite.projectId, currentUser.id);
       if (!isOwner) {
         return fail({ message: 'Only project owners can remove invites', status: 403 });
       }

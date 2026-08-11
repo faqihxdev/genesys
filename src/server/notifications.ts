@@ -1,54 +1,11 @@
 'use server';
 
 import { db } from '@/db';
-import type { NotificationCategory, NotificationMetadata, NotificationType } from '@/db/schema';
+import type { NotificationCategory, NotificationType } from '@/db/schema';
 import { notifications } from '@/db/schema';
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction } from './_utils';
-
-// ==================================================
-// CREATE
-// ==================================================
-
-/**
- * @description Create a new notification
- * @param input - The notification data
- * @returns Promise with the created notification
- */
-export const createNotification = createAction({
-  name: 'createNotification',
-  validator: z.object({
-    userId: z.string().min(1, 'User ID is required'),
-    category: z.string().min(1, 'Category is required'),
-    type: z.string().min(1, 'Type is required'),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-    title: z.string().min(1, 'Title is required'),
-    message: z.string().min(1, 'Message is required'),
-    actionUrl: z.string().optional(),
-    metadata: z.record(z.any()).optional(),
-    expiresAt: z.date().optional(),
-  }),
-  requireAuth: true,
-  actionFn: async ({ input }) => {
-    const [notification] = await db
-      .insert(notifications)
-      .values({
-        userId: input.userId,
-        category: input.category as NotificationCategory,
-        type: input.type as NotificationType,
-        priority: input.priority || 'low',
-        title: input.title,
-        message: input.message,
-        actionUrl: input.actionUrl,
-        metadata: input.metadata as NotificationMetadata,
-        expiresAt: input.expiresAt,
-      })
-      .returning();
-
-    return notification;
-  },
-});
 
 // ==================================================
 // READ
@@ -244,54 +201,5 @@ export const markNotificationsAsUnread = createAction({
       .returning();
 
     return result.length > 0;
-  },
-});
-
-// ==================================================
-// DELETE
-// ==================================================
-
-/**
- * @description Delete expired notifications
- * @returns Promise with number of deleted notifications
- */
-export const deleteExpiredNotifications = createAction({
-  name: 'deleteExpiredNotifications',
-  validator: null,
-  requireAuth: false,
-  actionFn: async () => {
-    const result = await db
-      .delete(notifications)
-      .where(
-        and(lt(notifications.expiresAt!, new Date()), sql`${notifications.expiresAt} IS NOT NULL`)
-      )
-      .returning();
-
-    return result.length;
-  },
-});
-
-/**
- * @description Delete archived notifications older than the specified days
- * @param input - Days to keep archived notifications
- * @returns Promise with number of deleted notifications
- */
-export const deleteOldArchivedNotifications = createAction({
-  name: 'deleteOldArchivedNotifications',
-  validator: z.object({
-    daysToKeep: z.number().min(1).max(365).default(30),
-  }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
-    const daysToKeep = input.daysToKeep ?? 30;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-    const result = await db
-      .delete(notifications)
-      .where(and(eq(notifications.isArchived, true), lt(notifications.createdAt, cutoffDate)))
-      .returning();
-
-    return result.length;
   },
 });

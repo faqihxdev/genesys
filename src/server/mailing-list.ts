@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { mailingList } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
 
@@ -35,54 +35,25 @@ export const subscribeToMailingList = createAction({
       }
 
       // Restore soft deleted subscription
-      const [restoredSubscription] = await db
+      await db
         .update(mailingList)
         .set({
           description: input.description,
           deletedAt: null,
           updatedAt: new Date(),
         })
-        .where(eq(mailingList.id, existingSubscription.id))
-        .returning();
+        .where(eq(mailingList.id, existingSubscription.id));
 
-      return restoredSubscription;
+      return { subscribed: true };
     }
 
     // Create new subscription
-    const [newSubscription] = await db
-      .insert(mailingList)
-      .values({
-        email: input.email,
-        description: input.description,
-      })
-      .returning();
+    await db.insert(mailingList).values({
+      email: input.email,
+      description: input.description,
+    });
 
-    return newSubscription;
-  },
-});
-
-// ==================================================
-// READ
-// ==================================================
-
-/**
- * @description Check if an email is subscribed
- * @param input - The input object containing email
- * @returns Promise with boolean indicating if email is subscribed
- */
-export const isEmailSubscribed = createAction({
-  name: 'isEmailSubscribed',
-  validator: z.object({
-    email: z.string().email('Please enter a valid email'),
-  }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
-    const [subscription] = await db
-      .select()
-      .from(mailingList)
-      .where(and(eq(mailingList.email, input.email), isNull(mailingList.deletedAt)));
-
-    return !!subscription;
+    return { subscribed: true };
   },
 });
 
@@ -96,8 +67,12 @@ export const getSubscriptionByEmail = createAction({
   validator: z.object({
     email: z.string().email('Please enter a valid email'),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    if (!currentUser.email || currentUser.email.toLowerCase() !== input.email.toLowerCase()) {
+      return fail({ message: 'Access denied', status: 403 });
+    }
+
     const [subscription] = await db
       .select()
       .from(mailingList)
@@ -123,8 +98,12 @@ export const toggleSubscription = createAction({
     subscribed: z.boolean(),
     description: z.string().max(1000, 'Description must not exceed 1000 characters').optional(),
   }),
-  requireAuth: false,
-  actionFn: async ({ input }) => {
+  requireAuth: true,
+  actionFn: async ({ input, currentUser }) => {
+    if (!currentUser.email || currentUser.email.toLowerCase() !== input.email.toLowerCase()) {
+      return fail({ message: 'Access denied', status: 403 });
+    }
+
     const [existingSubscription] = await db
       .select()
       .from(mailingList)

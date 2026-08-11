@@ -4,8 +4,7 @@ import Link from 'next/link';
 
 const navLinks = [
   { href: '#features', label: 'Features' },
-  { href: '#customers', label: 'Customers' },
-  { href: '#pricing', label: 'Pricing' },
+  { href: '#project', label: 'Project' },
 ];
 
 export default function PublicLayout({
@@ -32,7 +31,7 @@ export default function PublicLayout({
               </Link>
               <div className='inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/30 border px-3 py-1 mr-8'>
                 <span className='text-[11px] font-medium text-indigo-700 dark:text-indigo-300 whitespace-nowrap'>
-                  Alpha Release
+                  NUS Guru Network
                 </span>
               </div>
 

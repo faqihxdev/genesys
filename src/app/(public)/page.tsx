@@ -85,9 +85,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 </div>
                 <div className='flex flex-col items-center'>
                   <h1 className='my-6 text-4xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight'>
-                    Predict Customer
+                    Model Customer
                     <br />
-                    Behavior with AI Precision
+                    Journeys with Synthetic Personas
                   </h1>
                 </div>
                 <p className='mt-6 mb-8 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto'>
@@ -97,16 +97,16 @@ export default async function Home({ searchParams }: HomeProps) {
                 <div className='flex flex-wrap items-center justify-center gap-4'>
                   <Link href='/auth?tab=signin'>
                     <Button size='lg' className='w-full max-w-[160px]'>
-                      Try it for free
+                      Explore the app
                     </Button>
                   </Link>
                   <Link
-                    href='https://youtu.be/UImOEvPzvRo'
+                    href='https://github.com/faqihxdev/genesys'
                     target='_blank'
-                    rel='noopener noreferrer'
+                    rel='noreferrer'
                   >
                     <Button size='lg' variant='outline' className='w-full max-w-[160px]'>
-                      Watch Demo
+                      View source
                     </Button>
                   </Link>
                 </div>
@@ -183,11 +183,11 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className='py-24 border-t'>
               <div className='text-center mb-16'>
                 <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>
-                  AI-Driven Simulation At Scale
+                  Built for end-to-end exploration
                 </h2>
                 <p className='text-muted-foreground text-base sm:text-lg'>
-                  Our platform efficiently processes thousands of synthetic personas with
-                  industry-standard latency.
+                  A full-stack system covering persona generation, branching journeys, queued
+                  simulation, and analysis.
                 </p>
               </div>
 
@@ -195,23 +195,23 @@ export default async function Home({ searchParams }: HomeProps) {
                 {[
                   {
                     icon: LucideDatabase,
-                    label: 'Personas Generated',
-                    value: '50K+',
+                    label: 'Persona generation',
+                    value: 'Batched',
                   },
                   {
                     icon: LucideUsers,
-                    label: 'Supported Scenarios',
-                    value: 'Unlimited',
+                    label: 'Journey scenarios',
+                    value: 'Branching',
                   },
                   {
                     icon: LucideTimer,
-                    label: 'Response Time',
-                    value: '<100ms',
+                    label: 'Simulation processing',
+                    value: 'Queued',
                   },
                   {
                     icon: LucideTarget,
-                    label: 'Platform Uptime',
-                    value: '99.99%',
+                    label: 'Resource access',
+                    value: 'Scoped',
                   },
                 ].map((stat) => (
                   <div key={stat.label} className='text-center p-6 rounded-lg border bg-card'>
@@ -239,7 +239,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   <div className='space-y-4'>
                     {[
                       'Instant persona generation',
-                      'Real-time behavior simulation',
+                      'Queue-backed behavior simulation',
                       'Advanced analysis dashboard',
                       'Custom scenario builder',
                     ].map((feature) => (
@@ -347,176 +347,29 @@ export default async function Home({ searchParams }: HomeProps) {
             </div>
             */}
 
-            {/* Pricing Section */}
-            <div id='pricing' className='py-24 border-t scroll-mt-16'>
-              <div className='text-center mb-16'>
+            {/* Project context section */}
+            <div id='project' className='py-24 border-t scroll-mt-16'>
+              <div className='mx-auto max-w-3xl text-center'>
                 <h2 className='text-2xl sm:text-3xl md:text-4xl font-bold mb-4'>
-                  Simple, credit-based pricing
+                  NUS Guru Network AI Innovation Project
                 </h2>
-                <p className='text-muted-foreground text-base sm:text-lg max-w-3xl mx-auto'>
-                  Start with our flexible plans and scale as you grow. Pay only for what you use.
+                <p className='text-muted-foreground text-base sm:text-lg'>
+                  Genesys was developed from January to May 2025 to explore how generative AI can
+                  support synthetic customer research and journey simulation.
                 </p>
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto px-4'>
-                {/* Individual Plan */}
-                <div className='rounded-xl border bg-card p-6 sm:p-8 flex flex-col h-full'>
-                  <div>
-                    <h3 className='text-lg font-semibold mb-2'>Individual</h3>
-                    <div className='flex items-baseline gap-2'>
-                      <span className='text-3xl font-bold'>$49</span>
-                      <span className='text-muted-foreground'>/month</span>
-                    </div>
-                    <p className='text-sm text-muted-foreground mt-2'>
-                      Perfect for individual researchers and small projects
-                    </p>
-                  </div>
-
-                  <div className='space-y-4 mt-8'>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>5,000 credits included</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span className='text-sm text-muted-foreground'>Up to 25 simulations</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>$0.008 per additional credit</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Basic analysis</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Email support</span>
-                    </div>
-                  </div>
-
-                  <div className='mt-auto pt-8'>
-                    <Link href='/auth?tab=signup'>
-                      <Button size='lg' variant='outline' className='w-full'>
-                        Get started
-                      </Button>
-                    </Link>
-                  </div>
+                <div className='mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row'>
+                  <Link href='/auth?tab=signup'>
+                    <Button size='lg'>Explore the application</Button>
+                  </Link>
+                  <Link
+                    href='https://github.com/faqihxdev/genesys'
+                    target='_blank'
+                    rel='noreferrer'
+                    className='text-sm font-medium text-primary hover:underline'
+                  >
+                    Review the source code
+                  </Link>
                 </div>
-
-                {/* Professional Plan */}
-                <div className='rounded-xl border-2 border-primary bg-card p-6 sm:p-8 relative overflow-hidden flex flex-col h-full shadow-lg'>
-                  <div className='absolute top-3 right-3'>
-                    <div className='bg-primary px-3 py-1 rounded-full'>
-                      <span className='text-xs text-primary-foreground font-medium'>Popular</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className='text-lg font-semibold mb-2'>Professional</h3>
-                    <div className='flex items-baseline gap-2'>
-                      <span className='text-3xl font-bold'>$149</span>
-                      <span className='text-muted-foreground'>/month</span>
-                    </div>
-                    <p className='text-sm text-muted-foreground mt-2'>
-                      For growing teams and businesses
-                    </p>
-                  </div>
-
-                  <div className='space-y-4 mt-8'>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>25,000 credits included</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span className='text-sm text-muted-foreground'>Up to 125 simulations</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>$0.005 per additional credit</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Advanced analysis</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Priority support</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>API access</span>
-                    </div>
-                  </div>
-
-                  <div className='mt-auto pt-8'>
-                    <Link href='/auth?tab=signup'>
-                      <Button size='lg' className='w-full'>
-                        Get started now
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Enterprise Plan */}
-                <div className='rounded-xl border bg-card p-6 sm:p-8 flex flex-col h-full'>
-                  <div>
-                    <h3 className='text-lg font-semibold mb-2'>Enterprise</h3>
-                    <div className='flex items-baseline gap-2'>
-                      <span className='text-3xl font-bold'>$499</span>
-                      <span className='text-muted-foreground'>/month</span>
-                    </div>
-                    <p className='text-sm text-muted-foreground mt-2'>
-                      For large organizations with advanced needs
-                    </p>
-                  </div>
-
-                  <div className='space-y-4 mt-8'>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>100,000 credits included</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span className='text-sm text-muted-foreground'>Up to 500 simulations</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>$0.003 per additional credit</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Enterprise analysis</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>24/7 priority support</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Custom integrations</span>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <div className='h-1.5 w-1.5 rounded-full bg-primary' />
-                      <span>Dedicated account manager</span>
-                    </div>
-                  </div>
-
-                  <div className='mt-auto pt-8'>
-                    <Link href='#stay-in-touch'>
-                      <Button size='lg' variant='outline' className='w-full'>
-                        Contact Us
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className='mt-16 text-center'>
-                <p className='text-sm text-muted-foreground'>
-                  Need a custom plan? Contact us for volume pricing and custom requirements.
-                </p>
               </div>
             </div>
 
@@ -539,24 +392,24 @@ export default async function Home({ searchParams }: HomeProps) {
                   {/* Content */}
                   <div className='relative z-10'>
                     <h2 className='text-3xl sm:text-4xl md:text-5xl font-bold mb-6'>
-                      Ready to transform your customer insights?
+                      Explore Genesys
                     </h2>
                     <p className='text-muted-foreground text-base sm:text-lg mb-8 max-w-2xl mx-auto'>
-                      Start generating synthetic personas and optimize your customer journey today.
+                      Review the workflow in the app or inspect the implementation on GitHub.
                     </p>
                     <div className='flex flex-col sm:flex-row items-center justify-center gap-4'>
                       <Link href='/auth?tab=signin'>
                         <Button size='lg' className='w-full sm:w-[200px]'>
-                          Try it for free
+                          Explore the app
                         </Button>
                       </Link>
                       <Link
-                        href='https://youtu.be/UImOEvPzvRo'
+                        href='https://github.com/faqihxdev/genesys'
                         target='_blank'
-                        rel='noopener noreferrer'
+                        rel='noreferrer'
                       >
                         <Button size='lg' variant='outline' className='w-full sm:w-[200px]'>
-                          Watch Demo
+                          View source
                         </Button>
                       </Link>
                     </div>
@@ -608,27 +461,48 @@ export default async function Home({ searchParams }: HomeProps) {
               {[
                 {
                   title: 'Product',
-                  links: ['Features', 'Security', 'Pricing', 'Resources'],
+                  links: [
+                    { label: 'Features', href: '#features' },
+                    { label: 'Security', href: '#security' },
+                    { label: 'Project', href: '#project' },
+                  ],
                 },
                 {
-                  title: 'Platform & Support',
-                  links: ['Developer API', 'Documentation', 'Help Center', 'Contact us'],
+                  title: 'Project',
+                  links: [
+                    { label: 'Source code', href: 'https://github.com/faqihxdev/genesys' },
+                    {
+                      label: 'Documentation',
+                      href: 'https://github.com/faqihxdev/genesys/tree/main/docs',
+                    },
+                    {
+                      label: 'Issues',
+                      href: 'https://github.com/faqihxdev/genesys/issues',
+                    },
+                  ],
                 },
                 {
-                  title: 'Company',
-                  links: ['About us', 'Blog', 'Terms', 'Privacy'],
+                  title: 'Legal',
+                  links: [
+                    { label: 'Terms', href: '/terms' },
+                    { label: 'Privacy', href: '/privacy' },
+                    {
+                      label: 'License',
+                      href: 'https://github.com/faqihxdev/genesys/blob/main/LICENSE',
+                    },
+                  ],
                 },
               ].map((section) => (
                 <div key={section.title}>
                   <h3 className='font-semibold mb-3'>{section.title}</h3>
                   <ul className='space-y-2'>
                     {section.links.map((link) => (
-                      <li key={link}>
+                      <li key={link.label}>
                         <Link
-                          href='#'
+                          href={link.href}
                           className='text-sm text-muted-foreground hover:text-primary transition-colors'
                         >
-                          {link}
+                          {link.label}
                         </Link>
                       </li>
                     ))}
@@ -640,17 +514,23 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className='mt-12 pt-8 border-t'>
               <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
                 <div className='text-sm text-muted-foreground'>
-                  © {new Date().getFullYear()} Genesys. All rights reserved.
+                  © {new Date().getFullYear()} Genesys contributors. MIT licensed.
                 </div>
                 <div className='flex items-center gap-4'>
-                  <Link href='#' className='text-sm text-muted-foreground hover:text-primary'>
+                  <Link
+                    href='/privacy'
+                    className='text-sm text-muted-foreground hover:text-primary'
+                  >
                     Privacy
                   </Link>
-                  <Link href='#' className='text-sm text-muted-foreground hover:text-primary'>
+                  <Link href='/terms' className='text-sm text-muted-foreground hover:text-primary'>
                     Terms
                   </Link>
-                  <Link href='#' className='text-sm text-muted-foreground hover:text-primary'>
-                    Cookies
+                  <Link
+                    href='https://github.com/faqihxdev/genesys/blob/main/LICENSE'
+                    className='text-sm text-muted-foreground hover:text-primary'
+                  >
+                    License
                   </Link>
                 </div>
               </div>

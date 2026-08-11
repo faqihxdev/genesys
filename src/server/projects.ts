@@ -5,6 +5,7 @@ import { projectUsers, projects } from '@/db/schema';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
+import { requireProjectAccess } from './authorization';
 
 // ==================================================
 // CREATE
@@ -136,11 +137,14 @@ export const updateProject = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user has access using internal helper
-    const hasAccess = await _checkProjectAccess(input.projectId, currentUser.id);
-    if (!hasAccess) {
-      return fail({ message: 'Access denied', status: 403 });
-    }
+    await requireProjectAccess({
+      userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+      allowedRoles:
+        input.name !== undefined || input.description !== undefined
+          ? ['owner']
+          : ['owner', 'member'],
+    });
 
     return await db.transaction(async (tx) => {
       let project;
@@ -229,31 +233,11 @@ export const deleteProject = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    // Check if user has access to this project
-    const { data: hasAccess, error: accessError } = await checkProjectAccess({
-      projectId: input.projectId,
+    await requireProjectAccess({
       userId: currentUser.id,
+      resource: { kind: 'project', id: input.projectId },
+      allowedRoles: ['owner'],
     });
-    if (accessError) return fail(accessError);
-    if (!hasAccess) {
-      return fail({ message: 'Access denied', status: 403 });
-    }
-
-    // Check if user is the owner
-    const [projectUser] = await db
-      .select()
-      .from(projectUsers)
-      .where(
-        and(
-          eq(projectUsers.projectId, input.projectId),
-          eq(projectUsers.userId, currentUser.id),
-          eq(projectUsers.role, 'owner')
-        )
-      );
-
-    if (!projectUser) {
-      return fail({ message: 'Only project owners can delete projects', status: 403 });
-    }
 
     const [project] = await db.delete(projects).where(eq(projects.id, input.projectId)).returning();
 
@@ -308,11 +292,10 @@ export const checkProjectAccess = createAction({
   name: 'checkProjectAccess',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
-    userId: z.string().min(1, 'User ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
-    return _checkProjectAccess(input.projectId, input.userId);
+  actionFn: async ({ input, currentUser }) => {
+    return _checkProjectAccess(input.projectId, currentUser.id);
   },
 });
 
@@ -326,11 +309,10 @@ export const isProjectOwner = createAction({
   name: 'isProjectOwner',
   validator: z.object({
     projectId: z.string().min(1, 'Project ID is required'),
-    userId: z.string().min(1, 'User ID is required'),
   }),
   requireAuth: true,
-  actionFn: async ({ input }) => {
-    return _isProjectOwner(input.projectId, input.userId);
+  actionFn: async ({ input, currentUser }) => {
+    return _isProjectOwner(input.projectId, currentUser.id);
   },
 });
 

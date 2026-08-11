@@ -45,7 +45,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
   // Check if project exists and user has access
   const [projectResult, accessResult] = await Promise.all([
     getProjectById({ projectId: resolvedParams.id }),
-    checkProjectAccess({ projectId: resolvedParams.id, userId: user.id }),
+    checkProjectAccess({ projectId: resolvedParams.id }),
   ]);
 
   // Handle project not found

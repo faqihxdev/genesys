@@ -13,12 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/query-client';
-import { queryKey } from '@/lib/query-keys';
 import { withQuery } from '@/lib/utils';
-import { isEmailSubscribed, subscribeToMailingList } from '@/server/mailing-list';
+import { subscribeToMailingList } from '@/server/mailing-list';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -54,13 +52,6 @@ export function MailingListDialog({
     },
   });
 
-  // Check if email is already subscribed
-  const { data: isSubscribed } = useQuery({
-    queryKey: queryKey.mailingList.isEmailSubscribed({ email: form.watch('email') }),
-    queryFn: () => withQuery(isEmailSubscribed)({ email: form.watch('email') }),
-    enabled: !!form.watch('email') && form.watch('email').includes('@'),
-  });
-
   // Subscribe mutation
   const { mutate: subscribe, isPending } = useMutation({
     mutationFn: (data: MailingListForm) => withQuery(subscribeToMailingList)(data),
@@ -69,15 +60,6 @@ export function MailingListDialog({
         title: 'Subscribed successfully',
         description: 'Thank you for subscribing to our mailing list!',
         variant: 'success',
-      });
-
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({
-        queryKey: queryKey.mailingList.isEmailSubscribed({ email: form.getValues('email') }),
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: queryKey.mailingList.getSubscriptionByEmail({ email: form.getValues('email') }),
       });
 
       onSuccess?.();
@@ -101,15 +83,6 @@ export function MailingListDialog({
   }, [defaultEmail, form]);
 
   const onSubmit = (data: MailingListForm) => {
-    if (isSubscribed) {
-      toast({
-        title: 'Already subscribed',
-        description: 'This email is already subscribed to our mailing list.',
-        variant: 'default',
-      });
-      return;
-    }
-
     subscribe(data);
   };
 
@@ -131,7 +104,7 @@ export function MailingListDialog({
                   <FormControl>
                     <Input type='email' placeholder='Enter your email' {...field} />
                   </FormControl>
-                  <FormMessage>{isSubscribed && 'This email is already subscribed'}</FormMessage>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -155,13 +128,9 @@ export function MailingListDialog({
             />
 
             <DialogFooter>
-              <Button
-                type='submit'
-                disabled={isPending || isSubscribed}
-                className='w-full sm:w-auto'
-              >
+              <Button type='submit' disabled={isPending} className='w-full sm:w-auto'>
                 {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-                {isSubscribed ? 'Already Subscribed' : 'Subscribe'}
+                Subscribe
               </Button>
             </DialogFooter>
           </form>

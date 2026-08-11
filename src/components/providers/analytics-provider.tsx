@@ -5,6 +5,7 @@
  */
 'use client';
 
+import env from '@/env';
 import Script from 'next/script';
 
 export interface AnalyticsProviderProps {
@@ -13,17 +14,21 @@ export interface AnalyticsProviderProps {
 
 // Main provider just adds the script and renders children
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
+  const websiteId = env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+
   return (
     <>
-      <Script
-        async
-        src='https://cloud.umami.is/script.js'
-        data-website-id='caf3880a-bef1-4e0a-821a-80171eecf8cd'
-        strategy='afterInteractive'
-        data-domains='genesys-theta.vercel.app'
-      />
+      {websiteId ? (
+        <Script
+          async
+          src='https://cloud.umami.is/script.js'
+          data-website-id={websiteId}
+          strategy='afterInteractive'
+          data-domains={env.NEXT_PUBLIC_UMAMI_DOMAINS}
+        />
+      ) : null}
       {children}
-      <AnalyticsTracker />
+      {websiteId ? <AnalyticsTracker /> : null}
     </>
   );
 }
@@ -71,7 +76,7 @@ function SearchParamsTracker() {
           (window.umami as UmamiV1).trackView(pathname);
         }
       } catch (error) {
-        console.error('[AnalyticsProvider/trackPageView]:', error);
+        console.error('[AnalyticsProvider/trackPageView]: ', error);
       }
     };
 

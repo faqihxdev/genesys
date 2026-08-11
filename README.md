@@ -1,489 +1,152 @@
-# 🌟 Genesys
+# Genesys
 
-A generative AI-powered platform that creates diverse synthetic customer personas to simulate unique behaviors through marketing funnels, revealing friction points and conversion triggers for global campaign optimization.
+Genesys is a generative-AI system for creating synthetic customer personas, running them through
+branching marketing funnels, and surfacing conversion friction and behavioral patterns. It was
+developed for the NUS Guru Network AI Innovation Project from January to May 2025.
 
-## 📸 Screenshot
+> [!NOTE]
+> This repository contains the project's public source release. Billing is not connected, no public
+> demo credentials are included, and AI-generated findings require human review.
 
-![Genesys Platform Screenshot](./.github/docs/screenshot.png)
-_AI-Powered Customer Behavior Simulation Platform_
+![Genesys analysis dashboard](public/landing-analysis.png)
 
-## 🚀 Features
+## Core capabilities
 
-- 🤖 AI-Powered Persona Generation
-- 📊 Marketing Funnel Simulation
-- 📈 Conversion Analysis
-- 🎯 Friction Point Detection
-- 🔄 Campaign Optimization
-- 👥 Team Collaboration
-- 📨 Notification System
-- 🎫 Support System
+- Configurable synthetic persona generation with structured traits
+- Visual branching-funnel authoring with React Flow
+- Queue-backed, multi-persona simulation processing
+- Stage and item-level summaries with conversion and sentiment analysis
+- Multi-project collaboration with owner/member roles
+- Supabase authentication, PostgreSQL persistence, and Drizzle ORM
+- Accessible responsive UI, dark mode, and reusable shadcn/ui primitives
 
-## 🛠️ Tech Stack
+## Architecture
 
-- ⚛️ **Frontend Framework**: React 19 with NextJS 15
-- 🔷 **Language**: TypeScript
-- 🎨 **Styling**: Tailwind CSS + ShadcnUI
-- 🔄 **State Management**: Jotai
-- 🎯 **Form Handling**: React Hook Form
-- ✨ **Icons**: Lucide React
-- 🔍 **Data Fetching**: Tanstack Query
-- 🗄️ **Database**: Supabase
-- 🔒 **Authentication**: Supabase Auth
-- 📦 **Package Manager**: pnpm
-- 🚀 **Deployment**: Vercel
-- ✅ **Validation**: Zod
-
-## 📁 Project Structure
-
+```mermaid
+flowchart LR
+  Browser[Next.js client] --> Actions[Validated server actions]
+  Actions --> Auth[Supabase Auth]
+  Actions --> Access[Project authorization module]
+  Access --> DB[(PostgreSQL)]
+  Actions --> DB
+  Actions --> Queue[Supabase queue]
+  Queue --> Worker[Edge Function worker]
+  Worker --> OpenAI[OpenAI]
+  Worker --> DB
 ```
+
+Security-sensitive mutations pass through a shared server-action wrapper for validation and session
+checks, then through resource-level project authorization. Database access uses server-only
+credentials; service-role credentials are never exposed to the browser.
+
+## Stack
+
+- Next.js 15 and React 19
+- TypeScript
+- Tailwind CSS and shadcn/ui
+- TanStack Query, Jotai, React Hook Form, and Zod
+- Drizzle ORM and PostgreSQL
+- Supabase Auth and queue infrastructure
+- OpenAI
+- Vitest, ESLint, Prettier, and GitHub Actions
+
+## Local setup
+
+### Prerequisites
+
+- Node.js 22 or newer
+- pnpm 11 (the repository pins the package-manager version)
+- A Supabase project or compatible local PostgreSQL instance
+- An OpenAI API key for persona generation and analysis
+
+### Install
+
+```bash
+git clone https://github.com/faqihxdev/genesys.git
+cd genesys
+corepack enable
+pnpm install
+cp .env.example .env
+```
+
+Fill in `.env` with credentials from your own services. Never commit that file.
+
+| Variable                        | Purpose                                    |
+| ------------------------------- | ------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser-safe Supabase anonymous key        |
+| `SUPABASE_DATABASE_URL`         | PostgreSQL connection string               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only Supabase administration key    |
+| `OPENAI_API_KEY`                | Server-side OpenAI access                  |
+| `INVITE_CODE`                   | Private account-registration code          |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID`  | Optional Umami site identifier             |
+| `NEXT_PUBLIC_UMAMI_DOMAINS`     | Optional comma-separated analytics domains |
+
+### Database
+
+The initial Drizzle migration is tracked in `supabase/migrations`.
+
+```bash
+pnpm db:migrate
+```
+
+Run migrations only against a database you control. `pnpm db:generate` creates a migration from
+schema changes; `pnpm db:push` is intended for deliberate development use.
+
+### Run
+
+```bash
+pnpm dev
+```
+
+Open `http://localhost:3000`. Full simulation processing additionally requires the queue and Edge
+Function described in `docs/custom-queue-system.md`; the rest of the application can be reviewed
+without deploying those resources.
+
+## Verification
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test:coverage
+pnpm audit --prod --audit-level high
+pnpm build
+```
+
+Pull requests run the same checks in a read-only, least-privilege GitHub Actions workflow.
+
+## Project structure
+
+```text
 src/
-├── app/             # Next.js app router pages
-├── components/      # Reusable components
-├── db/             # Database schemas and utilities
-├── hooks/          # Custom React hooks
-├── lib/            # Utilities and libraries
-├── server/         # Server actions
-├── stores/         # Jotai state management
-├── middleware.ts   # Next.js middleware
-├── env.js          # Environment variables
-└── types.ts        # TypeScript definitions
+├── app/          # Next.js App Router routes
+├── components/   # Shared UI and funnel-builder modules
+├── db/           # Drizzle client and schemas
+├── hooks/        # Reusable React hooks
+├── lib/          # Server/client adapters and utilities
+├── server/       # Validated server actions and authorization
+└── stores/       # Jotai state
+
+supabase/
+├── functions/    # Queue-processing Edge Function
+└── migrations/   # Reproducible database schema
 ```
 
-## 🏗️ Architecture
+Additional design notes are available in `docs/`.
 
-### Database Schema
+## Security notes
 
-- Drizzle ORM with PostgreSQL
-- Consistent ID generation with prefixes
-- Timestamp tracking (created, updated, deleted)
-- Strong typing with TypeScript
-- Optimized indexing
+- Server actions validate inputs with Zod.
+- Project-backed resources require authenticated membership.
+- Owner-only operations enforce the project role on the server.
+- Authentication redirects are restricted to same-origin paths.
+- Database TLS certificate verification remains enabled in production.
+- Optional analytics identifiers are environment-configured.
 
-### Server Actions
+If you find a vulnerability, avoid including credentials or personal data in a public issue. Contact
+the repository owner privately through their GitHub profile.
 
-- Type-safe server functions
-- Built-in Zod validation
-- Comprehensive error handling
-- Authentication middleware
-- Clear separation of concerns
+## License
 
-### API Patterns
-
-- RESTful CRUD operations
-- Server-side validation
-- Type-safe query keys
-- Error handling and logging
-- Auth checks and middleware
-
-## 🚦 Getting Started
-
-1. **Prerequisites**
-
-   ```bash
-   node >= 18.0.0
-   pnpm >= 9.0.0
-   ```
-
-2. **Installation**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **Environment Setup**
-
-   ```bash
-   cp .env.example .env
-   # Fill in your environment variables
-   ```
-
-4. **Database Setup**
-
-   ```bash
-   pnpm db:generate  # Generate migrations
-   pnpm db:push     # Push to database
-   ```
-
-5. **Development**
-
-   ```bash
-   pnpm dev
-   ```
-
-6. **Build**
-
-   ```bash
-   pnpm build
-   pnpm start
-   ```
-
-## 🧪 Development Guidelines
-
-### Coding Standards
-
-- Use JSDocs for functions and components
-- Follow TypeScript best practices
-- Implement proper error handling
-- Write mobile-responsive components
-- Support both light and dark themes
-
-### Component Guidelines
-
-- Use ShadcnUI when possible
-- Implement proper loading states
-- Handle all error cases
-- Follow accessibility best practices
-- Use React Hook Form for forms
-
-### State Management
-
-- Use Jotai for global state
-- Keep state close to where it's used
-- Implement proper loading states
-- Handle error states
-- Use proper TypeScript types
-
-## 📖 Development Guide
-
-### Server Actions Pattern
-
-```typescript
-// Example of a server action with error handling
-export const createProject = createAction({
-  // Zod validator for input
-  validator: z.object({
-    name: z.string().min(1, 'Name is required'),
-    description: z.string().optional(),
-  }),
-  // Require authentication
-  requireAuth: true,
-  // Action implementation
-  actionFn: async ({ input, currentUser }) => {
-    // Check permissions
-    const { data: hasAccess, error: accessError } = await checkAccess(input.projectId);
-    if (accessError) return fail(accessError);
-    if (!hasAccess) {
-      return fail({ message: 'Access denied', status: 403 });
-    }
-
-    try {
-      // Implementation
-      const result = await db.transaction(async (tx) => {
-        // ... implementation
-      });
-
-      return result;
-    } catch (error) {
-      console.error('[createProject]:', error);
-      return fail({
-        message: 'Failed to create project',
-        status: 500,
-      });
-    }
-  },
-});
-```
-
-Key points:
-
-- Built-in error handling with fail() helper
-- Consistent error response structure
-- Proper error propagation
-- Type-safe input and output
-- Automatic error logging
-- Transaction support with error handling
-
-### Response Type
-
-```typescript
-// Standard response type for all server actions
-type ActionResponse<T> = {
-  data: T | null;
-  error: ActionError | null;
-};
-
-// Standard error type
-type ActionError = {
-  message: string;
-  status: number;
-  errors?: ZodError['errors'];
-};
-
-// Example usage
-const { data, error } = await createProject({
-  name: 'New Project',
-  description: 'Description',
-});
-
-if (error) {
-  // Handle error based on status code
-  switch (error.status) {
-    case 400: // Bad Request
-    case 401: // Unauthorized
-    case 403: // Forbidden
-    case 404: // Not Found
-    case 409: // Conflict
-    case 500: // Server Error
-  }
-}
-```
-
-### withQuery Wrapper Pattern
-
-```typescript
-// Type-safe query wrapper that handles ActionResponse
-export function withQuery<TInput, TOutput>(
-  action: (input: TInput) => Promise<ActionResponse<TOutput>>
-): (input: TInput) => Promise<TOutput>;
-
-// Usage with direct call
-const project = await withQuery(getProjectById)({ projectId: 'prj-123' });
-
-// Usage with TanStack Query
-const { data: project } = useQuery({
-  queryKey: queryKey.projects.getProjectById({ projectId }),
-  queryFn: withQuery(() => getProjectById({ projectId })),
-});
-```
-
-### Data Fetching Pattern
-
-```typescript
-// Example component showing the complete pattern
-export default function ProjectPage({ projectId }: { projectId: string }) {
-  // Query with proper key management and error handling
-  const { data: project, error } = useQuery({
-    queryKey: queryKey.projects.getProjectById({ projectId }),
-    queryFn: withQuery(() => getProjectById({ projectId })),
-  });
-
-  // Mutation example
-  const { mutate: updateProject } = useMutation({
-    mutationFn: withQuery(updateProjectDetails),
-    onSuccess: () => {
-      // Invalidate queries and show success message
-      queryClient.invalidateQueries({
-        queryKey: queryKey.projects.getProjectById({ projectId }),
-      });
-      toast({ title: 'Project updated successfully' });
-    },
-    onError: (error) => {
-      // Error is automatically handled and typed
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Usage in event handlers
-  const handleUpdate = async (data: UpdateProjectInput) => {
-    try {
-      await updateProject({ projectId, ...data });
-    } catch (error) {
-      // Error handling with proper types
-      console.error('[ProjectPage/handleUpdate]:', error);
-    }
-  };
-
-  return (
-    <div>
-      {/* Components using the fetched data */}
-    </div>
-  );
-}
-```
-
-Key points:
-
-- Complete type safety from server to client
-- Consistent error handling across the stack
-- Centralized query key management
-- Automatic error transformation
-- Built-in loading states
-- Proper cache invalidation
-- Toast notification integration
-
-### Query Key Management
-
-```typescript
-// Type-safe query keys in query-keys.ts
-export const queryKey = {
-  projects: {
-    getProjectById: ({ projectId }: { projectId: string }) =>
-      ['projects', 'detail', projectId] as const,
-    getCurrentUserProjects: () => ['projects', 'user'] as const,
-  },
-} as const;
-```
-
-Key points:
-
-- Centralized query key management
-- Type-safe key generation
-- Consistent key structure
-- Prevents key conflicts
-- Easy refactoring
-
-### Database Schema Pattern
-
-```typescript
-// Example schema definition
-export const projects = pgTable(
-  'projects',
-  {
-    id: text().$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'prj-' })),
-    name: text().notNull(),
-    description: text(),
-    ...timestamps,
-  },
-  (table) => [index('project_name_idx').on(table.name)]
-);
-
-// Relations definition
-export const projectsRelations = relations(projects, ({ many }) => ({
-  users: many(projectUsers),
-}));
-```
-
-Key points:
-
-- Use consistent ID generation with prefixes
-- Include standard timestamps
-- Define proper indexes
-- Use relations for type safety
-- Export inferred types
-
-### Error Handling Pattern
-
-```typescript
-// 1. Server Action throws error
-if (!hasPermission) {
-  return fail({ message: 'Access denied', status: 403 });
-}
-
-// 2. withQuery transforms error
-// Inside withQuery implementation
-if (response.error) {
-  throw new Error(response.error.message);
-}
-
-// 3. TanStack Query catches error
-const { error } = useQuery({
-  queryKey: queryKey.projects.getProjectById({ projectId }),
-  queryFn: withQuery(() => getProjectById({ projectId })),
-});
-
-// 4. Component handles error
-if (error) {
-  toast({
-    title: 'Error',
-    description: error.message,
-    variant: 'destructive',
-  });
-}
-```
-
-Key points:
-
-- Use fail() helper for standardized error responses
-- Consistent HTTP status codes:
-  - 400 Bad Request for validation errors
-  - 401 Unauthorized for auth errors
-  - 403 Forbidden for permission errors
-  - 404 Not Found for missing resources
-  - 409 Conflict for resource conflicts
-  - 500 Server Error for internal errors
-- Proper error propagation
-- Context-aware error messages
-- Type-safe error handling
-
-### State Management Pattern
-
-```typescript
-// Atom definition
-export const userSettingsAtom = atom({
-  key: 'userSettings',
-  default: null as UserSettings | null,
-});
-
-// Derived state
-export const userThemeAtom = atom((get) => {
-  const settings = get(userSettingsAtom);
-  return settings?.theme ?? 'system';
-});
-```
-
-Key points:
-
-- Use atoms for global state
-- Derive state when possible
-- Keep state minimal
-- Type-safe state
-- Clear state dependencies
-
-### Form Handling Pattern
-
-```typescript
-// Form schema
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
-});
-
-// Form component
-export const ProjectForm = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-  });
-
-  return (
-    <Form {...form}>
-      {/* Form fields */}
-    </Form>
-  );
-};
-```
-
-Key points:
-
-- Use Zod for form validation
-- Type-safe form fields
-- Consistent error messages
-- Reusable form schemas
-- Proper form state management
-
-## 🔒 Security
-
-- Invite-only registration system
-- Supabase authentication
-- Role-based access control
-- Secure environment variables
-- Input validation and sanitization
-
-## 🚀 Deployment
-
-The application is deployed on Vercel with the following configuration:
-
-- Automatic deployments from main branch
-- Environment variable management
-- Edge functions support
-- Serverless functions
-- Global CDN
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📝 License
-
-This project is proprietary and confidential.
-
-## 👥 Team
-
-Made with ❤️ by Genesys Team
+Released under the [MIT License](LICENSE).

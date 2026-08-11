@@ -1,0 +1,21 @@
+packages:
+  - .
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  supabase: true
+
+engineStrict: true
+
+overrides:
+  '@babel/runtime@<7.26.10': 7.29.7
+  '@react-spring/animated': 10.1.2
+  '@react-spring/core': 10.1.2
+  '@react-spring/shared': 10.1.2
+  '@react-spring/web': 10.1.2
+  lodash: 4.18.1
+  nanoid@<3.3.17: 3.3.17
+  picomatch@<2.3.2: 2.3.2
+  postcss@<8.5.26: 8.5.26
+  sharp@<0.35.3: 0.35.3

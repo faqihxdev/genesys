@@ -210,10 +210,7 @@ export default function AccountPage() {
 
     setIsSubmitting(true);
     try {
-      await resetPassword({
-        email: data.email,
-        redirectTo: `${window.location.origin}/account`,
-      });
+      await withQuery(resetPassword)({ email: data.email });
       toast({
         title: 'Reset link sent',
         description: 'Check your email for the password reset link.',

@@ -507,7 +507,7 @@ export function FlowContextMenu({ children }: FlowContextMenuProps) {
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNodeSubmenu, setShowNodeSubmenu] = useState(false);
-  const closeTimeoutRef = useRef<NodeJS.Timeout>();
+  const closeTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleAddNode = useCallback(
     (type: BuilderNodeType) => {

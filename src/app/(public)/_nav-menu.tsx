@@ -98,7 +98,7 @@ export function NavMenu({ navLinks }: NavMenuProps) {
           <Button variant='ghost'>Sign in</Button>
         </Link>
         <Link href='/auth?tab=signup'>
-          <Button>Start For Free</Button>
+          <Button>Open App</Button>
         </Link>
       </div>
 
@@ -114,7 +114,7 @@ export function NavMenu({ navLinks }: NavMenuProps) {
               </Button>
             </Link>
             <Link href='/auth?tab=signup'>
-              <Button className='w-full'>Start For Free</Button>
+              <Button className='w-full'>Open App</Button>
             </Link>
           </>
         )}
