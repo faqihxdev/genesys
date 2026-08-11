@@ -4,7 +4,7 @@ Genesys is a generative-AI system for creating synthetic customer personas, runn
 branching marketing funnels, and surfacing conversion friction and behavioral patterns. It was
 developed for the NUS Guru Network AI Innovation Project from January to May 2025.
 
-![Genesys analysis dashboard](public/landing-analysis.png)
+![Genesys landing page](public/landing-page.png)
 
 ## Core capabilities
 
