@@ -1,9 +1,9 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, integer, jsonb, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
+import { enumColumn, index, integer, jsonColumn, sqliteTable, text } from './sqlite';
 
 /**
  * Constants for persona traits to ensure consistency across the application
@@ -347,13 +347,13 @@ export const TraitsSchema = z.object({
  * Persona config type enum
  * Defines whether the persona configuration is a preset or custom
  */
-export const personaConfigTypeEnum = pgEnum('persona_config_type', ['preset', 'custom']);
+export const personaConfigTypeEnum = enumColumn('persona_config_type', ['preset', 'custom']);
 
 /**
  * Persona config table
  * Represents a configuration for generating multiple personas with specific characteristics
  */
-export const personaConfigs = pgTable(
+export const personaConfigs = sqliteTable(
   'persona_configs',
   {
     id: text('id')
@@ -367,7 +367,7 @@ export const personaConfigs = pgTable(
     type: personaConfigTypeEnum('persona_config_type').notNull().default('custom'), // config is preset or custom
     size: integer('size').notNull(), // number of personas to generate
     constraints: text('constraints').notNull(), // custom constraints to generate the persona
-    traitsConfig: jsonb('traits_config').notNull(), // configuration for traits with ranges/options
+    traitsConfig: jsonColumn('traits_config').notNull(), // configuration for traits with ranges/options
     ...timestamps,
   },
   (table) => [
@@ -381,7 +381,7 @@ export const personaConfigs = pgTable(
  * Persona table
  * Represents an individual persona generated from a persona config
  */
-export const personas = pgTable(
+export const personas = sqliteTable(
   'personas',
   {
     id: text('id')
@@ -392,7 +392,7 @@ export const personas = pgTable(
       .notNull(),
     name: text('name').notNull(), // user reference: name of the persona
     description: text('description'), // user reference: description of the persona
-    traits: jsonb('traits').notNull(), // traits of the persona (specific values from config)
+    traits: jsonColumn('traits').notNull(), // traits of the persona (specific values from config)
     ...timestamps,
   },
   (table) => [

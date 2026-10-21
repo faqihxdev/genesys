@@ -2,10 +2,7 @@
 
 import { db } from '@/db';
 import { projectUsers } from '@/db/schema';
-import {
-  getUserDirectoryEntries,
-  getUserDirectoryEntryByEmail,
-} from '@/lib/supabase/user-directory';
+import { getUserDirectoryEntries, getUserDirectoryEntryByEmail } from '@/lib/user-directory';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';

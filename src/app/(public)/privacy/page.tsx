@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <main className='mx-auto min-h-screen max-w-3xl px-6 py-24'>
       <article className='space-y-6 text-muted-foreground'>
         <h1 className='text-4xl font-bold tracking-tight text-foreground'>Privacy Policy</h1>
-        <p className='text-sm'>Last updated: August 11, 2026</p>
+        <p className='text-sm'>Last updated: October 21, 2026</p>
         <p>
           Genesys was developed for the NUS Guru Network AI Innovation Project. This notice explains
           the categories of information the application code is designed to process.
@@ -18,8 +18,9 @@ export default function PrivacyPage() {
         </p>
         <h2 className='text-2xl font-semibold text-foreground'>Service providers</h2>
         <p>
-          Supabase provides authentication and data storage. OpenAI processes prompts required for
-          persona generation and analysis. Optional Umami analytics runs only when configured by the
+          Cloudflare hosts the application, stores account and project data in D1, and processes
+          background simulation jobs with Queues. OpenAI processes prompts for persona generation,
+          simulations, and analysis. Optional Umami analytics runs only when configured by the
           operator.
         </p>
         <h2 className='text-2xl font-semibold text-foreground'>Data choices</h2>

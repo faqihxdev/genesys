@@ -1,30 +1,30 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
-
-const compat = new FlatCompat({
-  baseDirectory: dirname,
-});
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextVitals,
+  ...nextTypescript,
   {
     ignores: [
       '.next/**',
+      '.open-next/**',
+      '.wrangler/**',
+      '.dev/**',
       'build/**',
       'coverage/**',
       'node_modules/**',
       'out/**',
       'prompt/**',
-      'supabase/functions/**',
       'next-env.d.ts',
     ],
   },
   {
     rules: {
+      // React Compiler is not enabled. Preserve the existing UI's hook lint profile.
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/purity': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

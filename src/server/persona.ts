@@ -15,10 +15,9 @@ import {
   TraitsConfig,
   TraitsConfigSchema,
 } from '@/db/schema/persona';
-import env from '@/env';
+import { AI_MODEL, getAI } from '@/lib/ai';
 import { generatePersonaTraitsFromConfig } from '@/lib/persona-utils';
 import { count, eq, inArray } from 'drizzle-orm';
-import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
 import { requireProjectAccess } from './authorization';
@@ -47,7 +46,7 @@ export const createPersonaConfig = createAction({
         )
       ),
     type: z.enum(['preset', 'custom']).default('custom'),
-    size: z.number().int().min(1, 'Size must be at least 1').max(100, 'Size cannot exceed 100'),
+    size: z.number().int().min(1, 'Size must be at least 1').max(25, 'Size cannot exceed 25'),
     constraints: z.string().default(''),
     traitsConfig: TraitsConfigSchema,
   }),
@@ -232,7 +231,7 @@ export const updatePersonaConfig = createAction({
       .number()
       .int()
       .min(1, 'Size must be at least 1')
-      .max(100, 'Size cannot exceed 100')
+      .max(25, 'Size cannot exceed 25')
       .optional(),
     constraints: z.string().optional(),
     traitsConfig: TraitsConfigSchema.optional(),
@@ -336,11 +335,6 @@ export const deletePersonaConfig = createAction({
   },
 });
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-});
-
 /**
  * Compare persona configs to determine if traits configuration has changed
  * @param oldConfig - The old persona configuration
@@ -414,8 +408,9 @@ async function generatePersonaNameAndDescription(
     while (attempt < maxAttempts && !result) {
       try {
         attempt++;
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini', // Use GPT-4o mini, OpenAI's fastest model
+        const completion = await getAI().chat.completions.create({
+          model: AI_MODEL,
+          reasoning_effort: 'minimal',
           messages: [
             {
               role: 'system',
@@ -455,8 +450,7 @@ async function generatePersonaNameAndDescription(
             },
           ],
           tool_choice: { type: 'function', function: { name: 'generate_persona_details' } },
-          max_tokens: 500, // Limit token usage for faster response
-          temperature: 0.7, // Slightly lower temperature for faster and more consistent results
+          max_completion_tokens: 700,
         });
 
         // Get the first tool call from the response
@@ -530,11 +524,8 @@ export const generatePersonas = createAction({
       const config = configResult[0];
       const traitsConfig = config.traitsConfig as TraitsConfig;
 
-      // Use a transaction to ensure atomicity
-      return await db.transaction(async (tx) => {
-        // Delete existing personas for this config
-        await tx.delete(personas).where(eq(personas.personaConfigId, input.personaConfigId));
-
+      // Generate first, then replace the stored personas in one D1 batch.
+      return await (async () => {
         // Generate personas in bounded batches to avoid rate-limit and connection spikes.
         const targetCount = config.size;
         const generationBatchSize = 5;
@@ -596,14 +587,19 @@ export const generatePersonas = createAction({
         );
 
         // Insert all valid personas into the database in one bulk operation
-        const insertedPersonas =
-          validResults.length > 0 ? await tx.insert(personas).values(validResults).returning() : [];
+        if (validResults.length !== targetCount)
+          throw new Error('No personas could be generated. Existing personas were preserved.');
+        const [, ...inserted] = await db.batch([
+          db.delete(personas).where(eq(personas.personaConfigId, input.personaConfigId)),
+          ...validResults.map((value) => db.insert(personas).values(value).returning()),
+        ]);
+        const insertedPersonas = inserted.flat();
 
         return {
           ...config,
           personas: insertedPersonas,
         };
-      });
+      })();
     } catch (error) {
       console.error('[generatePersonas]: Critical error:', error);
       return fail({

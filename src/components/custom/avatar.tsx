@@ -1,4 +1,4 @@
-import { User } from '@supabase/supabase-js';
+import type { User } from '@/db/schema/auth';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { AvatarFallback, AvatarImage, Avatar as BaseAvatar } from '@/components/ui/avatar';
@@ -54,7 +54,7 @@ export function Avatar({
 
     // Try to get initials from email or name
     const email = user.email;
-    const name = user.user_metadata?.full_name || user.user_metadata?.name;
+    const name = user.name;
 
     if (name) {
       return name
@@ -76,13 +76,13 @@ export function Avatar({
   const getAvatarSrc = () => {
     if (src) return src;
     if (!user) return undefined;
-    return user.user_metadata?.avatar_url || user.user_metadata?.picture;
+    return user.image ?? undefined;
   };
 
   // Get the accessible name
   const getAriaLabel = () => {
     if (!user) return 'Avatar';
-    return `Avatar for ${user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'user'}`;
+    return `Avatar for ${user.name || user.email || 'user'}`;
   };
 
   const variantStyles = avatarVariants({ size, shape });

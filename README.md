@@ -1,152 +1,137 @@
 # Genesys
 
-Genesys is a generative-AI system for creating synthetic customer personas, running them through
-branching marketing funnels, and surfacing conversion friction and behavioral patterns. It was
-developed for the NUS Guru Network AI Innovation Project from January to May 2025.
+Genesys creates synthetic customer personas, runs them through branching marketing funnels, and
+summarizes conversion and sentiment. It was developed for the NUS Guru Network AI Innovation
+Project from January to May 2025.
 
 ![Genesys landing page](public/landing-page.png)
 
-## Core capabilities
-
-- Configurable synthetic persona generation with structured traits
-- Visual branching-funnel authoring with React Flow
-- Queue-backed, multi-persona simulation processing
-- Stage and item-level summaries with conversion and sentiment analysis
-- Multi-project collaboration with owner/member roles
-- Supabase authentication, PostgreSQL persistence, and Drizzle ORM
-- Accessible responsive UI, dark mode, and reusable shadcn/ui primitives
+Production: [genesys.utf.sh](https://genesys.utf.sh)
 
 ## Architecture
 
-```mermaid
-flowchart LR
-  Browser[Next.js client] --> Actions[Validated server actions]
-  Actions --> Auth[Supabase Auth]
-  Actions --> Access[Project authorization module]
-  Access --> DB[(PostgreSQL)]
-  Actions --> DB
-  Actions --> Queue[Supabase queue]
-  Queue --> Worker[Edge Function worker]
-  Worker --> OpenAI[OpenAI]
-  Worker --> DB
-```
+The application uses Next.js 16, React 19, TypeScript, Drizzle ORM, Tailwind CSS, and shadcn/ui.
+Cloudflare Workers hosts the web application through OpenNext. Better Auth stores accounts and
+sessions in Cloudflare D1. Cloudflare Queues runs simulations in a separate private Worker.
+OpenAI GPT-5 nano generates personas, simulation responses, and summaries.
 
-Security-sensitive mutations pass through a shared server-action wrapper for validation and session
-checks, then through resource-level project authorization. Database access uses server-only
-credentials; service-role credentials are never exposed to the browser.
+Validated server actions enforce project membership and owner roles. Registration requires an
+invite code. Password changes require the current password. The October 2026 Cloudflare migration
+starts with an empty database.
 
-## Stack
+Cloudflare Workers, D1, and Queues use the Free plan. AI calls use the separately funded OpenAI
+Genesys project, configured with a $5 monthly spending cap. Hosting does not include OpenAI usage.
 
-- Next.js 15 and React 19
-- TypeScript
-- Tailwind CSS and shadcn/ui
-- TanStack Query, Jotai, React Hook Form, and Zod
-- Drizzle ORM and PostgreSQL
-- Supabase Auth and queue infrastructure
-- OpenAI
-- Vitest, ESLint, Prettier, and GitHub Actions
+## Local development
 
-## Local setup
-
-### Prerequisites
-
-- Node.js 24.15 or newer (24.x)
-- pnpm 11 (the repository pins the package-manager version)
-- A Supabase project or compatible local PostgreSQL instance
-- An OpenAI API key for persona generation and analysis
-
-### Install
+Use Node.js 24.15.x and pnpm 11.1.1.
 
 ```bash
-git clone https://github.com/faqihxdev/genesys.git
-cd genesys
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile
 cp .env.example .env
 ```
 
-Fill in `.env` with credentials from your own services. Never commit that file.
+Set three server-side values in `.env`. Never commit this file.
 
-| Variable                        | Purpose                                    |
-| ------------------------------- | ------------------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                       |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser-safe Supabase anonymous key        |
-| `SUPABASE_DATABASE_URL`         | PostgreSQL connection string               |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only Supabase administration key    |
-| `OPENAI_API_KEY`                | Server-side OpenAI access                  |
-| `INVITE_CODE`                   | Private account-registration code          |
-| `NEXT_PUBLIC_UMAMI_WEBSITE_ID`  | Optional Umami site identifier             |
-| `NEXT_PUBLIC_UMAMI_DOMAINS`     | Optional comma-separated analytics domains |
+| Variable             | Purpose                                              |
+| -------------------- | ---------------------------------------------------- |
+| `OPENAI_API_KEY`     | Restricted OpenAI project key                        |
+| `INVITE_CODE`        | Private registration code                            |
+| `BETTER_AUTH_SECRET` | Random authentication secret, at least 32 characters |
 
-### Database
-
-The initial Drizzle migration is tracked in `supabase/migrations`.
+Development scripts copy these values to ignored `.dev.vars` for the local Cloudflare runtime.
+`APP_ORIGIN`, database bindings, and queue bindings live in the Wrangler configuration.
+Optional analytics configuration is in [docs/ANALYTICS.md](docs/ANALYTICS.md).
 
 ```bash
 pnpm db:migrate
-```
-
-Run migrations only against a database you control. `pnpm db:generate` creates a migration from
-schema changes; `pnpm db:push` is intended for deliberate development use.
-
-### Run
-
-```bash
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Simulation processing uses the queue and Edge Function described in
-`docs/custom-queue-system.md`.
+Open `http://localhost:3000`. Local D1 data is separate from production.
+
+OpenNext does not guarantee full Windows build support. Use Linux CI for production packaging.
+Standard Next.js development works on Windows. See the
+[OpenNext Windows guidance](https://opennext.js.org/cloudflare#windows-support).
+
+## Deployment
+
+`wrangler.jsonc` configures the web Worker, D1 database, queue producer, and `genesys.utf.sh` custom
+domain. `wrangler.simulations.jsonc` configures the private queue consumer. Both use the Free plan's
+default CPU limits.
+
+Authenticate Wrangler to the Cloudflare account. For a new account, create a D1 database named
+`genesys` and a queue named `genesys-simulations`, then set the database ID in both Wrangler files.
+
+```bash
+pnpm db:migrate:remote
+pnpm exec wrangler secret bulk .env
+pnpm exec wrangler secret put OPENAI_API_KEY --config wrangler.simulations.jsonc
+pnpm exec wrangler deploy --config wrangler.simulations.jsonc
+```
+
+The consumer needs only `OPENAI_API_KEY`. The web Worker needs all three secrets. These are runtime
+bindings and are not required for CI builds.
+
+CI checks formatting, lint, types, tests, dependency audit, and the Linux OpenNext build. Successful
+runs provide a `cloudflare-build` artifact with one-day retention. To deploy it from Windows,
+download the artifact and extract `cloudflare-build.tgz` into the matching checkout, then run:
+
+```bash
+pnpm exec opennextjs-cloudflare deploy
+```
+
+This deploys the extracted `.open-next` bundle without rebuilding. Apply database migrations and
+queue-consumer changes separately. On Linux, `pnpm deploy` builds and deploys the web Worker.
+Use `pnpm build:cloudflare` followed by `pnpm preview` to test the packaged application locally.
+
+## Free-tier bounds
+
+Workers Free permits 100,000 requests per day and 10 ms CPU per request. Network wait time does
+not count as CPU time. Quotas can reject requests. Do not upgrade automatically.
+
+Persona configurations support up to 25 personas. Funnels support 20 stages, 60 content items in
+total, and 20 items per stage. Connections must form an acyclic graph with one starting stage.
+Queue jobs process one persona at one stage, reuse saved decisions on redelivery, and retry
+transient failures a bounded number of times. Use a small persona count while testing.
+
+Provider limits: [Workers](https://developers.cloudflare.com/workers/platform/limits/),
+[D1](https://developers.cloudflare.com/d1/platform/pricing/),
+[Queues](https://developers.cloudflare.com/queues/platform/pricing/).
 
 ## Verification
 
 ```bash
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test:coverage
-pnpm audit --prod --audit-level high
-pnpm build
+pnpm check
+pnpm audit:prod
+pnpm build:cloudflare
 ```
 
-GitHub Actions runs the same checks in a read-only, least-privilege workflow.
+Tests cover authorization, safe redirects, identifiers, password verification, and funnel graph
+validation. Deployment checks should also cover registration, sign-in, project access, persona
+generation, queue completion, and summary generation against a disposable project.
 
-## Project structure
+## Layout
 
 ```text
-src/
-├── app/          # Next.js App Router routes
-├── components/   # Shared UI and funnel-builder modules
-├── db/           # Drizzle client and schemas
-├── hooks/        # Reusable React hooks
-├── lib/          # Server/client adapters and utilities
-├── server/       # Validated server actions and authorization
-└── stores/       # Jotai state
-
-supabase/
-├── functions/    # Queue-processing Edge Function
-└── migrations/   # Reproducible database schema
+src/app/       Next.js routes and UI
+src/db/        D1 client and Drizzle schemas
+src/lib/       Authentication, AI, and runtime helpers
+src/server/    Validated server actions and authorization
+workers/       Queue consumer
+migrations/    D1 migrations
+scripts/       Local configuration helpers
 ```
 
-Additional design notes are available in `docs/`.
+Queue behavior is documented in [docs/custom-queue-system.md](docs/custom-queue-system.md).
 
-## Security notes
+## Contributions and security
 
-- Server actions validate inputs with Zod.
-- Project-backed resources require authenticated membership.
-- Owner-only operations enforce the project role on the server.
-- Authentication redirects are restricted to same-origin paths.
-- Database TLS certificate verification remains enabled in production.
-- Optional analytics identifiers are environment-configured.
-
-If you find a vulnerability, avoid including credentials or personal data in a public issue. Contact
-the repository owner privately through their GitHub profile.
-
-## Contributions
-
-Development is managed by the project maintainers. External contributions and pull requests are not
-accepted.
+Maintainers manage development. External contributions and pull requests are not accepted.
+Report vulnerabilities privately to the repository owner through their GitHub profile. Do not put
+credentials or personal data in public issues.
 
 ## License
 
-Released under the [MIT License](LICENSE).
+[MIT](LICENSE).

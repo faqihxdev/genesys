@@ -1,42 +1,19 @@
 import 'server-only';
 
-import env from '@/env';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { createDatabase } from './client';
 
-// Database connection string from Supabase
-const connectionString = env.SUPABASE_DATABASE_URL;
+function getDatabase() {
+  return createDatabase(getCloudflareContext().env.DB);
+}
 
-// Connection options
-const connectionOptions = {
-  max: 3, // Limited pool for serverless
-  idle_timeout: 20, // Close idle connections after 20 seconds
-  connect_timeout: 10, // Connection timeout after 10 seconds
-  prepare: false, // Disable prepared statements
-  ssl:
-    env.NODE_ENV === 'production'
-      ? {
-          rejectUnauthorized: true, // Verify the managed database certificate in production
-        }
-      : false,
-  connection: {
-    application_name: 'genesys', // Add application name for monitoring
+export type DbClient = ReturnType<typeof getDatabase>;
+
+// Bind each query to its request rather than retaining another request's handle.
+export const db = new Proxy({} as DbClient, {
+  get(_target, property) {
+    const database = getDatabase();
+    const value = Reflect.get(database, property);
+    return typeof value === 'function' ? value.bind(database) : value;
   },
-};
-
-// Create the connection
-export const client = postgres(connectionString, connectionOptions);
-
-// Create the database instance with schema
-export const db = drizzle(client, { schema });
-
-// Helper type for all tables
-export type DbClient = typeof db;
-
-// Handle cleanup on app termination
-process.on('SIGTERM', () => {
-  client.end().catch((err) => {
-    console.error('[Database/SIGTERM]: ', err);
-  });
 });

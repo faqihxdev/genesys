@@ -1,14 +1,14 @@
 import { relations } from 'drizzle-orm';
-import { decimal, index, pgTable, text } from 'drizzle-orm/pg-core';
 import { generateId, ID_LENGTH, timestamps } from './_utils';
 import { stageItems, stages } from './funnel';
 import { simulations } from './simulation';
+import { decimal, index, sqliteTable, text } from './sqlite';
 
 /**
  * Summary table schema
  * Contains the overall summary and analysis for a simulation
  */
-export const summary = pgTable(
+export const summary = sqliteTable(
   'summary',
   {
     id: text('id')
@@ -34,7 +34,7 @@ export const summary = pgTable(
  * Summary stages table schema
  * Contains summary and analysis for each stage in a simulation
  */
-export const summaryStages = pgTable(
+export const summaryStages = sqliteTable(
   'summary_stages',
   {
     id: text('id')
@@ -64,7 +64,7 @@ export const summaryStages = pgTable(
  * Summary stage items table schema
  * Contains summary and analysis for each stage item in a simulation
  */
-export const summaryStageItems = pgTable(
+export const summaryStageItems = sqliteTable(
   'summary_stage_items',
   {
     id: text('id')

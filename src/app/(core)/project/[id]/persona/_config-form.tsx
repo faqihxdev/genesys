@@ -94,7 +94,7 @@ export default function PersonaConfigForm({
     defaultValues: {
       name: '',
       description: '',
-      size: 30,
+      size: 10,
       constraints: '',
       traitsConfig: {},
     },
@@ -693,7 +693,7 @@ export default function PersonaConfigForm({
                   rules={{
                     required: 'Size is required',
                     min: { value: 1, message: 'Must generate at least 1 persona' },
-                    max: { value: 100, message: 'Cannot generate more than 100 personas' },
+                    max: { value: 25, message: 'Cannot generate more than 25 personas' },
                   }}
                   render={({ field, fieldState }) => (
                     <>
@@ -701,7 +701,7 @@ export default function PersonaConfigForm({
                         id='size'
                         type='number'
                         min={1}
-                        max={100}
+                        max={25}
                         className='mt-1'
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         value={field.value}

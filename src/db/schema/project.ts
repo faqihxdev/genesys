@@ -1,16 +1,16 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, index, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
+import { boolean, enumColumn, index, primaryKey, sqliteTable, text } from './sqlite';
 /**
  * Project user role enum
  */
-export const projectUserRoleEnum = pgEnum('project_user_role', ['owner', 'member']);
+export const projectUserRoleEnum = enumColumn('project_user_role', ['owner', 'member']);
 
 /**
  * Projects table schema
  */
-export const projects = pgTable(
+export const projects = sqliteTable(
   'projects',
   {
     id: text('id')
@@ -29,13 +29,13 @@ export const projects = pgTable(
  * Project-User junction table schema
  * To store the users who are members of the project
  */
-export const projectUsers = pgTable(
+export const projectUsers = sqliteTable(
   'project_users',
   {
     projectId: text('project_id') // FK: which project is this user a member of?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    userId: text('user_id').notNull(), // FK: which user is this? (Supabase auth.users)
+    userId: text('user_id').notNull(), // FK: which user is this? (auth_users)
     role: projectUserRoleEnum('project_user_role').notNull().default('member'), // role of the user in the project
     isDefault: boolean('is_default').notNull().default(false), // whether the project is the default project for the user
     ...timestamps,
