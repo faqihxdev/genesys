@@ -227,9 +227,14 @@ export default function AuthPage() {
       queryClient.invalidateQueries({ queryKey: queryKey.auth.getCurrentUser() });
       toast({
         title: 'Success',
-        description: 'Please check your email to verify your account',
+        description: 'Account created successfully',
         variant: 'success',
       });
+      const nextPath = getSafeRedirectPath(
+        new URLSearchParams(window.location.search).get('next'),
+        '/project/all'
+      );
+      router.replace(nextPath);
     },
     onError: (error) => {
       toast({
