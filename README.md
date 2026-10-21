@@ -129,8 +129,8 @@ Queue behavior is documented in [docs/custom-queue-system.md](docs/custom-queue-
 ## Contributions and security
 
 Maintainers manage development. External contributions and pull requests are not accepted.
-Report vulnerabilities privately to the repository owner through their GitHub profile. Do not put
-credentials or personal data in public issues.
+Report vulnerabilities through [GitHub private reporting](https://github.com/faqihxdev/genesys/security/advisories/new).
+See the [security policy](SECURITY.md) and [repository maintenance guide](docs/repository-protection.md).
 
 ## License
 
