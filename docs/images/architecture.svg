@@ -1,0 +1,117 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1280"
+  height="600"
+  viewBox="0 0 1280 600"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">Genesys architecture</title>
+  <desc id="description">
+    React and React Flow call a Next.js web Worker. The web Worker stores data and sessions in D1,
+    calls OpenAI for personas and summaries, and produces simulation jobs in Cloudflare Queues. A
+    private simulation Worker consumes those jobs, persists decisions in D1, and calls OpenAI for
+    stage decisions.
+  </desc>
+  <defs>
+    <marker
+      id="arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path
+        d="M 1 1 L 9 5 L 1 9"
+        fill="none"
+        stroke="#a99bf5"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </marker>
+    <style>
+      text {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      .node {
+        fill: #171823;
+        stroke: #38354d;
+        stroke-width: 1.5;
+      }
+      .accent {
+        fill: #201b38;
+        stroke: #7961d5;
+        stroke-width: 1.5;
+      }
+      .name {
+        fill: #f4f1ff;
+        font-size: 21px;
+        font-weight: 600;
+      }
+      .detail {
+        fill: #c1bdd2;
+        font-size: 16px;
+      }
+      .caption {
+        fill: #aaa5c0;
+        font-size: 14px;
+      }
+      .edge {
+        fill: none;
+        stroke: #a99bf5;
+        stroke-width: 2;
+        marker-end: url(#arrow);
+        stroke-linejoin: round;
+      }
+      .both {
+        marker-start: url(#arrow);
+      }
+    </style>
+  </defs>
+  <rect width="1280" height="600" rx="20" fill="#0e0f16" />
+  <text x="40" y="38" fill="#a99bf5" font-size="12" font-weight="600" letter-spacing="2">
+    GENESYS / SYSTEM ARCHITECTURE
+  </text>
+
+  <path class="edge" d="M 240 280 H 300" />
+  <path class="edge both" d="M 535 250 H 575 V 112 H 620" />
+  <path class="edge" d="M 535 310 H 575 V 287 H 620" />
+  <path class="edge" d="M 855 287 H 935" />
+  <path class="edge both" d="M 1075 242 V 112 H 855" />
+  <path class="edge" d="M 1075 352 V 455" />
+  <path class="edge" d="M 417 335 V 505 H 935" />
+  <text class="caption" x="666" y="490" text-anchor="middle">
+    Persona generation &amp; summaries
+  </text>
+  <text class="caption" x="1094" y="408">Stage decisions</text>
+
+  <rect class="node" x="40" y="225" width="200" height="110" rx="12" />
+  <text class="name" x="60" y="266">Browser</text>
+  <text class="detail" x="60" y="299">React 19 · React Flow</text>
+
+  <rect class="accent" x="300" y="225" width="235" height="110" rx="12" />
+  <text class="name" x="320" y="257">Web Worker</text>
+  <text class="detail" x="320" y="285">Next.js 16 · OpenNext</text>
+  <text class="caption" x="320" y="312">Validated server actions</text>
+
+  <rect class="node" x="620" y="62" width="235" height="110" rx="12" />
+  <text class="name" x="640" y="96">Cloudflare D1</text>
+  <text class="detail" x="640" y="124">Drizzle ORM · Better Auth</text>
+  <text class="caption" x="640" y="151">Application data &amp; sessions</text>
+
+  <rect class="node" x="620" y="242" width="235" height="90" rx="12" />
+  <text class="name" x="640" y="277">Cloudflare Queues</text>
+  <text class="caption" x="640" y="307">One persona × stage per job</text>
+
+  <rect class="accent" x="935" y="242" width="280" height="110" rx="12" />
+  <text class="name" x="955" y="274">Simulation Worker</text>
+  <text class="detail" x="955" y="302">Private queue consumer</text>
+  <text class="caption" x="955" y="329">Saved decisions · bounded retries</text>
+
+  <rect class="node" x="935" y="455" width="280" height="100" rx="12" />
+  <text class="name" x="955" y="496">OpenAI GPT-5 nano</text>
+  <text class="detail" x="955" y="527">Personas · decisions · summaries</text>
+</svg>
