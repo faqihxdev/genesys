@@ -12,7 +12,7 @@ Genesys uses Cloudflare Queues and D1. The web Worker produces messages; the pri
 2. It creates simulation and progress records, then sends one message per persona to the starting
    stage.
 3. The consumer reads the persona, stage, content, and allowed outgoing links from D1.
-4. GPT-5 nano returns structured reactions, sentiment, a proceed decision, and an allowed next stage.
+4. The GPT model returns structured reactions, sentiment, a proceed decision, and an allowed next stage.
 5. A D1 batch saves the decision, item responses, and progress together.
 6. The consumer queues the next stage or completes that persona. When every persona finishes, it
    completes the simulation and marks unvisited stages skipped.

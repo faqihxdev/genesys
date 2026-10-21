@@ -112,6 +112,6 @@
   <text class="caption" x="955" y="329">Saved decisions · bounded retries</text>
 
   <rect class="node" x="935" y="455" width="280" height="100" rx="12" />
-  <text class="name" x="955" y="496">OpenAI GPT-5 nano</text>
+  <text class="name" x="955" y="496">GPT model</text>
   <text class="detail" x="955" y="527">Personas · decisions · summaries</text>
 </svg>
