@@ -15,7 +15,6 @@ const eslintConfig = [
       'node_modules/**',
       'out/**',
       'prompt/**',
-      'supabase/functions/**',
       'next-env.d.ts',
     ],
   },

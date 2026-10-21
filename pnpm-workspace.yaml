@@ -4,7 +4,6 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
-  supabase: true
   workerd: true
 
 engineStrict: true
