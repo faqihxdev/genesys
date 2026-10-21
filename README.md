@@ -12,16 +12,7 @@ AI-generated reactions, conversion, and sentiment.
 Next.js 16, React 19, and TypeScript, with Tailwind CSS and shadcn/ui. OpenNext runs the application
 on Cloudflare Workers. Drizzle maps application data and Better Auth sessions to D1.
 
-```mermaid
-flowchart LR
-    UI["React · React Flow"] --> WEB["Next.js / OpenNext<br/>Web Worker"]
-    WEB <--> DB[("Cloudflare D1<br/>Data & sessions")]
-    WEB -->|Personas & summaries| AI["OpenAI GPT-5 nano"]
-    WEB --> QUEUE["Cloudflare Queues"]
-    QUEUE --> JOBS["Private simulation Worker"]
-    JOBS <--> DB
-    JOBS -->|Stage decisions| AI
-```
+![Architecture: React calls the Next.js web Worker, which uses D1, OpenAI, and Cloudflare Queues. A private simulation Worker consumes jobs and shares D1 and OpenAI.](docs/images/architecture.svg)
 
 ## Engineering highlights
 
