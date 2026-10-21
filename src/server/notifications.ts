@@ -3,7 +3,7 @@
 import { db } from '@/db';
 import type { NotificationCategory, NotificationType } from '@/db/schema';
 import { notifications } from '@/db/schema';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction } from './_utils';
 
@@ -36,7 +36,7 @@ export const getUserNotifications = createAction({
     const whereClause = and(
       eq(notifications.userId, currentUser.id),
       // Only include non-expired notifications
-      sql`(${notifications.expiresAt} IS NULL OR ${notifications.expiresAt} > NOW())`,
+      sql`(${notifications.expiresAt} IS NULL OR ${notifications.expiresAt} > (unixepoch('subsec') * 1000))`,
       // Apply optional filters
       input.includeRead ? undefined : eq(notifications.isRead, false),
       input.includeArchived ? undefined : eq(notifications.isArchived, false),
@@ -86,7 +86,7 @@ export const getUnreadCount = createAction({
           eq(notifications.userId, currentUser.id),
           eq(notifications.isRead, false),
           eq(notifications.isArchived, false),
-          sql`(${notifications.expiresAt} IS NULL OR ${notifications.expiresAt} > NOW())`
+          sql`(${notifications.expiresAt} IS NULL OR ${notifications.expiresAt} > (unixepoch('subsec') * 1000))`
         )
       );
 
@@ -116,7 +116,7 @@ export const markNotificationsAsRead = createAction({
       .where(
         and(
           eq(notifications.userId, currentUser.id),
-          sql`${notifications.id} = ANY(${sql`ARRAY[${sql.join(input.notificationIds)}]`})`
+          inArray(notifications.id, input.notificationIds)
         )
       )
       .returning();
@@ -168,7 +168,7 @@ export const archiveNotifications = createAction({
       .where(
         and(
           eq(notifications.userId, currentUser.id),
-          sql`${notifications.id} = ANY(${sql`ARRAY[${sql.join(input.notificationIds)}]`})`
+          inArray(notifications.id, input.notificationIds)
         )
       )
       .returning();
@@ -195,7 +195,7 @@ export const markNotificationsAsUnread = createAction({
       .where(
         and(
           eq(notifications.userId, currentUser.id),
-          sql`${notifications.id} = ANY(${sql`ARRAY[${sql.join(input.notificationIds)}]`})`
+          inArray(notifications.id, input.notificationIds)
         )
       )
       .returning();

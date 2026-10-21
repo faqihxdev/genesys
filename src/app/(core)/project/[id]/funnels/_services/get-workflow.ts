@@ -80,6 +80,7 @@ export const getWorkflow = async (funnelId: string): Promise<Workflow> => {
           tags: [],
           options: stage.items.map((item, itemIndex) => ({
             id: nanoid(),
+            originalId: item.id,
             option: {
               id: itemIndex, // Use the index as a fallback for display order
               name: item.name,

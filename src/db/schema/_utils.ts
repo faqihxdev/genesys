@@ -1,14 +1,17 @@
-import { timestamp } from 'drizzle-orm/pg-core';
 import { customAlphabet } from 'nanoid';
+import { timestamp } from './sqlite';
 
 export const ID_LENGTH = 13;
-export const SUPABASE_USER_ID_LENGTH = 36;
 const ID_ALPHABET = 'abcdefghijkmnopqrstuvwxyz23456789';
 const generateRandomIdSegment = customAlphabet(ID_ALPHABET);
 
 export const timestamps = {
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
   deletedAt: timestamp('deleted_at'),
 };
 

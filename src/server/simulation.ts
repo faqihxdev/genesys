@@ -8,16 +8,16 @@
 import { db } from '@/db';
 import { funnels, stageLinks } from '@/db/schema/funnel';
 import { personaConfigs, personas } from '@/db/schema/persona';
-import { SimulationTaskPayload } from '@/db/schema/queue';
 import {
   NewSimulation,
   NewSimulationStage,
+  simulationPersonas,
   simulations,
   simulationStages,
 } from '@/db/schema/simulation';
-import { enqueueSimulationTask } from '@/lib/supabase/queue-service';
+import { chunks } from '@/lib/chunks';
+import { enqueueSimulationJobs } from '@/lib/simulation-queue';
 import { and, eq } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
 import { AuthorizationError, requireProjectAccess } from './authorization';
@@ -126,7 +126,12 @@ export const createSimulation = createAction({
       }));
 
       // Insert all simulation stages
-      await db.insert(simulationStages).values(simulationStagesValues);
+      await db.batch([
+        db.insert(simulationStages).values(simulationStagesValues.slice(0, 5)),
+        ...chunks(simulationStagesValues.slice(5), 5).map((values) =>
+          db.insert(simulationStages).values(values)
+        ),
+      ]);
 
       // Queue the simulation for processing
       const queued = await queueSimulationInitialChunks(createdSimulation.id);
@@ -349,45 +354,26 @@ async function queueSimulationInitialChunks(simulationId: string): Promise<boole
     const linkedToStageIds = funnelStageLinks.map((link) => link.toStageId);
     const startingStageIds = allStageIds.filter((id) => !linkedToStageIds.includes(id));
 
-    if (startingStageIds.length === 0) {
+    if (startingStageIds.length !== 1) {
       console.error(
         `[Simulation/queueSimulationInitialChunks]: No starting stages found for funnel ${simulation.funnelId}`
       );
       return false;
     }
 
-    // Create a chunk for each persona for each starting stage
-    let queuedCount = 0;
-    for (const persona of personaList) {
-      for (const stageId of startingStageIds) {
-        const chunkId = uuidv4();
-        const message: SimulationTaskPayload = {
-          simulationId,
-          personaId: persona.id,
-          stageId,
-          chunkId,
-        };
-
-        const taskId = await enqueueSimulationTask(message);
-        if (taskId) {
-          queuedCount++;
-        }
-      }
-    }
-
-    const expectedTaskCount = personaList.length * startingStageIds.length;
-    if (queuedCount !== expectedTaskCount) {
-      console.error(
-        `[Simulation/queueSimulationInitialChunks]: Queued ${queuedCount}/${expectedTaskCount} tasks`
-      );
-      return false;
-    }
-
-    // Update the simulation status to processing
-    await db
-      .update(simulations)
-      .set({ status: 'processing' })
-      .where(eq(simulations.id, simulationId));
+    const progressRows = personaList.map((persona) => ({ simulationId, personaId: persona.id }));
+    await db.batch([
+      db.update(simulations).set({ status: 'processing' }).where(eq(simulations.id, simulationId)),
+      ...chunks(progressRows, 5).map((values) => db.insert(simulationPersonas).values(values)),
+    ]);
+    await enqueueSimulationJobs(
+      personaList.map((persona) => ({
+        simulationId,
+        personaId: persona.id,
+        stageId: startingStageIds[0],
+        visited: [],
+      }))
+    );
 
     return true;
   } catch (error) {

@@ -1,16 +1,16 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, integer, pgEnum, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { funnels, stages } from './funnel';
-import { personaConfigs } from './persona';
+import { personaConfigs, personas } from './persona';
 import { responseStages } from './response';
+import { enumColumn, index, integer, primaryKey, sqliteTable, text } from './sqlite';
 
 /**
  * Simulation status enum
  * Defines the possible states of a simulation
  */
-export const simulationStatusEnum = pgEnum('simulation_status', [
+export const simulationStatusEnum = enumColumn('simulation_status', [
   'idle', // Initial state
   'processing', // Currently running
   'complete', // Successfully completed
@@ -35,7 +35,7 @@ export interface SimulationParameters {
  * Represents a simulation run of personas through a funnel
  * completeCount: prevents calling the responses table to check progress
  */
-export const simulations = pgTable(
+export const simulations = sqliteTable(
   'simulations',
   {
     id: text('id')
@@ -61,11 +61,29 @@ export const simulations = pgTable(
   ]
 );
 
+export const simulationPersonas = sqliteTable(
+  'simulation_personas',
+  {
+    simulationId: text('simulation_id')
+      .notNull()
+      .references(() => simulations.id, { onDelete: 'cascade' }),
+    personaId: text('persona_id')
+      .notNull()
+      .references(() => personas.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: ['processing', 'complete', 'error'] })
+      .notNull()
+      .default('processing'),
+    error: text('error'),
+    ...timestamps,
+  },
+  (table) => [primaryKey({ columns: [table.simulationId, table.personaId] })]
+);
+
 /**
  * Simulation stage status enum
  * Defines the possible states of a simulation stage
  */
-export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
+export const simulationStageStatusEnum = enumColumn('simulation_stage_status', [
   'idle', // Initial state
   'processing', // Currently processing
   'complete', // Successfully completed
@@ -77,7 +95,7 @@ export const simulationStageStatusEnum = pgEnum('simulation_stage_status', [
  * Simulation stages table schema
  * Represents the progress of personas through each stage in a simulation
  */
-export const simulationStages = pgTable(
+export const simulationStages = sqliteTable(
   'simulation_stages',
   {
     simulationId: text('simulation_id')

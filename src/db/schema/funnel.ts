@@ -1,14 +1,14 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
+import { enumColumn, index, sqliteTable, text } from './sqlite';
 
 /**
  * Funnel table schema
  * Represents a marketing/sales funnel with multiple stages
  */
-export const funnels = pgTable(
+export const funnels = sqliteTable(
   'funnels',
   {
     id: text('id')
@@ -32,7 +32,7 @@ export const funnels = pgTable(
  * Represents a stage in a funnel where personas interact with content.
  * Removed parentId and childId fields to allow unlimited branching via a separate relationship table.
  */
-export const stages = pgTable(
+export const stages = sqliteTable(
   'stages',
   {
     id: text('id')
@@ -56,7 +56,7 @@ export const stages = pgTable(
  * Represents directed relationships (edges) between stages.
  * This allows a stage to have multiple parents or children.
  */
-export const stageLinks = pgTable(
+export const stageLinks = sqliteTable(
   'stage_links',
   {
     id: text('id')
@@ -84,13 +84,13 @@ export const stageLinks = pgTable(
  * Stage item type enum
  * Defines the types of content that can be added to a stage
  */
-export const stageItemTypeEnum = pgEnum('stage_item_type', ['text', 'image', 'video']);
+export const stageItemTypeEnum = enumColumn('stage_item_type', ['text', 'image', 'video']);
 
 /**
  * Stage items table schema
  * Represents content items within a stage that personas interact with
  */
-export const stageItems = pgTable(
+export const stageItems = sqliteTable(
   'stage_items',
   {
     id: text('id')

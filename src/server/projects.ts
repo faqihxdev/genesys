@@ -1,8 +1,9 @@
 'use server';
 
 import { db } from '@/db';
-import { projectUsers, projects } from '@/db/schema';
-import { and, desc, eq, ne } from 'drizzle-orm';
+import { projects, projectUsers } from '@/db/schema';
+import { generateId, ID_LENGTH } from '@/db/schema/_utils';
+import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
 import { requireProjectAccess } from './authorization';
@@ -40,41 +41,27 @@ export const createProject = createAction({
     const isFirstProject = existingProjects.length === 0;
     const shouldBeDefault = isFirstProject || input.isDefault;
 
-    // Create the project with transaction for atomicity
-    return await db.transaction(async (tx) => {
-      // Create the project
-      const [project] = await tx
+    const projectId = generateId({ length: ID_LENGTH, prefix: 'prj-' });
+    const [created] = await db.batch([
+      db
         .insert(projects)
-        .values({
-          name: input.name,
-          description: input.description,
-        })
-        .returning();
-
-      // Add the creator as owner with default status
-      await tx.insert(projectUsers).values({
-        projectId: project.id,
-        userId: currentUser.id,
-        role: 'owner',
-        isDefault: shouldBeDefault,
-      });
-
-      // If this should be default, unset any other defaults
-      if (shouldBeDefault) {
-        await tx
-          .update(projectUsers)
-          .set({ isDefault: false })
-          .where(
-            and(
-              eq(projectUsers.userId, currentUser.id),
-              ne(projectUsers.projectId, project.id),
-              eq(projectUsers.isDefault, true)
-            )
-          );
-      }
-
-      return project;
-    });
+        .values({ id: projectId, name: input.name, description: input.description })
+        .returning(),
+      db
+        .insert(projectUsers)
+        .values({ projectId, userId: currentUser.id, role: 'owner', isDefault: !!shouldBeDefault }),
+      db
+        .update(projectUsers)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(projectUsers.userId, currentUser.id),
+            ne(projectUsers.projectId, projectId),
+            sql`${shouldBeDefault ? 1 : 0} = 1`
+          )
+        ),
+    ]);
+    return created[0];
   },
 });
 
@@ -146,74 +133,40 @@ export const updateProject = createAction({
           : ['owner', 'member'],
     });
 
-    return await db.transaction(async (tx) => {
-      let project;
-
-      // Only update project details if name or description is provided
-      if (input.name || input.description) {
-        const updateData: Partial<typeof projects.$inferInsert> = {
+    const [existing] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, input.projectId))
+      .limit(1);
+    if (!existing) return fail({ message: 'Project not found', status: 404 });
+    const [updated] = await db.batch([
+      db
+        .update(projects)
+        .set({
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.description !== undefined ? { description: input.description } : {}),
           updatedAt: new Date(),
-        };
-        if (input.name) updateData.name = input.name;
-        if (input.description) updateData.description = input.description;
-
-        [project] = await tx
-          .update(projects)
-          .set(updateData)
-          .where(eq(projects.id, input.projectId))
-          .returning();
-
-        if (!project) {
-          return fail({ message: 'Project not found', status: 404 });
-        }
-      } else {
-        // If no project details to update, just get the project
-        [project] = await tx.select().from(projects).where(eq(projects.id, input.projectId));
-
-        if (!project) {
-          return fail({ message: 'Project not found', status: 404 });
-        }
-      }
-
-      // If isDefault is being updated
-      if (typeof input.isDefault !== 'undefined') {
-        if (input.isDefault) {
-          // Set as default and unset others
-          await tx
-            .update(projectUsers)
-            .set({ isDefault: false })
-            .where(
-              and(
-                eq(projectUsers.userId, currentUser.id),
-                ne(projectUsers.projectId, input.projectId)
-              )
-            );
-
-          await tx
-            .update(projectUsers)
-            .set({ isDefault: true })
-            .where(
-              and(
-                eq(projectUsers.projectId, input.projectId),
-                eq(projectUsers.userId, currentUser.id)
-              )
-            );
-        } else {
-          // Just unset default for this project
-          await tx
-            .update(projectUsers)
-            .set({ isDefault: false })
-            .where(
-              and(
-                eq(projectUsers.projectId, input.projectId),
-                eq(projectUsers.userId, currentUser.id)
-              )
-            );
-        }
-      }
-
-      return project;
-    });
+        })
+        .where(eq(projects.id, input.projectId))
+        .returning(),
+      db
+        .update(projectUsers)
+        .set({ isDefault: false })
+        .where(
+          and(
+            eq(projectUsers.userId, currentUser.id),
+            ne(projectUsers.projectId, input.projectId),
+            sql`${input.isDefault === true ? 1 : 0} = 1`
+          )
+        ),
+      db
+        .update(projectUsers)
+        .set({ isDefault: input.isDefault ?? sql`${projectUsers.isDefault}` })
+        .where(
+          and(eq(projectUsers.userId, currentUser.id), eq(projectUsers.projectId, input.projectId))
+        ),
+    ]);
+    return updated[0];
   },
 });
 

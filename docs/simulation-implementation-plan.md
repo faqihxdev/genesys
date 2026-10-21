@@ -1,3 +1,8 @@
+# Historical implementation plan
+
+This document records the 2025 implementation. The current queue architecture is documented in
+[custom-queue-system.md](custom-queue-system.md).
+
 # Funnel Simulation Implementation Plan
 
 ## Overview

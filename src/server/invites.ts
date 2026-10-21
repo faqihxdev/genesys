@@ -2,10 +2,7 @@
 
 import { db } from '@/db';
 import { projectInvites, projectUsers } from '@/db/schema';
-import {
-  getUserDirectoryEntries,
-  getUserDirectoryEntryByEmail,
-} from '@/lib/supabase/user-directory';
+import { getUserDirectoryEntries, getUserDirectoryEntryByEmail } from '@/lib/user-directory';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
@@ -192,9 +189,9 @@ export const acceptProjectInvite = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    return await db.transaction(async (tx) => {
+    return await (async () => {
       // Get and validate invite
-      const [invite] = await tx
+      const [invite] = await db
         .select()
         .from(projectInvites)
         .where(
@@ -210,17 +207,17 @@ export const acceptProjectInvite = createAction({
       }
 
       // Add user to project
-      await tx.insert(projectUsers).values({
-        projectId: invite.projectId,
-        userId: currentUser.id,
-        role: 'member',
-      });
-
-      // Delete the invite
-      await tx.delete(projectInvites).where(eq(projectInvites.id, input.inviteId));
+      await db.batch([
+        db.insert(projectUsers).values({
+          projectId: invite.projectId,
+          userId: currentUser.id,
+          role: 'member',
+        }),
+        db.delete(projectInvites).where(eq(projectInvites.id, input.inviteId)),
+      ]);
 
       return true;
-    });
+    })();
   },
 });
 
@@ -236,8 +233,8 @@ export const rejectProjectInvite = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    return await db.transaction(async (tx) => {
-      const result = await tx
+    return await (async () => {
+      const result = await db
         .update(projectInvites)
         .set({ status: 'rejected' })
         .where(
@@ -250,7 +247,7 @@ export const rejectProjectInvite = createAction({
         .returning();
 
       return result.length > 0;
-    });
+    })();
   },
 });
 
@@ -270,9 +267,9 @@ export const removeProjectInvite = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    return await db.transaction(async (tx) => {
+    return await (async () => {
       // Get invite details first to check ownership
-      const [invite] = await tx
+      const [invite] = await db
         .select()
         .from(projectInvites)
         .where(eq(projectInvites.id, input.inviteId));
@@ -291,6 +288,6 @@ export const removeProjectInvite = createAction({
         .returning();
 
       return result.length > 0;
-    });
+    })();
   },
 });

@@ -1,19 +1,19 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { index, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { projects } from './project';
+import { enumColumn, index, sqliteTable, text } from './sqlite';
 
 /**
  * Invite status enum
  */
-export const inviteStatusEnum = pgEnum('invite_status', ['pending', 'accepted', 'rejected']);
+export const inviteStatusEnum = enumColumn('invite_status', ['pending', 'accepted', 'rejected']);
 
 /**
  * Project invites table schema
  * Stores invites for users to join projects
  */
-export const projectInvites = pgTable(
+export const projectInvites = sqliteTable(
   'project_invites',
   {
     id: text('id')
@@ -22,8 +22,8 @@ export const projectInvites = pgTable(
     projectId: text('project_id') // FK: which project is this invite for?
       .references(() => projects.id, { onDelete: 'cascade' })
       .notNull(),
-    invitedUserId: text('invited_user_id').notNull(), // FK: which user is invited? (Supabase auth.users)
-    inviterUserId: text('inviter_user_id').notNull(), // FK: which user is inviting? (Supabase auth.users)
+    invitedUserId: text('invited_user_id').notNull(), // FK: which user is invited? (auth_users)
+    inviterUserId: text('inviter_user_id').notNull(), // FK: which user is inviting? (auth_users)
     status: inviteStatusEnum('invite_status').notNull().default('pending'), // status of the invite (pending, accepted, rejected)
     ...timestamps,
   },

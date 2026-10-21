@@ -1,10 +1,11 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, decimal, index, pgTable, text } from 'drizzle-orm/pg-core';
+import { uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { stageItems, stages } from './funnel';
 import { personas } from './persona';
 import { simulations } from './simulation';
+import { boolean, decimal, index, sqliteTable, text } from './sqlite';
 
 /**
  * Response table schema
@@ -12,7 +13,7 @@ import { simulations } from './simulation';
  * Tracks the interaction and sentiment of a persona with content
  * Note: proceed decision is now handled at the stage level in responseStages
  */
-export const responses = pgTable(
+export const responses = sqliteTable(
   'responses',
   {
     id: text('id')
@@ -49,7 +50,7 @@ export const responses = pgTable(
  * Contains the stage-level decisions for a persona in a simulation
  * Tracks whether the persona proceeds to the next stage and why
  */
-export const responseStages = pgTable(
+export const responseStages = sqliteTable(
   'response_stages',
   {
     id: text('id')
@@ -76,6 +77,7 @@ export const responseStages = pgTable(
     index('response_stage_stage_id_idx').on(table.stageId),
     index('response_stage_proceed_idx').on(table.proceed),
     index('response_stage_next_stage_id_idx').on(table.nextStageId),
+    uniqueIndex('response_stage_once_idx').on(table.simulationId, table.personaId, table.stageId),
   ]
 );
 

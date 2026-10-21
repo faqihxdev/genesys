@@ -44,4 +44,7 @@ next-env.d.ts
 .vercel
 .turbo
 .cursorrules
+.open-next/
+.wrangler/
+.dev.vars*
 /supabase/.temp/
