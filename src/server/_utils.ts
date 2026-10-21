@@ -1,6 +1,6 @@
+import type { User } from '@/db/schema/auth';
 import env from '@/env';
 import { getCurrentUser } from '@/server/auth';
-import type { User } from '@supabase/supabase-js';
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
 import { z } from 'zod';
 

@@ -2,68 +2,35 @@
 
 import { queryClient } from '@/lib/query-client';
 import { queryKey } from '@/lib/query-keys';
-import { createClient } from '@/lib/supabase/client';
 import { withQuery } from '@/lib/utils';
-import { getCurrentUser } from '@/server/auth';
+import { getCurrentUser, signOut as signOutAction } from '@/server/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-/**
- * @description Hook for managing user session and auth state
- * Primarily used for UI state management and real-time session updates
- * Does NOT handle auth protection (that's done server-side)
- */
 export function useAuth() {
   const router = useRouter();
-  const supabase = createClient();
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  // Fetch session query for UI updates
   const { data: user, isLoading } = useQuery({
     queryKey: queryKey.auth.getCurrentUser(),
     queryFn: withQuery(getCurrentUser),
     retry: false,
-    refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+    refetchInterval: 1000 * 60 * 5,
     refetchOnMount: true,
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
   });
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, _session) => {
-      if (event === 'SIGNED_OUT') {
-        router.push('/auth');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase, router]);
-
   const signOut = async () => {
+    setIsSigningOut(true);
     try {
-      setIsSigningOut(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      await queryClient.resetQueries({ queryKey: queryKey.auth.getCurrentUser() });
-    } catch (error) {
-      console.error('[useAuth/signOut]:', error);
-      throw error;
+      const result = await signOutAction();
+      if (result.error) throw new Error(result.error.message);
+      queryClient.clear();
+      router.replace('/auth');
+      router.refresh();
     } finally {
       setIsSigningOut(false);
     }
   };
-
-  return {
-    isLoading,
-    isAuthenticated: !!user,
-    user,
-    signOut,
-    isSigningOut,
-  };
+  return { isLoading, isAuthenticated: !!user, user, signOut, isSigningOut };
 }

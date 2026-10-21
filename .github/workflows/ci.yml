@@ -25,11 +25,8 @@ jobs:
       CI: true
       NEXT_TELEMETRY_DISABLED: '1'
       INVITE_CODE: ci-placeholder
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      BETTER_AUTH_SECRET: ci-placeholder-secret-with-at-least-32-characters
       OPENAI_API_KEY: ci-placeholder
-      SUPABASE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
-      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
 
     steps:
       - name: Checkout repository
@@ -65,7 +62,18 @@ jobs:
         run: pnpm test:coverage
 
       - name: Build
-        run: pnpm build
+        run: pnpm build:cloudflare
 
       - name: Audit production dependencies
         run: pnpm audit:prod
+
+      - name: Package Cloudflare build
+        run: tar -czf cloudflare-build.tgz .open-next .next/server/server-reference-manifest.json
+
+      - name: Upload Cloudflare build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cloudflare-build
+          path: cloudflare-build.tgz
+          retention-days: 1
+          if-no-files-found: error

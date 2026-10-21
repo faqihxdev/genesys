@@ -1,16 +1,21 @@
 import { generateId } from '@/db/schema/_utils';
-import { pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
+import { enumColumn, sqliteTable, text } from './sqlite';
 
 /**
  * Feedback type enum
  */
-export const feedbackTypeEnum = pgEnum('feedback_type', ['bug', 'feature', 'improvement', 'other']);
+export const feedbackTypeEnum = enumColumn('feedback_type', [
+  'bug',
+  'feature',
+  'improvement',
+  'other',
+]);
 
 /**
  * Feedback satisfaction enum
  */
-export const feedbackSatisfactionEnum = pgEnum('feedback_satisfaction', [
+export const feedbackSatisfactionEnum = enumColumn('feedback_satisfaction', [
   'very-satisfied',
   'satisfied',
   'neutral',
@@ -21,7 +26,7 @@ export const feedbackSatisfactionEnum = pgEnum('feedback_satisfaction', [
 /**
  * Feedback status enum
  */
-export const feedbackStatusEnum = pgEnum('feedback_status', [
+export const feedbackStatusEnum = enumColumn('feedback_status', [
   'pending',
   'in-review',
   'planned',
@@ -33,11 +38,11 @@ export const feedbackStatusEnum = pgEnum('feedback_status', [
 /**
  * Feedback table schema
  */
-export const feedback = pgTable('feedback', {
+export const feedback = sqliteTable('feedback', {
   id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'fdb-' }))
     .primaryKey(),
-  userId: text('user_id').notNull(), // FK: which user submitted this feedback? (Supabase auth user id)
+  userId: text('user_id').notNull(), // auth_users identifier
   title: text('title').notNull(),
   type: feedbackTypeEnum('feedback_type').notNull(),
   description: text('description').notNull(),

@@ -60,8 +60,8 @@ export const addTicketResponse = createAction({
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
-    return await db.transaction(async (tx) => {
-      const [ticket] = await tx
+    {
+      const [ticket] = await db
         .select({ id: supportTickets.id })
         .from(supportTickets)
         .where(
@@ -74,27 +74,29 @@ export const addTicketResponse = createAction({
       }
 
       // Create the response
-      const [response] = await tx
-        .insert(ticketResponses)
-        .values({
-          ticketId: input.ticketId,
-          userId: currentUser.id,
-          message: input.message,
-          isFromSupport: false,
-        })
-        .returning();
+      const [created] = await db.batch([
+        db
+          .insert(ticketResponses)
+          .values({
+            ticketId: input.ticketId,
+            userId: currentUser.id,
+            message: input.message,
+            isFromSupport: false,
+          })
+          .returning(),
 
-      // Update the ticket's lastResponseAt
-      await tx
-        .update(supportTickets)
-        .set({
-          lastResponseAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(supportTickets.id, input.ticketId));
+        // Update the ticket's lastResponseAt
+        db
+          .update(supportTickets)
+          .set({
+            lastResponseAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(supportTickets.id, input.ticketId)),
+      ]);
 
-      return response;
-    });
+      return created[0];
+    }
   },
 });
 

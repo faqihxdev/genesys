@@ -18,17 +18,12 @@ import {
   summaryStageItems,
   summaryStages,
 } from '@/db/schema';
-import env from '@/env';
+import { AI_MODEL, getAI } from '@/lib/ai';
+import { chunks } from '@/lib/chunks';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import OpenAI from 'openai';
 import { z } from 'zod';
 import { createAction, fail } from './_utils';
 import { requireProjectAccess } from './authorization';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-});
 
 /**
  * @description Generate a summary using OpenAI based on the provided data and scope
@@ -127,8 +122,10 @@ async function generateOpenAISummary(data: {
   }
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'o3-mini-2025-01-31',
+    const completion = await getAI().chat.completions.create({
+      model: AI_MODEL,
+      reasoning_effort: 'minimal',
+      max_completion_tokens: 1024,
       messages: [
         {
           role: 'system',
@@ -196,10 +193,10 @@ export const generateSimulationSummary = createAction({
       resource: { kind: 'simulation', id: input.simulationId },
     });
 
-    // Start a transaction for atomic operations
-    return await db.transaction(async (tx) => {
+    // Compute the analysis before committing its records atomically.
+    return await (async () => {
       // Check if summaries already exist
-      const existingSummary = await tx
+      const existingSummary = await db
         .select()
         .from(summary)
         .where(eq(summary.simulationId, input.simulationId))
@@ -214,7 +211,7 @@ export const generateSimulationSummary = createAction({
       }
 
       // Get all responses for the simulation with their related data
-      const simulationResponses = (await tx
+      const simulationResponses = (await db
         .select({
           id: responses.id,
           simulationId: responses.simulationId,
@@ -271,7 +268,7 @@ export const generateSimulationSummary = createAction({
       }
 
       // Get simulation details
-      const [simulation] = await tx
+      const [simulation] = await db
         .select({
           id: simulations.id,
           funnelId: simulations.funnelId,
@@ -344,7 +341,6 @@ export const generateSimulationSummary = createAction({
       });
 
       const itemSummaries = await Promise.all(itemSummaryPromises);
-      await tx.insert(summaryStageItems).values(itemSummaries.map((s) => s.dbRecord));
 
       // Then, generate summaries for all stages using item summaries
       const stageResponses = simulationResponses.reduce(
@@ -409,7 +405,6 @@ export const generateSimulationSummary = createAction({
       );
 
       const stageSummaries = await Promise.all(stageSummaryPromises);
-      await tx.insert(summaryStages).values(stageSummaries.map((s) => s.dbRecord));
 
       // Finally, generate overall simulation summary using stage summaries
       const overallSentiment =
@@ -417,7 +412,7 @@ export const generateSimulationSummary = createAction({
         simulationResponses.length;
 
       // Get all stage links to identify the last stages (those with no outgoing links)
-      const allStageLinks = await tx
+      const allStageLinks = await db
         .select({
           fromStageId: stageLinks.fromStageId,
           toStageId: stageLinks.toStageId,
@@ -436,7 +431,7 @@ export const generateSimulationSummary = createAction({
       );
 
       // Count personas who reached the last stage(s) and proceeded (true conversion)
-      const successfulCompletions = await tx
+      const successfulCompletions = await db
         .select({ count: sql<number>`count(DISTINCT ${responseStages.personaId})` })
         .from(responseStages)
         .where(
@@ -466,22 +461,31 @@ export const generateSimulationSummary = createAction({
       });
 
       // Create overall summary
-      const [createdSummary] = await tx
-        .insert(summary)
-        .values({
-          simulationId: input.simulationId,
-          conversionRate: conversionRate.toString(),
-          sentiment: overallSentiment.toString(),
-          summary: overallAnalysis.summary,
-          recommendation: overallAnalysis.recommendation,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        })
-        .returning();
-
-      return createdSummary;
-    });
+      const [created] = await db.batch([
+        db
+          .insert(summary)
+          .values({
+            simulationId: input.simulationId,
+            conversionRate: conversionRate.toString(),
+            sentiment: overallSentiment.toString(),
+            summary: overallAnalysis.summary,
+            recommendation: overallAnalysis.recommendation,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null,
+          })
+          .returning(),
+        ...chunks(
+          itemSummaries.map((s) => s.dbRecord),
+          5
+        ).map((values) => db.insert(summaryStageItems).values(values)),
+        ...chunks(
+          stageSummaries.map((s) => s.dbRecord),
+          5
+        ).map((values) => db.insert(summaryStages).values(values)),
+      ]);
+      return created[0];
+    })();
   },
 });
 

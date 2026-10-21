@@ -1,17 +1,17 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, index, jsonb, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
 import { feedback } from './feedback';
 import { projectInvites } from './invite';
 import { projects } from './project';
+import { boolean, enumColumn, index, jsonColumn, sqliteTable, text, timestamp } from './sqlite';
 import { supportTickets } from './support';
 
 /**
  * Notification category enum
  * Groups notifications into logical categories
  */
-export const notificationCategoryEnum = pgEnum('notification_category', [
+export const notificationCategoryEnum = enumColumn('notification_category', [
   'project', // Project related notifications
   'invite', // Invite related notifications
   'support', // Support ticket related notifications
@@ -24,7 +24,7 @@ export const notificationCategoryEnum = pgEnum('notification_category', [
  * Notification type enum
  * Specific types of notifications within each category
  */
-export const notificationTypeEnum = pgEnum('notification_type', [
+export const notificationTypeEnum = enumColumn('notification_type', [
   // Project notifications
   'project_role_updated',
   'project_deleted',
@@ -52,7 +52,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
 /**
  * Notification priority enum
  */
-export const notificationPriorityEnum = pgEnum('notification_priority', [
+export const notificationPriorityEnum = enumColumn('notification_priority', [
   'low',
   'medium',
   'high',
@@ -63,7 +63,7 @@ export const notificationPriorityEnum = pgEnum('notification_priority', [
  * Notifications table schema
  * Stores all user notifications
  */
-export const notifications = pgTable(
+export const notifications = sqliteTable(
   'notifications',
   {
     id: text('id')
@@ -78,7 +78,7 @@ export const notifications = pgTable(
     isRead: boolean('is_read').notNull().default(false), // whether notification has been read
     isArchived: boolean('is_archived').notNull().default(false), // whether notification has been archived
     actionUrl: text('action_url'), // optional URL to navigate to when clicked
-    metadata: jsonb('metadata'), // additional data specific to notification type
+    metadata: jsonColumn('metadata'), // additional data specific to notification type
     expiresAt: timestamp('expires_at'), // optional expiration date
     ...timestamps,
   },

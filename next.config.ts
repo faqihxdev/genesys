@@ -1,15 +1,18 @@
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import type { NextConfig } from 'next';
+
+if (process.argv.includes('dev')) initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
   /* config options here */
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         hostname: 'images.unsplash.com',
       },
     ],
   },
-  // Vercel specific optimizations
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,

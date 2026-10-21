@@ -1,12 +1,12 @@
 import { generateId } from '@/db/schema/_utils';
-import { pgTable, text } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
+import { sqliteTable, text } from './sqlite';
 
 /**
  * Mailing list table schema
  * Stores email subscriptions with optional descriptions
  */
-export const mailingList = pgTable('mailing_list', {
+export const mailingList = sqliteTable('mailing_list', {
   id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'mal-' }))
     .primaryKey(),

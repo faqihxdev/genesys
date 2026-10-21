@@ -1,12 +1,12 @@
 import { generateId } from '@/db/schema/_utils';
 import { relations } from 'drizzle-orm';
-import { boolean, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { ID_LENGTH, timestamps } from './_utils';
+import { boolean, enumColumn, sqliteTable, text, timestamp } from './sqlite';
 
 /**
  * Support ticket category enum
  */
-export const ticketCategoryEnum = pgEnum('ticket_category', [
+export const ticketCategoryEnum = enumColumn('ticket_category', [
   'technical',
   'billing',
   'feature',
@@ -16,12 +16,12 @@ export const ticketCategoryEnum = pgEnum('ticket_category', [
 /**
  * Support ticket priority enum
  */
-export const ticketPriorityEnum = pgEnum('ticket_priority', ['low', 'medium', 'high']);
+export const ticketPriorityEnum = enumColumn('ticket_priority', ['low', 'medium', 'high']);
 
 /**
  * Support ticket status enum
  */
-export const ticketStatusEnum = pgEnum('ticket_status', [
+export const ticketStatusEnum = enumColumn('ticket_status', [
   'open',
   'in-progress',
   'waiting-for-customer',
@@ -33,7 +33,7 @@ export const ticketStatusEnum = pgEnum('ticket_status', [
 /**
  * Support tickets table schema
  */
-export const supportTickets = pgTable('support_tickets', {
+export const supportTickets = sqliteTable('support_tickets', {
   id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'tkt-' }))
     .primaryKey(),
@@ -52,7 +52,7 @@ export const supportTickets = pgTable('support_tickets', {
  * Support ticket responses table schema
  * For tracking communication history
  */
-export const ticketResponses = pgTable('ticket_responses', {
+export const ticketResponses = sqliteTable('ticket_responses', {
   id: text('id')
     .$defaultFn(() => generateId({ length: ID_LENGTH, prefix: 'trs-' }))
     .primaryKey(),

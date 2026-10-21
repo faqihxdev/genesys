@@ -6,6 +6,7 @@
  */
 
 import { db } from '@/db';
+import { generateId, ID_LENGTH } from '@/db/schema/_utils';
 import {
   funnels,
   FunnelWithStages,
@@ -15,7 +16,10 @@ import {
   stages,
   StageWithItems,
 } from '@/db/schema/funnel';
-import { eq, inArray } from 'drizzle-orm';
+import { simulations } from '@/db/schema/simulation';
+import { chunks } from '@/lib/chunks';
+import { getStartingStage } from '@/lib/funnel-graph';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createAction, createProfanityRefinement, fail } from './_utils';
@@ -373,12 +377,35 @@ export const createFunnel = createAction({
  * @param input - The funnel flow data including nodes and edges
  * @returns Success status and any error message
  */
+const stageNodeSchema = z.object({
+  id: z.string(),
+  originalId: z.string().optional(),
+  data: z.object({
+    name: z.string().min(1).max(120),
+    description: z.string().max(2000).nullish(),
+    options: z
+      .array(
+        z.object({
+          originalId: z.string().optional(),
+          option: z.object({
+            name: z.string().max(120),
+            description: z.string().max(2000).nullish(),
+            type: z.enum(['text', 'image', 'video']),
+            content: z.string().max(10000),
+          }),
+        })
+      )
+      .max(20)
+      .default([]),
+  }),
+});
+
 export const saveFlow = createAction({
   name: 'saveFlow',
   validator: z.object({
-    funnelId: z.string().min(1, 'Funnel ID is required'),
-    nodes: z.array(z.any()).min(1, 'At least one node is required'),
-    edges: z.array(z.any()),
+    funnelId: z.string().min(1),
+    nodes: z.array(z.any()).min(1).max(100),
+    edges: z.array(z.object({ source: z.string(), target: z.string() }).passthrough()).max(100),
   }),
   requireAuth: true,
   actionFn: async ({ input, currentUser }) => {
@@ -386,183 +413,139 @@ export const saveFlow = createAction({
       userId: currentUser.id,
       resource: { kind: 'funnel', id: input.funnelId },
     });
-
-    try {
-      // Get existing funnel
-      const existingFunnel = await db.query.funnels.findFirst({
-        where: eq(funnels.id, input.funnelId),
-      });
-
-      if (!existingFunnel) {
-        return fail({
-          message: 'Funnel not found',
-          status: 404,
-        });
-      }
-
-      // Find the start and end nodes
-      const startNode = input.nodes.find((node) => node.type === 'start');
-      const endNode = input.nodes.find((node) => node.type === 'end');
-
-      if (!startNode || !endNode) {
-        return fail({
-          message: 'Start or end node not found',
-          status: 400,
-        });
-      }
-
-      // Find the stage node (tags node)
-      const stageNodes = input.nodes.filter((node) => node.type === 'tags');
-
-      if (stageNodes.length === 0) {
-        return fail({
-          message: 'No stage nodes found',
-          status: 400,
-        });
-      }
-
-      // Check if all stage nodes have names
-      const nodesWithoutNames = stageNodes.filter((node) => !node.data.name);
-      if (nodesWithoutNames.length > 0) {
-        return fail({
-          message: 'All stages must have names',
-          status: 400,
-        });
-      }
-
-      // Delete existing stage links for this funnel
-      await db.delete(stageLinks).where(eq(stageLinks.funnelId, input.funnelId));
-
-      // Get all existing stages for this funnel
-      const existingStages = await db.query.stages.findMany({
-        where: eq(stages.funnelId, input.funnelId),
-      });
-
-      // Create a map of existing stages by ID for quick lookup
-      const existingStagesMap = existingStages.reduce(
-        (acc, stage) => {
-          acc[stage.id] = stage;
-          return acc;
-        },
-        {} as Record<string, (typeof existingStages)[0]>
-      );
-
-      // Track which existing stages are still being used
-      const usedExistingStageIds = new Set<string>();
-
-      // Create new stages and their items
-      const stageInserts = [];
-
-      for (const stageNode of stageNodes) {
-        let stageId: string;
-
-        // Check if this is an existing stage
-        if (stageNode.originalId && existingStagesMap[stageNode.originalId]) {
-          // Update existing stage
-          stageId = stageNode.originalId;
-          usedExistingStageIds.add(stageId);
-
-          // Update stage data
-          await db
-            .update(stages)
-            .set({
-              name: stageNode.data.name, // Use the stage name from node data
-              description: stageNode.data.description || null,
-            })
-            .where(eq(stages.id, stageId));
-
-          // Delete existing stage items
-          await db.delete(stageItems).where(eq(stageItems.stageId, stageId));
-        } else {
-          // Create new stage
-          const [newStage] = await db
-            .insert(stages)
-            .values({
-              funnelId: input.funnelId,
-              name: stageNode.data.name, // Use the stage name from node data
-              description: stageNode.data.description || null,
-            })
-            .returning();
-
-          stageId = newStage.id;
-        }
-
-        stageInserts.push({
-          node: stageNode,
-          stageId,
-        });
-
-        // Create stage items
-        if (stageNode.data.options && stageNode.data.options.length > 0) {
-          for (const option of stageNode.data.options) {
-            await db.insert(stageItems).values({
-              stageId: stageId,
-              name: option.option.name,
-              description: option.option.description || null, // Use the description from the option data
-              type: option.option.type,
-              content: option.option.content,
-            });
-          }
-        }
-      }
-
-      // Delete stages that are no longer used
-      for (const stage of existingStages) {
-        if (!usedExistingStageIds.has(stage.id)) {
-          // Delete stage items first
-          await db.delete(stageItems).where(eq(stageItems.stageId, stage.id));
-          // Then delete the stage
-          await db.delete(stages).where(eq(stages.id, stage.id));
-        }
-      }
-
-      // Create stage links based on connections
-      for (const edge of input.edges) {
-        // Find source and target nodes
-        const sourceNode = input.nodes.find((node) => node.id === edge.source);
-        const targetNode = input.nodes.find((node) => node.id === edge.target);
-
-        if (!sourceNode || !targetNode) continue;
-
-        // Skip if either source or target is not a stage node
-        if (sourceNode.type === 'start' && targetNode.type === 'tags') {
-          // This is the first stage in the flow
-          const targetStageInsert = stageInserts.find((insert) => insert.node.id === targetNode.id);
-          if (targetStageInsert) {
-            // No need to create a link, but we could mark this as the first stage if needed
-          }
-        } else if (sourceNode.type === 'tags' && targetNode.type === 'end') {
-          // This is the last stage in the flow
-          const sourceStageInsert = stageInserts.find((insert) => insert.node.id === sourceNode.id);
-          if (sourceStageInsert) {
-            // No need to create a link, but we could mark this as the last stage if needed
-          }
-        } else if (sourceNode.type === 'tags' && targetNode.type === 'tags') {
-          // This is a link between two stages
-          const sourceStageInsert = stageInserts.find((insert) => insert.node.id === sourceNode.id);
-          const targetStageInsert = stageInserts.find((insert) => insert.node.id === targetNode.id);
-
-          if (sourceStageInsert && targetStageInsert) {
-            await db.insert(stageLinks).values({
-              funnelId: input.funnelId,
-              fromStageId: sourceStageInsert.stageId,
-              toStageId: targetStageInsert.stageId,
-            });
-          }
-        }
-      }
-
-      // Revalidate the path to update the UI
-      revalidatePath(`/project/${existingFunnel.projectId}/funnels`);
-
-      return { success: true };
-    } catch (error) {
-      console.error('[saveFlow]:', error);
+    const funnel = await db.query.funnels.findFirst({ where: eq(funnels.id, input.funnelId) });
+    if (!funnel) return fail({ message: 'Funnel not found', status: 404 });
+    const active = await db.query.simulations.findFirst({
+      where: and(eq(simulations.funnelId, input.funnelId), eq(simulations.status, 'processing')),
+    });
+    if (active)
       return fail({
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 500,
+        message: 'Wait for the active simulation or cancel it before editing this funnel.',
+        status: 409,
+      });
+    const start = input.nodes.find((node) => node.type === 'start');
+    const end = input.nodes.find((node) => node.type === 'end');
+    if (!start || !end)
+      return fail({ message: 'The funnel needs Start and End nodes.', status: 400 });
+    const nodes = z
+      .array(stageNodeSchema)
+      .min(1)
+      .max(20)
+      .parse(input.nodes.filter((node) => node.type === 'tags'));
+    if (nodes.reduce((count, node) => count + node.data.options.length, 0) > 60)
+      return fail({ message: 'A funnel can contain at most 60 content items.', status: 400 });
+    if (new Set(nodes.map((node) => node.id)).size !== nodes.length)
+      return fail({ message: 'Stage IDs must be unique.', status: 400 });
+    const graphLinks = [
+      ...new Map(
+        input.edges
+          .filter(
+            (edge) =>
+              nodes.some((node) => node.id === edge.source) &&
+              nodes.some((node) => node.id === edge.target)
+          )
+          .map((edge) => [edge.source + ':' + edge.target, { from: edge.source, to: edge.target }])
+      ).values(),
+    ];
+    let root: string;
+    try {
+      root = getStartingStage(
+        nodes.map((node) => node.id),
+        graphLinks
+      );
+    } catch (error) {
+      return fail({
+        message: error instanceof Error ? error.message : 'Invalid funnel',
+        status: 400,
       });
     }
+    const startEdges = input.edges.filter((edge) => edge.source === start.id);
+    if (startEdges.length !== 1 || startEdges[0].target !== root)
+      return fail({ message: 'Connect Start to the first stage.', status: 400 });
+    const existingStages = await db
+      .select()
+      .from(stages)
+      .where(eq(stages.funnelId, input.funnelId));
+    const existingIds = existingStages.map((stage) => stage.id);
+    const existingItems = existingIds.length
+      ? await db.select().from(stageItems).where(inArray(stageItems.stageId, existingIds))
+      : [];
+    const idMap = new Map(
+      nodes.map((node) => [
+        node.id,
+        existingIds.includes(node.originalId ?? node.id)
+          ? (node.originalId ?? node.id)
+          : generateId({ length: ID_LENGTH, prefix: 'stg-' }),
+      ])
+    );
+    const stageRows = nodes.map((node) => ({
+      id: idMap.get(node.id)!,
+      funnelId: input.funnelId,
+      name: node.data.name,
+      description: node.data.description ?? null,
+    }));
+    const itemRows = nodes.flatMap((node) =>
+      node.data.options.map((option) => ({
+        id: existingItems.some(
+          (item) => item.id === option.originalId && item.stageId === idMap.get(node.id)
+        )
+          ? option.originalId!
+          : generateId({ length: ID_LENGTH, prefix: 'sti-' }),
+        stageId: idMap.get(node.id)!,
+        name: option.option.name,
+        description: option.option.description ?? null,
+        type: option.option.type,
+        content: option.option.content,
+      }))
+    );
+    const removedStages = existingIds.filter((id) => !stageRows.some((stage) => stage.id === id));
+    const removedItems = existingItems
+      .map((item) => item.id)
+      .filter((id) => !itemRows.some((item) => item.id === id));
+    const linkRows = graphLinks.map((link) => ({
+      funnelId: input.funnelId,
+      fromStageId: idMap.get(link.from)!,
+      toStageId: idMap.get(link.to)!,
+    }));
+    await db.batch([
+      db.delete(stageLinks).where(eq(stageLinks.funnelId, input.funnelId)),
+      ...(removedItems.length
+        ? [db.delete(stageItems).where(inArray(stageItems.id, removedItems))]
+        : []),
+      ...(removedStages.length ? [db.delete(stages).where(inArray(stages.id, removedStages))] : []),
+      ...chunks(stageRows, 5).map((values) =>
+        db
+          .insert(stages)
+          .values(values)
+          .onConflictDoUpdate({
+            target: stages.id,
+            set: {
+              name: sql`excluded.name`,
+              description: sql`excluded.description`,
+              updatedAt: new Date(),
+            },
+          })
+      ),
+      ...chunks(itemRows, 5).map((values) =>
+        db
+          .insert(stageItems)
+          .values(values)
+          .onConflictDoUpdate({
+            target: stageItems.id,
+            set: {
+              name: sql`excluded.name`,
+              description: sql`excluded.description`,
+              type: sql`excluded.stage_item_type`,
+              content: sql`excluded.content`,
+              updatedAt: new Date(),
+            },
+          })
+      ),
+      ...chunks(linkRows, 5).map((values) => db.insert(stageLinks).values(values)),
+      db.update(funnels).set({ updatedAt: new Date() }).where(eq(funnels.id, input.funnelId)),
+    ]);
+    revalidatePath(`/project/${funnel.projectId}/funnels`);
+    return { success: true };
   },
 });
 

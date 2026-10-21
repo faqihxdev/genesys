@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "genesys",
+  "account_id": "679db391b52ecfbc45ce4af5a4c11256",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-21",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "genesys",
+      "database_id": "533d7b09-c766-497c-84fe-93472e1126e7",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "queues": { "producers": [{ "binding": "SIMULATION_QUEUE", "queue": "genesys-simulations" }] },
+  "vars": { "APP_ORIGIN": "https://genesys.utf.sh" },
+  "routes": [{ "pattern": "genesys.utf.sh", "custom_domain": true }],
+  "observability": { "enabled": true },
+}

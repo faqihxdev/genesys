@@ -27,7 +27,7 @@ const signUpSchema = z
   .object({
     email: z.string().email('Please enter a valid email'),
     inviteCode: z.string().min(6, 'Please enter a valid invite code'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z.string().min(10, 'Password must be at least 10 characters'),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
